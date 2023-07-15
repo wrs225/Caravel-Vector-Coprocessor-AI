@@ -1,0 +1,53 @@
+**You:**
+
+
+Please write test cases for a 32-bit floating point adding and subtracting unit. Write a python file and define a function for each category of tests. In each function, create a list which contains lists of test cases where the first two elements are the inputs, the third element is 0 for addition or 1 for subtraction, and the last element is the result. Assume the adding and subtracting unit class is called fp_addsub and is defined elsewhere.
+------------------
+**ChatGPT:**
+
+
+Certainly! Here's an example of a Python file with test cases for a 32-bit floating point adding and subtracting unit. Each category of tests is defined as a separate function, and a list of test cases is created within each function. The test cases include inputs, operation type (0 for addition, 1 for subtraction), and the expected result.
+
+python
+Copy code
+from fp_addsub import FloatingPointAddSub  # Assuming the class name is FloatingPointAddSub
+
+def test_addition():
+    test_cases = [
+        # Input1, Input2, Operation Type, Expected Result
+        [1.5, 2.5, 0, 4.0],
+        [0.0, 0.0, 0, 0.0],
+        [-3.2, 1.7, 0, -1.5],
+        [100.123, -50.321, 0, 49.802],
+        [10.0, 0.0, 0, 10.0],
+    ]
+
+    for test in test_cases:
+        input1, input2, op_type, expected_result = test
+        result = FloatingPointAddSub.add(input1, input2)
+        assert result == expected_result, f"Failed for inputs: {input1}, {input2}"
+
+def test_subtraction():
+    test_cases = [
+        # Input1, Input2, Operation Type, Expected Result
+        [5.0, 2.0, 1, 3.0],
+        [0.0, 0.0, 1, 0.0],
+        [-3.2, -1.7, 1, -1.5],
+        [100.123, 50.321, 1, 49.802],
+        [10.0, 10.0, 1, 0.0],
+    ]
+
+    for test in test_cases:
+        input1, input2, op_type, expected_result = test
+        result = FloatingPointAddSub.subtract(input1, input2)
+        assert result == expected_result, f"Failed for inputs: {input1}, {input2}"
+
+# Run the test functions
+test_addition()
+test_subtraction()
+
+
+In this example, the FloatingPointAddSub class is assumed to have add() and subtract() methods that perform the respective operations. The test cases are defined within the test_addition() and test_subtraction() functions, and assertions are used to validate the results.
+
+Note that you will need to define the FloatingPointAddSub class and its methods separately in the fp_addsub.py file or import it from an existing module.
+------------------

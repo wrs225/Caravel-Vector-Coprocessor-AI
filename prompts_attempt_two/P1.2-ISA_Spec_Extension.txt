@@ -1,0 +1,80 @@
+USER:
+I have the following ISA for a vector coprocessor:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x0	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x1	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x2	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x3	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x4	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VDOT	0x5	Sdest	Vsrc1	Vsrc2	Compute the dot product of two vectors. Vsrc1 . Vsrc2 -> Sdest.
+VSMUL	0x6	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x7	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x8	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x9	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0xA	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0xB	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0xC	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0xD	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0xE	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0xF	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+
+Can you please make the opcode 5 bits and add the following instructions:
+-An instruction for predicate register greater than 
+-Add Floating point subtraction
+-Predicate XOR, OR, and AND
+
+GPT4:
+Sure, I can help with that. Here's how you might modify your ISA to include the new instructions:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VDOT	0x05	Sdest	Vsrc1	Vsrc2	Compute the dot product of two vectors. Vsrc1 . Vsrc2 -> Sdest.
+VSMUL	0x06	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x07	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x08	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x09	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0C	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0F	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x10	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x11	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPXOR	0x12	Pdest	Psrc1	Psrc2	Perform bitwise XOR operation on two predicate registers. Psrc1 XOR Psrc2 -> Pdest.
+VPOR	0x13	Pdest	Psrc1	Psrc2	Perform bitwise OR operation on two predicate registers. Psrc1 OR Psrc2 -> Pdest.
+VPAND	0x14	Pdest	Psrc1	Psrc2	Perform bitwise AND operation on two predicate registers. Psrc1 AND Psrc2 -> Pdest.
+
+Note that the opcode has been extended to 5 bits to accommodate the new instructions. The new instructions have been assigned opcodes 0x10 through 0x14.
+
+USER:
+In hindsight, a dot product unit does not make sense because it cannot be computed in one cycle. Please take it out of the ISA.
+
+GPT4:
+Sure, I understand. Here's your updated ISA without the VDOT instruction:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPXOR	0x11	Pdest	Psrc1	Psrc2	Perform bitwise XOR operation on two predicate registers. Psrc1 XOR Psrc2 -> Pdest.
+VPOR	0x12	Pdest	Psrc1	Psrc2	Perform bitwise OR operation on two predicate registers. Psrc1 OR Psrc2 -> Pdest.
+VPAND	0x13	Pdest	Psrc1	Psrc2	Perform bitwise AND operation on two predicate registers. Psrc1 AND Psrc2 -> Pdest.
+
+The opcode remains 5 bits, and the new instructions have been assigned opcodes 0x0F through 0x13.

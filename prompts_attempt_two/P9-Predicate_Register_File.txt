@@ -1,0 +1,91 @@
+USER:
+Design the following modules using SystemVerilog:
+Predicate Register File: This is a set of registers for storing predicate data. This module will have 32 bit registers of 32 elements each being 1 bit. There will be a read and write port on this register file. The read port will have 2 5-bit address ports to index into a vector and element in the vector. The write port will have a write enable and 2 5-bit address ports to select the write register.
+
+GPT4:
+Sure, here is a simple SystemVerilog design for the Predicate Register File.
+
+verilog
+
+module Predicate_Register_File
+    #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 1, NUM_REGISTERS = 32)
+    (
+        input logic clk, reset,
+        input logic [ADDR_WIDTH-1:0] read_addr1, read_addr2, write_addr1, write_addr2,
+        input logic write_enable,
+        output logic [DATA_WIDTH-1:0] data_out1, data_out2,
+        input logic [DATA_WIDTH-1:0] data_in
+    );
+
+    // Declare register file
+    logic [DATA_WIDTH-1:0] register_file [0:NUM_REGISTERS-1][0:NUM_REGISTERS-1];
+
+    // Read operation
+    always_comb begin
+        data_out1 = register_file[read_addr1][read_addr2];
+        data_out2 = register_file[read_addr1][read_addr2];
+    end
+
+    // Write operation
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            for (int i = 0; i < NUM_REGISTERS; i++) 
+                for (int j = 0; j < NUM_REGISTERS; j++)
+                    register_file[i][j] <= 0;
+        end
+        else if (write_enable) begin
+            register_file[write_addr1][write_addr2] <= data_in;
+        end
+    end
+endmodule
+
+In this module:
+
+    register_file is the 2D array of registers with each register is of size 1 bit.
+    There are two address lines read_addr1, read_addr2, write_addr1, write_addr2 of size 5-bits for read and write operations.
+    data_in is the input data for the write operation and data_out1, data_out2 are the output data for the read operation.
+    The read operation is combinational and simply outputs the values at the selected addresses.
+    The write operation is synchronous and only writes to the selected register when write_enable is asserted.
+    During the reset, all the registers are cleared to zero.
+
+USER:
+You only need one output port
+
+GPT4:
+If you only need one output port, you can modify the design as follows:
+
+verilog
+
+module Predicate_Register_File
+    #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 1, NUM_REGISTERS = 32)
+    (
+        input logic clk, reset,
+        input logic [ADDR_WIDTH-1:0] read_addr1, read_addr2, 
+        input logic [ADDR_WIDTH-1:0] write_addr1, write_addr2,
+        input logic write_enable,
+        output logic [DATA_WIDTH-1:0] data_out,
+        input logic [DATA_WIDTH-1:0] data_in
+    );
+
+    // Declare register file
+    logic [DATA_WIDTH-1:0] register_file [0:NUM_REGISTERS-1][0:NUM_REGISTERS-1];
+
+    // Read operation
+    always_comb begin
+        data_out = register_file[read_addr1][read_addr2];
+    end
+
+    // Write operation
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            for (int i = 0; i < NUM_REGISTERS; i++) 
+                for (int j = 0; j < NUM_REGISTERS; j++)
+                    register_file[i][j] <= 0;
+        end
+        else if (write_enable) begin
+            register_file[write_addr1][write_addr2] <= data_in;
+        end
+    end
+endmodule
+
+In this module, there is only one output port, data_out, that is connected to the selected register in the register_file based on the addresses read_addr1 and read_addr2. The rest of the module's behavior is unchanged.

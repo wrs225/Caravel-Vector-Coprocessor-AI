@@ -1,0 +1,12 @@
+USER:
+I am making a vector coprocessor. Create a module with a decoder which has the following interface:
+-32 bit instruction input
+-5 bit input crossbar input output
+-5 bit input crossbar output output
+-5 bit output crossbar input output
+-5 bit output crossbar output output
+-1 bit floating point adder/ subtractor select output
+-1 bit integer adder/subtractor select output
+-2, 10 bit register file address select output
+-2, 5 bit scalar register file address select output
+-2, 5 bit predicate register file address select output

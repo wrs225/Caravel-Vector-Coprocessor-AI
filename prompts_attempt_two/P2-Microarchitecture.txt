@@ -1,0 +1,175 @@
+USER:
+I am trying to make a vector coprocessor with the following ISA:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPXOR	0x11	Pdest	Psrc1	Psrc2	Perform bitwise XOR operation on two predicate registers. Psrc1 XOR Psrc2 -> Pdest.
+VPOR	0x12	Pdest	Psrc1	Psrc2	Perform bitwise OR operation on two predicate registers. Psrc1 OR Psrc2 -> Pdest.
+VPAND	0x13	Pdest	Psrc1	Psrc2	Perform bitwise AND operation on two predicate registers. Psrc1 AND Psrc2 -> Pdest.
+
+Can you please give me an idea of some of the functional blocks I will need?
+
+GPT4:
+Designing a vector coprocessor involves several functional blocks. Here are some of the key components you would need:
+
+    Instruction Fetch and Decode Unit: This unit fetches instructions from the memory and decodes them to determine the operation to be performed. It also extracts the operands for the operation.
+
+    Vector Register File: This is a large set of registers that can hold vector data. The number of registers and the size of each register (i.e., the number of elements it can hold) will depend on your specific requirements.
+
+    Scalar Register File: This is a set of registers that can hold scalar data. These are used for operations that involve scalar operands.
+
+    Predicate Register File: This is a set of registers that can hold predicate data. These are used for operations that involve predicate operands.
+
+    Memory Interface: This unit handles the loading and storing of vectors from/to memory. It needs to be able to handle the VLOAD and VSTORE instructions.
+
+    Arithmetic Logic Unit (ALU): This unit performs the actual computations. It needs to be able to handle all the arithmetic and logical operations defined in your ISA, including addition, subtraction, multiplication, AND, OR, XOR, etc. You might need separate ALUs for integer and floating-point operations, or a single ALU that can handle both.
+
+    Scalar Operations Unit: This unit handles operations that involve scalar operands, such as VSMUL and VSADD.
+
+    Control Unit: This unit controls the overall operation of the coprocessor. It determines the sequence of operations to be performed based on the decoded instructions and the state of the coprocessor.
+
+    Pipeline Registers: Depending on the complexity of your design, you might need pipeline registers to hold intermediate results between stages of your pipeline.
+
+    Data Path: This is the network of buses and multiplexers that connect all the other components and allow data to be moved around the coprocessor.
+
+    Predicate Operations Unit: This unit handles operations that involve predicate operands, such as VPSETZ, VPSETN, VPSET, VPGT, VPXOR, VPOR, and VPAND.
+
+Remember, the design of these blocks will depend on the specific requirements of your system, such as the maximum vector length, the number of vector registers, the number of scalar registers, the number of predicate registers, the precision of the data, the memory bandwidth, etc.
+
+USER:
+I think I want the following functional units in my design:
+Integer Adder/Subtractor,
+Integer Multiplier,
+Floating Point Adder/Subtractor,
+Floating Point Multiplier,
+Bitwise operation unit
+Comparison unit for predicate operations,
+Muxes
+Vector Register File
+Predicate Reigster File
+Scalar Register FIle
+Control Decoder
+Instruction Counter
+Wishbone Bus Interface Unit
+Queues
+
+
+GPT4:
+That's a good list of functional units for your vector coprocessor design. Here's a brief description of each:
+
+    Integer Adder/Subtractor: This unit will handle the addition and subtraction of integer vectors (VADD, VSUB).
+
+    Integer Multiplier: This unit will handle the multiplication of integer vectors (VMUL).
+
+    Floating Point Adder/Subtractor: This unit will handle the addition and subtraction of floating-point vectors (VFADD, VFSUB).
+
+    Floating Point Multiplier: This unit will handle the multiplication of floating-point vectors (VFMUL).
+
+    Bitwise Operation Unit: This unit will handle bitwise operations on integer vectors (VAND, VOR, VXOR) and predicate registers (VPAND, VPOR, VPXOR).
+
+    Comparison Unit for Predicate Operations: This unit will handle comparison operations that set predicate registers (VPSETZ, VPSETN, VPGT).
+
+    Muxes (Multiplexers): These are used to select between different data inputs based on control signals. They are essential for routing data within the coprocessor.
+
+    Vector Register File: This is a set of registers for storing vector data.
+
+    Predicate Register File: This is a set of registers for storing predicate data.
+
+    Scalar Register File: This is a set of registers for storing scalar data.
+
+    Control Decoder: This unit decodes the instruction opcode and generates the control signals that drive the other units.
+
+    Instruction Counter: This unit keeps track of the current instruction being executed. It is typically incremented after each instruction is executed, but can also be modified by control flow instructions (if your ISA includes them).
+
+    Wishbone Bus Interface Unit: This unit interfaces with the Wishbone bus, which is a standard bus protocol for interconnecting different parts of a system-on-chip. It will handle the loading and storing of vectors from/to memory (VLOAD, VSTORE).
+
+    Queues: These are used to hold data that is waiting to be processed. They can be useful for managing the flow of data between different stages of your pipeline, especially if different stages take different amounts of time.
+
+Remember, the design of these units will depend on the specific requirements of your system, such as the maximum vector length, the number of vector registers, the number of scalar registers, the number of predicate registers, the precision of the data, the memory bandwidth, etc.
+
+USER:
+Can you please describe a specification for each one of these blocks? 
+
+GPT4:
+Sure, here's a more detailed specification for each of the functional units you mentioned:
+
+    Integer Adder/Subtractor: This unit takes two integer vectors as input and produces an output vector. It should have two modes of operation: addition and subtraction, selectable by a control signal. The size of the vectors (i.e., the number of elements) will be determined by the maximum vector length in your system.
+
+    Integer Multiplier: This unit takes two integer vectors as input and produces an output vector. The size of the vectors will be determined by the maximum vector length in your system.
+
+    Floating Point Adder/Subtractor: This unit takes two floating-point vectors as input and produces an output vector. It should have two modes of operation: addition and subtraction, selectable by a control signal. The size of the vectors and the precision of the floating-point numbers will be determined by your system requirements.
+
+    Floating Point Multiplier: This unit takes two floating-point vectors as input and produces an output vector. The size of the vectors and the precision of the floating-point numbers will be determined by your system requirements.
+
+    Bitwise Operation Unit: This unit takes two integer vectors or two predicate registers as input and produces an output vector or predicate register. It should have several modes of operation: AND, OR, XOR, selectable by control signals. The size of the vectors or predicate registers will be determined by your system requirements.
+
+    Comparison Unit for Predicate Operations: This unit takes two scalar inputs and produces a predicate output. It should have several modes of operation: set if zero, set if non-zero, set if greater than, selectable by control signals.
+
+    Muxes (Multiplexers): These units take several input signals and select one to output based on control signals. The number of inputs and the size of the signals will depend on where in your system the multiplexer is used.
+
+    Vector Register File: This is a set of registers for storing vector data. The number of registers and the size of each register (i.e., the number of elements) will be determined by your system requirements.
+
+    Predicate Register File: This is a set of registers for storing predicate data. The number of registers and the size of each register (i.e., the number of elements) will be determined by your system requirements.
+
+    Scalar Register File: This is a set of registers for storing scalar data. The number of registers will be determined by your system requirements.
+
+    Control Decoder: This unit takes an instruction opcode as input and produces a set of control signals as output. The number of control signals will depend on the number of different operations your system can perform.
+
+    Instruction Counter: This unit keeps track of the current instruction being executed. It should be able to increment and also to be set to a specific value (for control flow instructions, if your ISA includes them).
+
+    Wishbone Bus Interface Unit: This unit interfaces with the Wishbone bus. It should be able to read and write data from/to the bus, and to generate the appropriate control signals for the bus protocol.
+
+    Queues: These units hold data that is waiting to be processed. The size of the queues (i.e., the number of elements they can hold) will depend on the maximum latency of your pipeline stages.
+
+Remember, these are just general specifications. The exact specifications will depend on the specific requirements of your system.
+
+USER:
+Each functional unit only takes one element from each vector at a time, the counter is just an adjustable counter with an enable,
+
+GPT4:
+Thanks for the clarification. If each functional unit operates on one element at a time, then your design is more of a SIMD (Single Instruction, Multiple Data) architecture, where a single operation is applied to multiple data points in a sequential manner. Here's a more detailed specification for each of the functional units in this context:
+
+    Integer Adder/Subtractor: This unit takes two integer inputs and produces an integer output. It should have two modes of operation: addition and subtraction, selectable by a control signal.
+
+    Integer Multiplier: This unit takes two integer inputs and produces an integer output.
+
+    Floating Point Adder/Subtractor: This unit takes two floating-point inputs and produces a floating-point output. It should have two modes of operation: addition and subtraction, selectable by a control signal.
+
+    Floating Point Multiplier: This unit takes two floating-point inputs and produces a floating-point output.
+
+    Bitwise Operation Unit: This unit takes two integer inputs or two predicate inputs and produces an integer or predicate output. It should have several modes of operation: AND, OR, XOR, selectable by control signals.
+
+    Comparison Unit for Predicate Operations: This unit takes two scalar inputs and produces a predicate output. It should have several modes of operation: set if zero, set if non-zero, set if greater than, selectable by control signals.
+
+    Muxes (Multiplexers): These units take several input signals and select one to output based on control signals. The number of inputs and the size of the signals will depend on where in your system the multiplexer is used.
+
+    Vector Register File: This is a set of registers for storing vector data. The number of registers and the size of each register (i.e., the number of elements) will be determined by your system requirements.
+
+    Predicate Register File: This is a set of registers for storing predicate data. The number of registers and the size of each register (i.e., the number of elements) will be determined by your system requirements.
+
+    Scalar Register File: This is a set of registers for storing scalar data. The number of registers will be determined by your system requirements.
+
+    Control Decoder: This unit takes an instruction opcode as input and produces a set of control signals as output. The number of control signals will depend on the number of different operations your system can perform.
+
+    Instruction Counter: This unit keeps track of the current instruction being executed. It should be able to increment and also to be set to a specific value (for control flow instructions, if your ISA includes them). It should also have an enable signal to control when it increments.
+
+    Wishbone Bus Interface Unit: This unit interfaces with the Wishbone bus. It should be able to read and write data from/to the bus, and to generate the appropriate control signals for the bus protocol.
+
+    Queues: These units hold data that is waiting to be processed. The size of the queues (i.e., the number of elements they can hold) will depend on the maximum latency of your pipeline stages.
+
+Remember, these are just general specifications. The exact specifications will depend on the specific requirements of your system.

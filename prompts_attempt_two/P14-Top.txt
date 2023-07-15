@@ -1,0 +1,40 @@
+I have updated the decoder interface to add the output port:
+output logic [4:0] vector_reg_write_select
+
+Next, instantiate this module:
+module Scalar_Register_File
+#(
+  parameter REG_DEPTH = 32,
+  parameter REG_WIDTH = 32,
+  parameter ADDR_WIDTH = 5
+)
+(
+  input wire clk, 
+  input wire [ADDR_WIDTH-1:0] read_address, 
+  input wire [ADDR_WIDTH-1:0] write_address, 
+  input wire [REG_WIDTH-1:0] write_data, 
+  input wire write_enable, 
+  output wire [REG_WIDTH-1:0] read_data
+);
+
+  // Declare the register file
+  reg [REG_WIDTH-1:0] register_file [0:REG_DEPTH-1];
+
+  // Write Operation
+  always @(posedge clk) begin
+    if (write_enable) begin
+      register_file[write_address] <= write_data;
+    end
+  end
+
+  // Read Operation
+  assign read_data = register_file[read_address];
+
+endmodule
+Create two new 32 bit wires called wb_addr and wb_data and connect them to the load_recv_msg
+Connect the write_enable of the decoder to the wEnable of this module
+Slice off the 10 MSB of the 
+Connect rAddr1_1 of the register file to reg_file_addr1 of the decoder and connect rAddr1_2 to reg_file_addr2
+Connect rAddr2_1 and rAddr2_2 to the counter wire of the top level module
+Connect wAddr1 to the vector_reg_write_select of the decoder
+Connect wAddr2 to the counter wire 

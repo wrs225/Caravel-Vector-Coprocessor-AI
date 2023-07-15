@@ -1,0 +1,139 @@
+
+USER:
+I am creating a vector coprocessor with the following ISA:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPXOR	0x11	Pdest	Psrc1	Psrc2	Perform bitwise XOR operation on two predicate registers. Psrc1 XOR Psrc2 -> Pdest.
+VPOR	0x12	Pdest	Psrc1	Psrc2	Perform bitwise OR operation on two predicate registers. Psrc1 OR Psrc2 -> Pdest.
+VPAND	0x13	Pdest	Psrc1	Psrc2	Perform bitwise AND operation on two predicate registers. Psrc1 AND Psrc2 -> Pdest.
+
+The opcode remains 5 bits, and the new instructions have been assigned opcodes 0x0F through 0x13.
+
+
+and I have the following blocks implemented:
+module FPAddSubUnit(
+    input wire [63:0] recv_msg,
+    input wire recv_val,
+    output wire recv_rdy,
+    output wire [31:0] send_msg,
+    output wire send_val,
+    input wire send_rdy,
+    input wire operation // 0 for addition, 1 for subtraction
+);
+
+module AddSubUnit(
+    input wire [63:0] recv_msg,
+    input wire recv_val,
+    output wire recv_rdy,
+    output wire [31:0] send_msg,
+    output wire send_val,
+    input wire send_rdy,
+    input wire operation // 0 for addition, 1 for subtraction
+);
+
+module FPMultiplierUnit (
+    input logic [63:0] recv_msg,
+    input logic recv_val,
+    output logic recv_rdy,
+    output logic [31:0] send_msg,
+    output logic send_val,
+    input logic send_rdy
+);
+
+module MultiplierUnit (
+    input logic [63:0] recv_msg,
+    input logic recv_val,
+    output logic recv_rdy,
+    output logic [31:0] send_msg,
+    output logic send_val,
+    input logic send_rdy
+);
+
+module BitwiseOperationUnit (
+    input wire [63:0] recv_msg,
+    input wire recv_val,
+    output wire [31:0] send_msg,
+    output wire send_val,
+    input wire recv_rdy,
+    output wire send_rdy,
+    input wire [1:0] op_select
+);
+
+module VectorRegisterFile #(
+    parameter NUM_READ_PORTS = 2,
+    parameter NUM_WRITE_PORTS = 2
+) (
+    input wire clk,
+    input wire reset,
+    input wire [31:0] recv_msg[NUM_WRITE_PORTS-1:0],
+    input wire [9:0] recv_index[NUM_WRITE_PORTS-1:0], // 10 bits to address 32x32 elements
+    input wire recv_val[NUM_WRITE_PORTS-1:0],
+    output wire recv_rdy[NUM_WRITE_PORTS-1:0],
+    output wire [31:0] send_msg[NUM_READ_PORTS-1:0],
+    output wire [9:0] send_index[NUM_READ_PORTS-1:0], // 10 bits to address 32x32 elements
+    output wire send_val[NUM_READ_PORTS-1:0],
+    output wire send_rdy[NUM_READ_PORTS-1:0]
+);
+
+module PredicateRegisterFile #(parameter WIDTH=32, DEPTH=32)
+(
+    input logic clk,
+    input logic [WIDTH-1:0] recv_msg,
+    input logic [4:0] recv_idx,
+    input logic recv_val,
+    output logic recv_rdy,
+
+    output logic [WIDTH-1:0] send_msg,
+    output logic [4:0] send_idx,
+    output logic send_val,
+    input logic send_rdy
+);
+
+module crossbar_switch #(
+    parameter WIDTH = 32,
+    parameter NUM_INPUTS = 32,
+    parameter NUM_OUTPUTS = 32
+)(
+    input wire [WIDTH-1:0] recv_msg[NUM_INPUTS-1:0],
+    input wire [4:0] recv_src_idx[NUM_INPUTS-1:0],
+    input wire [4:0] recv_dst_idx[NUM_INPUTS-1:0],
+    input wire recv_val[NUM_INPUTS-1:0],
+    input wire recv_rdy[NUM_INPUTS-1:0],
+    output wire [WIDTH-1:0] send_msg[NUM_OUTPUTS-1:0],
+    output wire [4:0] send_src_idx[NUM_OUTPUTS-1:0],
+    output wire [4:0] send_dst_idx[NUM_OUTPUTS-1:0],
+    output wire send_val[NUM_OUTPUTS-1:0],
+    output wire send_rdy[NUM_OUTPUTS-1:0]
+);
+
+module ScalarRegisterFile #(
+    parameter NUM_PORTS = 1
+) (
+    input logic clk,
+    input logic [31:0] recv_msg,
+    input logic [4:0] recv_idx,
+    input logic recv_val,
+    output logic recv_rdy,
+    input logic [4:0] send_idx [NUM_PORTS-1:0],
+    output logic [31:0] send_msg [NUM_PORTS-1:0],
+    output logic send_val [NUM_PORTS-1:0],
+    input logic send_rdy [NUM_PORTS-1:0]
+);
+
+Can you please connect all of these modules together and add a stub for a control unit? 

@@ -1,0 +1,38 @@
+USER:
+Design the following modules using SystemVerilog:    
+    Comparison Unit for Predicate Operations: This unit takes two scalar inputs and produces a predicate output. It should have several modes of operation: set if zero, set if non-zero, set if greater than, selectable by control signals.
+
+GPT4:
+Sure, here is a simple design for a comparison unit for predicate operations using SystemVerilog. This module takes two 32-bit inputs and produces a 1-bit predicate output. It has several modes of operation: set if zero, set if non-zero, set if greater than, selectable by control signals.
+
+systemverilog
+
+module comparison_unit #(parameter WIDTH = 32)(
+    input logic [WIDTH-1:0] in1,
+    input logic [WIDTH-1:0] in2,
+    input logic [1:0] control,
+    output logic predicate
+);
+
+    always_comb begin
+        case(control)
+            2'b00: predicate = (in1 == in2); // Set if equal
+            2'b01: predicate = (in1 != in2); // Set if not equal
+            2'b10: predicate = (in1 > in2);  // Set if greater than
+            2'b11: predicate = (in1 < in2);  // Set if less than
+            default: predicate = 0;
+        endcase
+    end
+
+endmodule
+
+In this module, the control signal is a 2-bit value that selects the mode of operation. The modes are as follows:
+
+    00: Set if equal
+    01: Set if not equal
+    10: Set if greater than
+    11: Set if less than
+
+The always_comb block ensures that the output predicate is always updated whenever any of the inputs change. The case statement inside the always_comb block selects the operation to perform based on the value of the control signal.
+
+Please note that this is a simple design and does not include any clock signal or reset signal. Depending on your specific requirements, you might need to modify this design to include these signals and to handle other corner cases.

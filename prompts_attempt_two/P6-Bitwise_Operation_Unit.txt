@@ -1,0 +1,39 @@
+USER:
+Design the following modules using SystemVerilog:     
+   Bitwise Operation Unit: This unit takes two integer inputs or two predicate inputs and produces an integer or predicate output. It should have several modes of operation: AND, OR, XOR, selectable by control signals.
+
+GPT4:
+In SystemVerilog, the design of a bitwise operation unit can be achieved using a module that takes two 32-bit inputs, a 2-bit control input to select the operation, and outputs a 32-bit result.
+
+Here is a design for the requested Bitwise Operation Unit:
+
+systemverilog
+
+module BitwiseOperationUnit(
+    input [31:0] operandA, // first input
+    input [31:0] operandB, // second input
+    input [1:0] control, // control signals
+    output [31:0] result // result
+);
+
+    always_comb begin
+        case(control)
+            2'b00: result = operandA & operandB; // AND operation
+            2'b01: result = operandA | operandB; // OR operation
+            2'b10: result = operandA ^ operandB; // XOR operation
+            default: result = 32'b0; // Default case, result is zero
+        endcase
+    end
+
+endmodule
+
+This module performs bitwise operations on two 32-bit integers (operandA and operandB). The operation performed is selected by the control input:
+
+    00: AND
+    01: OR
+    10: XOR
+    other: the output is set to zero.
+
+You can modify the number of bits per operand and control signals as per your needs. For example, if you wish to work with predicate inputs, you might adjust the operand and output bit widths. Also, if you have more modes of operation, you can expand the control signal and add corresponding cases in the case statement.
+
+Remember to test this module thoroughly in a testbench to ensure it works correctly under all conditions.

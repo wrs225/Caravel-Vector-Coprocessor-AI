@@ -1,0 +1,45 @@
+USER:
+Design the following modules using SystemVerilog:   
+   Scalar Register File: This is a set of registers for storing scalar data. his module will have 32 32 bit registers. The read and write ports of this register file will be five bits. It will have an enable on the write port of the register file.
+
+GPT4:
+Certainly, here's a simple SystemVerilog module that implements a scalar register file. This module includes a 32-entry array of 32-bit registers with 5-bit read and write addresses. Note that the write operation only occurs if the write_enable signal is active (i.e., set to 1).
+
+systemverilog
+
+module Scalar_Register_File
+#(
+  parameter REG_DEPTH = 32,
+  parameter REG_WIDTH = 32,
+  parameter ADDR_WIDTH = 5
+)
+(
+  input wire clk, 
+  input wire [ADDR_WIDTH-1:0] read_address, 
+  input wire [ADDR_WIDTH-1:0] write_address, 
+  input wire [REG_WIDTH-1:0] write_data, 
+  input wire write_enable, 
+  output wire [REG_WIDTH-1:0] read_data
+);
+
+  // Declare the register file
+  reg [REG_WIDTH-1:0] register_file [0:REG_DEPTH-1];
+
+  // Write Operation
+  always @(posedge clk) begin
+    if (write_enable) begin
+      register_file[write_address] <= write_data;
+    end
+  end
+
+  // Read Operation
+  assign read_data = register_file[read_address];
+
+endmodule
+
+This module works as follows:
+
+    If the write_enable signal is set to 1, the value from write_data is written into the register_file at the location specified by write_address on every positive edge of the clock signal.
+    The value in register_file at the location specified by read_address is continually driven onto the read_data output.
+
+Note that this module does not handle any potential read-write conflicts (for example, what happens if you're trying to write to an address at the same time you're trying to read from it). Depending on your exact requirements and the larger context in which this module is used, you might need to add extra logic to handle such situations.

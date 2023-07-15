@@ -1,0 +1,72 @@
+USER:
+Please write a queue with the following interface in SystemVerilog. Please parametrize the bit width and depth of the queue:
+Latency Insensitive Interface: 
+ -If the port is an input, it will be called recv. If the port is an output it shall be called send. Examples will be given for recv but can be extended to send 
+ -The interface for one input shall consist of three wires: recv_msg, recv_val, and recv_rdy. 
+ -recv_msg can be any value at any time, but the port should preferably be parametrized by a desired bitwidth. 
+ -recv_val is from an external system. This should only be high if recv_msg contains valid data. This signals to the receiving system that the data is valid. 
+ -recv_rdy signals to the system sending recv_msg that the current system can receive a value. -If both recv_val and recv_rdy are high, process the transaction. 
+ -If a signal is more convenient to convey as an array, define them as an array of wires such as this "input logic [32:0] recv_msg [0:16]"
+
+GPT4:
+Here is a SystemVerilog module that implements a queue with the interface you described. The queue is parameterized by the bit width (WIDTH) and depth (DEPTH). The queue uses a simple FIFO (First In, First Out) strategy for handling data.
+
+systemverilog
+
+module queue #(parameter WIDTH = 8, DEPTH = 16) (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface
+    input logic [WIDTH-1:0] recv_msg,
+    input logic recv_val,
+    output logic recv_rdy,
+
+    // Send interface
+    output logic [WIDTH-1:0] send_msg,
+    output logic send_val,
+    input logic send_rdy
+);
+
+    // Queue storage
+    logic [WIDTH-1:0] queue_storage [0:DEPTH-1];
+    logic [WIDTH-1:0] head, tail;
+    logic empty, full;
+
+    // Update head and tail pointers
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            head <= 0;
+            tail <= 0;
+            empty <= 1;
+            full <= 0;
+        end else begin
+            if (recv_val && recv_rdy && !full) begin
+                queue_storage[tail] <= recv_msg;
+                tail <= tail + 1;
+                empty <= 0;
+            end
+            if (send_val && send_rdy && !empty) begin
+                head <= head + 1;
+                if (head == tail)
+                    empty <= 1;
+            end
+            if (tail - head >= DEPTH)
+                full <= 1;
+            else
+                full <= 0;
+        end
+    end
+
+    // Output the head of the queue
+    assign send_msg = queue_storage[head];
+
+    // Indicate if there is data to send
+    assign send_val = !empty;
+
+    // Indicate if the queue can receive data
+    assign recv_rdy = !full;
+
+endmodule
+
+This module uses a simple circular buffer strategy for the queue. The head and tail pointers keep track of the start and end of the queue, respectively. The empty and full flags indicate whether the queue is empty or full. The queue can accept new data when it is not full, and it has data to send when it is not empty. The send_msg output is always the data at the head of the queue. The send_val output indicates whether there is data to send, and the recv_rdy output indicates whether the queue can accept new data.

@@ -1,0 +1,67 @@
+USER:
+Design the following modules using SystemVerilog:     
+Integer Adder/Subtractor: This unit takes two integer inputs and produces an integer output. It should have two modes of operation: addition and subtraction, selectable by a control signal.
+
+Integer Multiplier: This unit takes two integer inputs and produces an integer output.
+
+GPT4:
+Sure, I can help you design these modules. Here are the SystemVerilog modules for an Integer Adder/Subtractor and an Integer Multiplier.
+
+    Integer Adder/Subtractor:
+
+systemverilog
+
+module AddSub #(parameter WIDTH = 32) (
+    input logic [WIDTH-1:0] A,
+    input logic [WIDTH-1:0] B,
+    input logic AddSub, // 0 for Add, 1 for Subtract
+    output logic [WIDTH-1:0] Result
+);
+    always_comb begin
+        if (AddSub == 0) begin
+            Result = A + B;
+        end else begin
+            Result = A - B;
+        end
+    end
+endmodule
+
+In this module, the AddSub signal is used to select between addition and subtraction. If AddSub is 0, the module adds A and B. If AddSub is 1, the module subtracts B from A. The WIDTH parameter is used to specify the bit width of the inputs and output.
+
+    Integer Multiplier:
+
+systemverilog
+
+module Multiplier #(parameter WIDTH = 32) (
+    input logic [WIDTH-1:0] A,
+    input logic [WIDTH-1:0] B,
+    output logic [2*WIDTH-1:0] Result
+);
+    always_comb begin
+        Result = A * B;
+    end
+endmodule
+
+In this module, the Result is the product of A and B. The WIDTH parameter is used to specify the bit width of the inputs. The output width is 2*WIDTH because the product of two N-bit numbers can be up to 2N bits long.
+
+Please note that these are simple modules and do not include any error checking or handling for overflow/underflow conditions. Depending on your specific requirements, you might need to add additional logic to handle these situations.
+
+USER:
+For the multiplier, if the result overflows just cut off the extra bits, please
+
+GPT4:
+Sure, if you want to limit the output to the same width as the input and simply discard the extra bits in case of overflow, you can modify the multiplier module as follows:
+
+systemverilog
+
+module Multiplier #(parameter WIDTH = 32) (
+    input logic [WIDTH-1:0] A,
+    input logic [WIDTH-1:0] B,
+    output logic [WIDTH-1:0] Result
+);
+    always_comb begin
+        Result = A * B;
+    end
+endmodule
+
+In this version of the module, the Result is the lower WIDTH bits of the product of A and B. If the product is larger than 2^WIDTH - 1, the extra bits will simply be discarded. This is sometimes referred to as "wrap-around" or "modulo" arithmetic. Please note that this can lead to unexpected results if the inputs are large, as the output will not accurately represent the product of the inputs.

@@ -1,0 +1,729 @@
+User
+I have the following verilog file:
+module top_module (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface for load_queue
+    input logic [63:0] load_recv_msg,
+    input logic load_recv_val,
+    output logic load_recv_rdy,
+
+    // Receive interface for instruction_queue
+    input logic [31:0] instruction_recv_msg,
+    input logic instruction_recv_val,
+    output logic instruction_recv_rdy,
+
+    // Send interface for store_queue
+    output logic [31:0] store_send_msg,
+    output logic store_send_val,
+    input logic store_send_rdy
+);
+
+    // Internal signals for send interface of load_queue and instruction_queue
+    logic [63:0] load_send_msg;
+    logic load_send_val;
+    logic load_send_rdy;
+
+    logic [31:0] instruction_send_msg;
+    logic instruction_send_val;
+    logic instruction_send_rdy;
+
+    // Internal signals for receive interface of store_queue
+    logic [31:0] store_recv_msg;
+    logic store_recv_val;
+    logic store_recv_rdy;
+
+    // Internal signals for Decoder
+    logic clock_enable;
+    logic clock_bypass;
+    logic [4:0] vector_reg_write_select;
+    logic [4:0] reg_file_addr1;
+    logic [4:0] reg_file_addr2;
+    logic mux_bit;
+    logic vector_reg_write_bit;
+    logic predicate_reg_write_bit;
+    logic scalar_reg_write_bit;
+    logic vector_reg_load_mux_bit;
+    logic scalar_reg_load_mux_bit;
+    logic [2:0] functional_unit_mux_bit;
+    logic add_subtract_bit;
+    logic load_store_bit;
+    logic [1:0] bitwise_op_select;
+    logic [1:0] predicate_op_select;
+
+    // Internal signals for VectorRegFile
+    logic [31:0] wb_addr;
+    logic [31:0] wb_data;
+    logic [31:0] rData1;
+    logic [31:0] rData2;
+
+    // New wire for functional_unit_output_mux
+    logic [31:0] functional_unit_output_mux;
+
+    // Mux output for VectorRegFile wData
+    logic [31:0] wData_mux_out;
+
+    // Mux outputs for VectorRegFile wAddr1 and wAddr2
+    logic [4:0] wAddr1_mux_out;
+    logic [4:0] wAddr2_mux_out;
+
+    // Instantiate load_queue
+    queue #(.WIDTH(64), .DEPTH(16)) load_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(load_recv_msg),
+        .recv_val(load_recv_val),
+        .recv_rdy(load_recv_rdy),
+        .send_msg(load_send_msg),
+        .send_val(load_send_val),
+        .send_rdy(load_send_rdy)
+    );
+
+    // Instantiate instruction_queue
+    queue #(.WIDTH(32), .DEPTH(16)) instruction_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(instruction_recv_msg),
+        .recv_val(instruction_recv_val),
+        .recv_rdy(instruction_recv_rdy),
+        .send_msg(instruction_send_msg),
+        .send_val(instruction_send_val),
+        .send_rdy(instruction_send_rdy)
+    );
+
+    // Instantiate store_queue
+    queue #(.WIDTH(32), .DEPTH(16)) store_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(store_recv_msg),
+        .recv_val(store_recv_val),
+        .recv_rdy(store_recv_rdy),
+        .send_msg(store_send_msg),
+        .send_val(store_send_val),
+        .send_rdy(store_send_rdy)
+    );
+
+    // Instantiate Decoder
+    Decoder decoder (
+        .instruction(instruction_send_msg),
+        .instruction_valid(instruction_send_val),
+        .reg_file_addr1(reg_file_addr1),
+        .reg_file_addr2(reg_file_addr2),
+        .mux_bit(mux_bit),
+        .vector_reg_write_bit(vector_reg_write_bit),
+        .predicate_reg_write_bit(predicate_reg_write_bit),
+        .scalar_reg_write_bit(scalar_reg_write_bit),
+        .vector_reg_load_mux_bit(vector_reg_load_mux_bit),
+        .scalar_reg_load_mux_bit(scalar_reg_load_mux_bit),
+        .functional_unit_mux_bit(functional_unit_mux_bit),
+        .add_subtract_bit(add_subtract_bit),
+        .load_store_bit(load_store_bit),
+        .clock_enable(clock_enable),
+        .clock_bypass(clock_bypass),
+        .bitwise_op_select(bitwise_op_select),
+        .predicate_op_select(predicate_op_select),
+        .vector_reg_write_select(vector_reg_write_select)
+    );
+
+    // Internal signal for Counter
+    logic [4:0] counter;
+    logic done;
+
+    // Instantiate Counter
+    Counter #(.WIDTH(5), .COUNTER_MAX(2**5-1)) counter_module (
+        .clk(clk),
+        .enable(clock_enable),
+        .reset(reset),
+        .counter(counter),
+        .done(done)
+    );
+
+    // OR the done output with clock_bypass and connect this result to instruction_send_rdy
+    assign instruction_send_rdy = done | clock_bypass;
+
+    // Create new wires for wb_addr and wb_data
+    assign wb_addr = load_recv_msg[63:32];
+    assign wb_data = load_recv_msg[31:0];
+
+    // 2-input mux for VectorRegFile wData
+    assign wData_mux_out = load_store_bit ? wb_data : functional_unit_output_mux;
+
+    // 2-input muxes for VectorRegFile wAddr1 and wAddr2
+    assign wAddr1_mux_out = load_store_bit ? wb_addr[9:5] : vector_reg_write_select;
+    assign wAddr2_mux_out = load_store_bit ? wb_addr[4:0] : counter;
+
+    // Instantiate VectorRegFile
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
+        .clk(clk),
+        .reset_n(~reset),
+        .rAddr1_1(reg_file_addr1),
+        .rAddr2_1(counter),
+        .rData1(rData1),
+        .rAddr1_2(reg_file_addr2),
+        .rAddr2_2(counter),
+        .rData2(rData2),
+        .wAddr1(wAddr1_mux_out),
+        .wAddr2(wAddr2_mux_out),
+        .wData(wData_mux_out),
+        .wEnable(vector_reg_write_bit)
+    );
+
+endmodule
+Instantiate this module in the top level module:
+module ALU #(parameter WIDTH = 32) (
+    input logic [WIDTH-1:0] A,
+    input logic [WIDTH-1:0] B,
+    input logic [WIDTH-1:0] C,
+    input logic AddSub, // 0 for Add, 1 for Subtract
+    input logic muxControl, // 0 for B, 1 for C
+    input logic [2:0] outputControl, // Output mux control
+    input logic [1:0] bitwiseControl, // Control for BitwiseOperationUnit
+    input logic [1:0] compControl, // Control for comparison_unit
+    output logic [WIDTH-1:0] finalResult, // Muxed output
+    output logic predicate
+);
+ChatGPT
+
+It seems you have a design of a module top_module which is a comprehensive module and you want to instantiate another module named ALU in the top-level module. The ALU seems to be an Arithmetic Logic Unit that handles various operations based on control signals. However, I'm not sure how the ALU module relates to your top_module or where it should fit into your design, since the interfaces and the functionality of the two modules seem quite different.
+
+The ALU takes several input signals, including three data inputs A, B, and C, and several control inputs. It then outputs the result of some operation on A, B, and C, controlled by the input control signals.
+
+It seems that you would need to wire up some of the internal signals from the top_module to the inputs and outputs of the ALU. This may require some additional logic to generate the correct control signals for the ALU.
+
+Here's an example instantiation of the ALU module, assuming it should perform operations on rData1 and rData2 from the VectorRegFile and wb_data from the load_queue.
+
+verilog
+
+    ALU #(32) alu (
+        .A(rData1),
+        .B(rData2),
+        .C(wb_data),
+        .AddSub(add_subtract_bit),
+        .muxControl(mux_bit),
+        .outputControl(functional_unit_mux_bit),
+        .bitwiseControl(bitwise_op_select),
+        .compControl(predicate_op_select),
+        .finalResult(functional_unit_output_mux),
+        .predicate(predicate_reg_write_bit)
+    );
+
+Note: The connections between the top_module and the ALU are purely hypothetical, since I don't have the full context of your design. Please adjust the connections to fit your design requirements.
+
+If you want to instantiate the ALU module inside the top_module, simply add the above lines of code to the top_module code.
+
+If you want to instantiate the top_module and ALU inside another higher level module, you would also need to add a similar instantiation for the top_module, providing appropriate connections for its inputs and outputs.
+User
+Please show me and instantiate this module in the top_module and print it in full
+ChatGPT
+
+Sure, here's how you could instantiate the ALU module within your top_module. Note that the actual connections between your top_module and ALU should depend on the context of your design and the semantics of the signals. The example below is a hypothetical connection which might not fit your actual requirement.
+
+verilog
+
+module top_module (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface for load_queue
+    input logic [63:0] load_recv_msg,
+    input logic load_recv_val,
+    output logic load_recv_rdy,
+
+    // Receive interface for instruction_queue
+    input logic [31:0] instruction_recv_msg,
+    input logic instruction_recv_val,
+    output logic instruction_recv_rdy,
+
+    // Send interface for store_queue
+    output logic [31:0] store_send_msg,
+    output logic store_send_val,
+    input logic store_send_rdy
+);
+
+    // ... rest of your top_module internals ...
+
+    // Instantiate VectorRegFile
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
+        .clk(clk),
+        .reset_n(~reset),
+        .rAddr1_1(reg_file_addr1),
+        .rAddr2_1(counter),
+        .rData1(rData1),
+        .rAddr1_2(reg_file_addr2),
+        .rAddr2_2(counter),
+        .rData2(rData2),
+        .wAddr1(wAddr1_mux_out),
+        .wAddr2(wAddr2_mux_out),
+        .wData(wData_mux_out),
+        .wEnable(vector_reg_write_bit)
+    );
+
+    // Instantiate ALU
+    ALU #(32) alu (
+        .A(rData1),
+        .B(rData2),
+        .C(wb_data),
+        .AddSub(add_subtract_bit),
+        .muxControl(mux_bit),
+        .outputControl(functional_unit_mux_bit),
+        .bitwiseControl(bitwise_op_select),
+        .compControl(predicate_op_select),
+        .finalResult(functional_unit_output_mux),
+        .predicate(predicate_reg_write_bit)
+    );
+
+endmodule
+
+Here, the ALU module is instantiated with inputs from the VectorRegFile and the load_queue. The output is assigned to the functional_unit_output_mux signal which is further used in the VectorRegFile. The control signals are sourced from the Decoder. This setup assumes that the ALU is performing operations based on the instructions fetched and decoded by the Decoder and that the results are fed back into the VectorRegFile.
+
+Again, note that these connections might not make sense depending on the actual semantics of your signals and the design requirements.
+User
+Can you please print out the entire module in full so I can see what you have so far?
+ChatGPT
+
+Absolutely, here's the entire top_module with the ALU module instantiated as well:
+
+verilog
+
+module top_module (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface for load_queue
+    input logic [63:0] load_recv_msg,
+    input logic load_recv_val,
+    output logic load_recv_rdy,
+
+    // Receive interface for instruction_queue
+    input logic [31:0] instruction_recv_msg,
+    input logic instruction_recv_val,
+    output logic instruction_recv_rdy,
+
+    // Send interface for store_queue
+    output logic [31:0] store_send_msg,
+    output logic store_send_val,
+    input logic store_send_rdy
+);
+
+    // Internal signals for send interface of load_queue and instruction_queue
+    logic [63:0] load_send_msg;
+    logic load_send_val;
+    logic load_send_rdy;
+
+    logic [31:0] instruction_send_msg;
+    logic instruction_send_val;
+    logic instruction_send_rdy;
+
+    // Internal signals for receive interface of store_queue
+    logic [31:0] store_recv_msg;
+    logic store_recv_val;
+    logic store_recv_rdy;
+
+    // Internal signals for Decoder
+    logic clock_enable;
+    logic clock_bypass;
+    logic [4:0] vector_reg_write_select;
+    logic [4:0] reg_file_addr1;
+    logic [4:0] reg_file_addr2;
+    logic mux_bit;
+    logic vector_reg_write_bit;
+    logic predicate_reg_write_bit;
+    logic scalar_reg_write_bit;
+    logic vector_reg_load_mux_bit;
+    logic scalar_reg_load_mux_bit;
+    logic [2:0] functional_unit_mux_bit;
+    logic add_subtract_bit;
+    logic load_store_bit;
+    logic [1:0] bitwise_op_select;
+    logic [1:0] predicate_op_select;
+
+    // Internal signals for VectorRegFile
+    logic [31:0] wb_addr;
+    logic [31:0] wb_data;
+    logic [31:0] rData1;
+    logic [31:0] rData2;
+
+    // New wire for functional_unit_output_mux
+    logic [31:0] functional_unit_output_mux;
+
+    // Mux output for VectorRegFile wData
+    logic [31:0] wData_mux_out;
+
+    // Mux outputs for VectorRegFile wAddr1 and wAddr2
+    logic [4:0] wAddr1_mux_out;
+    logic [4:0] wAddr2_mux_out;
+
+    // Instantiate load_queue
+    queue #(.WIDTH(64), .DEPTH(16)) load_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(load_recv_msg),
+        .recv_val(load_recv_val),
+        .recv_rdy(load_recv_rdy),
+        .send_msg(load_send_msg),
+        .send_val(load_send_val),
+        .send_rdy(load_send_rdy)
+    );
+
+    // Instantiate instruction_queue
+    queue #(.WIDTH(32), .DEPTH(16)) instruction_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(instruction_recv_msg),
+        .recv_val(instruction_recv_val),
+        .recv_rdy(instruction_recv_rdy),
+        .send_msg(instruction_send_msg),
+        .send_val(instruction_send_val),
+        .send_rdy(instruction_send_rdy)
+    );
+
+    // Instantiate store_queue
+    queue #(.WIDTH(32), .DEPTH(16)) store_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(store_recv_msg),
+        .recv_val(store_recv_val),
+        .recv_rdy(store_recv_rdy),
+        .send_msg(store_send_msg),
+        .send_val(store_send_val),
+        .send_rdy(store_send_rdy)
+    );
+
+    // Instantiate Decoder
+    Decoder decoder (
+        .instruction(instruction_send_msg),
+        .instruction_valid(instruction_send_val),
+        .reg_file_addr1(reg_file_addr1),
+        .reg_file_addr2(reg_file_addr2),
+        .mux_bit(mux_bit),
+        .vector_reg_write_bit(vector_reg_write_bit),
+        .predicate_reg_write_bit(predicate_reg_write_bit),
+        .scalar_reg_write_bit(scalar_reg_write_bit),
+        .vector_reg_load_mux_bit(vector_reg_load_mux_bit),
+        .scalar_reg_load_mux_bit(scalar_reg_load_mux_bit),
+        .functional_unit_mux_bit(functional_unit_mux_bit),
+        .add_subtract_bit(add_subtract_bit),
+        .load_store_bit(load_store_bit),
+        .clock_enable(clock_enable),
+        .clock_bypass(clock_bypass),
+        .bitwise_op_select(bitwise_op_select),
+        .predicate_op_select(predicate_op_select),
+        .vector_reg_write_select(vector_reg_write_select)
+    );
+
+    // Internal signal for Counter
+    logic [4:0] counter;
+    logic done;
+
+    // Instantiate Counter
+    Counter #(.WIDTH(5), .COUNTER_MAX(2**5-1)) counter_module (
+        .clk(clk),
+        .enable(clock_enable),
+        .reset(reset),
+        .counter(counter),
+        .done(done)
+    );
+
+    // OR the done output with clock_bypass and connect this result to instruction_send_rdy
+    assign instruction_send_rdy = done | clock_bypass;
+
+    // Create new wires for wb_addr and wb_data
+    assign wb_addr = load_recv_msg[63:32];
+    assign wb_data = load_recv_msg[31:0];
+
+    // 2-input mux for VectorRegFile wData
+    assign wData_mux_out = load_store_bit ? wb_data : functional_unit_output_mux;
+
+    // 2-input muxes for VectorRegFile wAddr1 and wAddr2
+    assign wAddr1_mux_out = load_store_bit ? wb_addr[9:5] : vector_reg_write_select;
+    assign wAddr2_mux_out = load_store_bit ? wb_addr[4:0] : counter;
+
+    // Instantiate VectorRegFile
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
+        .clk(clk),
+        .reset_n(~reset),
+        .rAddr1_1(reg_file_addr1),
+        .rAddr2_1(counter),
+        .rData1(rData1),
+        .rAddr1_2(reg_file_addr2),
+        .rAddr2_2(counter),
+        .rData2(rData2),
+        .wAddr1(wAddr1_mux_out),
+        .wAddr2(wAddr2_mux_out),
+        .wData(wData_mux_out),
+        .wEnable(vector_reg_write_bit)
+    );
+
+    // Instantiate ALU
+    ALU #(32) alu (
+        .A(rData1),
+        .B(rData2),
+        .C(wb_data),
+        .AddSub(add_subtract_bit),
+        .muxControl(mux_bit),
+        .outputControl(functional_unit_mux_bit),
+        .bitwiseControl(bitwise_op_select),
+        .compControl(predicate_op_select),
+        .finalResult(functional_unit_output_mux),
+        .predicate(predicate_reg_write_bit)
+    );
+
+endmodule
+
+Please note that the implementation of the Decoder, Counter, ALU and VectorRegFile modules are not included here. Make sure that the IOs of these modules in your actual design match the connections established in this top_module. Also, remember that you may have to modify the interconnections between modules to fit the actual semantics of your signals and the requirements of your design.
+User
+Connect rData1 to store_send_msg. 
+Assign store_send_val to load_store_bit anded with vector_reg_write_bit.
+ChatGPT
+
+Sure, here are the changes made:
+
+verilog
+
+module top_module (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface for load_queue
+    input logic [63:0] load_recv_msg,
+    input logic load_recv_val,
+    output logic load_recv_rdy,
+
+    // Receive interface for instruction_queue
+    input logic [31:0] instruction_recv_msg,
+    input logic instruction_recv_val,
+    output logic instruction_recv_rdy,
+
+    // Send interface for store_queue
+    output logic [31:0] store_send_msg,
+    output logic store_send_val,
+    input logic store_send_rdy
+);
+
+    // ...
+    // ...
+
+    // Instantiate ALU
+    ALU #(32) alu (
+        .A(rData1),
+        .B(rData2),
+        .C(wb_data),
+        .AddSub(add_subtract_bit),
+        .muxControl(mux_bit),
+        .outputControl(functional_unit_mux_bit),
+        .bitwiseControl(bitwise_op_select),
+        .compControl(predicate_op_select),
+        .finalResult(functional_unit_output_mux),
+        .predicate(predicate_reg_write_bit)
+    );
+
+    // Connect rData1 to store_send_msg
+    assign store_send_msg = rData1;
+
+    // Assign store_send_val to load_store_bit anded with vector_reg_write_bit
+    assign store_send_val = load_store_bit & vector_reg_write_bit;
+
+endmodule
+
+The store_send_msg is now connected to the rData1 from the VectorRegFile module and the store_send_val is set by performing an AND operation between load_store_bit and vector_reg_write_bit. Please ensure these changes align with the desired logic for your design.
+User
+Please print the entire file so I can copy and paste it!
+ChatGPT
+
+Sure, here's the complete updated Verilog file:
+
+verilog
+
+module top_module (
+    input logic clk,
+    input logic reset,
+
+    // Receive interface for load_queue
+    input logic [63:0] load_recv_msg,
+    input logic load_recv_val,
+    output logic load_recv_rdy,
+
+    // Receive interface for instruction_queue
+    input logic [31:0] instruction_recv_msg,
+    input logic instruction_recv_val,
+    output logic instruction_recv_rdy,
+
+    // Send interface for store_queue
+    output logic [31:0] store_send_msg,
+    output logic store_send_val,
+    input logic store_send_rdy
+);
+
+    // Internal signals for send interface of load_queue and instruction_queue
+    logic [63:0] load_send_msg;
+    logic load_send_val;
+    logic load_send_rdy;
+
+    logic [31:0] instruction_send_msg;
+    logic instruction_send_val;
+    logic instruction_send_rdy;
+
+    // Internal signals for receive interface of store_queue
+    logic [31:0] store_recv_msg;
+    logic store_recv_val;
+    logic store_recv_rdy;
+
+    // Internal signals for Decoder
+    logic clock_enable;
+    logic clock_bypass;
+    logic [4:0] vector_reg_write_select;
+    logic [4:0] reg_file_addr1;
+    logic [4:0] reg_file_addr2;
+    logic mux_bit;
+    logic vector_reg_write_bit;
+    logic predicate_reg_write_bit;
+    logic scalar_reg_write_bit;
+    logic vector_reg_load_mux_bit;
+    logic scalar_reg_load_mux_bit;
+    logic [2:0] functional_unit_mux_bit;
+    logic add_subtract_bit;
+    logic load_store_bit;
+    logic [1:0] bitwise_op_select;
+    logic [1:0] predicate_op_select;
+
+    // Internal signals for VectorRegFile
+    logic [31:0] wb_addr;
+    logic [31:0] wb_data;
+    logic [31:0] rData1;
+    logic [31:0] rData2;
+
+    // New wire for functional_unit_output_mux
+    logic [31:0] functional_unit_output_mux;
+
+    // Mux output for VectorRegFile wData
+    logic [31:0] wData_mux_out;
+
+    // Mux outputs for VectorRegFile wAddr1 and wAddr2
+    logic [4:0] wAddr1_mux_out;
+    logic [4:0] wAddr2_mux_out;
+
+    // Instantiate load_queue
+    queue #(.WIDTH(64), .DEPTH(16)) load_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(load_recv_msg),
+        .recv_val(load_recv_val),
+        .recv_rdy(load_recv_rdy),
+        .send_msg(load_send_msg),
+        .send_val(load_send_val),
+        .send_rdy(load_send_rdy)
+    );
+
+    // Instantiate instruction_queue
+    queue #(.WIDTH(32), .DEPTH(16)) instruction_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(instruction_recv_msg),
+        .recv_val(instruction_recv_val),
+        .recv_rdy(instruction_recv_rdy),
+        .send_msg(instruction_send_msg),
+        .send_val(instruction_send_val),
+        .send_rdy(instruction_send_rdy)
+    );
+
+    // Instantiate store_queue
+    queue #(.WIDTH(32), .DEPTH(16)) store_queue (
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(store_recv_msg),
+        .recv_val(store_recv_val),
+        .recv_rdy(store_recv_rdy),
+        .send_msg(store_send_msg),
+        .send_val(store_send_val),
+        .send_rdy(store_send_rdy)
+    );
+
+    // Instantiate Decoder
+    Decoder decoder (
+        .instruction(instruction_send_msg),
+        .instruction_valid(instruction_send_val),
+        .reg_file_addr1(reg_file_addr1),
+        .reg_file_addr2(reg_file_addr2),
+        .mux_bit(mux_bit),
+        .vector_reg_write_bit(vector_reg_write_bit),
+        .predicate_reg_write_bit(predicate_reg_write_bit),
+        .scalar_reg_write_bit(scalar_reg_write_bit),
+        .vector_reg_load_mux_bit(vector_reg_load_mux_bit),
+        .scalar_reg_load_mux_bit(scalar_reg_load_mux_bit),
+        .functional_unit_mux_bit(functional_unit_mux_bit),
+        .add_subtract_bit(add_subtract_bit),
+        .load_store_bit(load_store_bit),
+        .clock_enable(clock_enable),
+        .clock_bypass(clock_bypass),
+        .bitwise_op_select(bitwise_op_select),
+        .predicate_op_select(predicate_op_select),
+        .vector_reg_write_select(vector_reg_write_select)
+    );
+
+    // Internal signal for Counter
+    logic [4:0] counter;
+    logic done;
+
+    // Instantiate Counter
+    Counter #(.WIDTH(5), .COUNTER_MAX(2**5-1)) counter_module (
+        .clk(clk),
+        .enable(clock_enable),
+        .reset(reset),
+        .counter(counter),
+        .done(done)
+    );
+
+    // OR the done output with clock_bypass and connect this result to instruction_send_rdy
+    assign instruction_send_rdy = done | clock_bypass;
+
+    // Create new wires for wb_addr and wb_data
+    assign wb_addr = load_recv_msg[63:32];
+    assign wb_data = load_recv_msg[31:0];
+
+    // 2-input mux for VectorRegFile wData
+    assign wData_mux_out = load_store_bit ? wb_data : functional_unit_output_mux;
+
+    // 2-input muxes for VectorRegFile wAddr1 and wAddr2
+    assign wAddr1_mux_out = load_store_bit ? wb_addr[9:5] : vector_reg_write_select;
+    assign wAddr2_mux_out = load_store_bit ? wb_addr[4:0] : counter;
+
+    // Instantiate VectorRegFile
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
+        .clk(clk),
+        .reset_n(~reset),
+        .rAddr1_1(reg_file_addr1),
+        .rAddr2_1(counter),
+        .rData1(rData1),
+        .rAddr1_2(reg_file_addr2),
+        .rAddr2_2(counter),
+        .rData2(rData2),
+        .wAddr1(wAddr1_mux_out),
+        .wAddr2(wAddr2_mux_out),
+        .wData(wData_mux_out),
+        .wEnable(vector_reg_write_bit)
+    );
+
+    // Instantiate ALU
+    ALU #(32) alu (
+        .A(rData1),
+        .B(rData2),
+        .C(wb_data),
+        .AddSub(add_subtract_bit),
+        .muxControl(mux_bit),
+        .outputControl(functional_unit_mux_bit),
+        .bitwiseControl(bitwise_op_select),
+        .compControl(predicate_op_select),
+        .finalResult(functional_unit_output_mux),
+        .predicate(predicate_reg_write_bit)
+    );
+
+    // Connect rData1 to store_send_msg
+    assign store_send_msg = rData1;
+
+    // Assign store_send_val to load_store_bit anded with vector_reg_write_bit
+    assign store_send_val = load_store_bit & vector_reg_write_bit;
+
+endmodule
+
+You can copy and paste this entire module into your Verilog design.

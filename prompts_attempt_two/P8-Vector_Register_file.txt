@@ -1,0 +1,128 @@
+USER:
+Design the following modules using SystemVerilog:
+   Vector Register File: This is a set of registers for storing vector data. This module will have 32 bit registers of 32 elements each being 32 bits. There will be a read and write port on this register file. The read port will have 2 5-bit address ports to index into a vector and element in the vector. The write port will have a write enable and 2 5-bit address ports to select the write register.
+
+GPT4:
+Here is a simple implementation for the requested Vector Register File module.
+
+SystemVerilog
+
+module VectorRegFile #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 32, NUM_REG = 32, NUM_ELE = 32)(
+  input logic clk,
+  input logic reset_n,
+  // Read Ports
+  input logic [ADDR_WIDTH-1:0] rAddr1, rAddr2, // Reading vector and element address
+  output logic [DATA_WIDTH-1:0] rData,
+  // Write Ports
+  input logic [ADDR_WIDTH-1:0] wAddr1, wAddr2, // Writing vector and element address
+  input logic [DATA_WIDTH-1:0] wData,
+  input logic wEnable
+);
+
+  // The vector register file
+  logic [DATA_WIDTH-1:0] reg_file [0:NUM_REG-1][0:NUM_ELE-1];
+
+  always_ff @(posedge clk or negedge reset_n) begin
+    if (!reset_n) begin
+      // Clear all the registers on reset
+      for (integer i = 0; i < NUM_REG; i = i + 1) 
+        for (integer j = 0; j < NUM_ELE; j = j + 1) 
+          reg_file[i][j] <= '0;
+    end else if(wEnable) begin
+      // Write the data at write address if write enable is high
+      reg_file[wAddr1][wAddr2] <= wData;
+    end
+  end
+
+  always_comb begin
+    // Read the data from the read address
+    rData = reg_file[rAddr1][rAddr2];
+  end
+endmodule
+
+This code defines a Vector Register File module using SystemVerilog. The Vector Register File is declared as a 2D array of logic type named reg_file with dimensions [NUM_REG-1:0][NUM_ELE-1:0]. The data in the Vector Register File can be written at wAddr1 and wAddr2 when wEnable is high. It also provides reading data at rAddr1 and rAddr2.
+
+Please note, SystemVerilog is a very rich language and there can be different ways to write the same module, with differing levels of abstraction or complexity. This is a fairly basic implementation. For more complex or specific requirements, the code may need to be adjusted.
+
+USER:
+Please make reset active high
+
+GPT4:
+Sure, if you want to use active-high reset, you can change the if condition in the always_ff block like this:
+
+SystemVerilog
+
+module VectorRegFile #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 32, NUM_REG = 32, NUM_ELE = 32)(
+  input logic clk,
+  input logic reset,
+  // Read Ports
+  input logic [ADDR_WIDTH-1:0] rAddr1, rAddr2, // Reading vector and element address
+  output logic [DATA_WIDTH-1:0] rData,
+  // Write Ports
+  input logic [ADDR_WIDTH-1:0] wAddr1, wAddr2, // Writing vector and element address
+  input logic [DATA_WIDTH-1:0] wData,
+  input logic wEnable
+);
+
+  // The vector register file
+  logic [DATA_WIDTH-1:0] reg_file [0:NUM_REG-1][0:NUM_ELE-1];
+
+  always_ff @(posedge clk or posedge reset) begin
+    if (reset) begin
+      // Clear all the registers on reset
+      for (integer i = 0; i < NUM_REG; i = i + 1) 
+        for (integer j = 0; j < NUM_ELE; j = j + 1) 
+          reg_file[i][j] <= '0;
+    end else if(wEnable) begin
+      // Write the data at write address if write enable is high
+      reg_file[wAddr1][wAddr2] <= wData;
+    end
+  end
+
+  always_comb begin
+    // Read the data from the read address
+    rData = reg_file[rAddr1][rAddr2];
+  end
+endmodule
+
+Here, the reset is now active-high, meaning that it will reset the reg_file when reset is set to 1. The reset signal is also moved to a posedge condition which means that reset will be performed at the positive edge of the reset signal.
+
+USER:
+You were correct before actually. I want two data ports on the output, please
+
+GPT4:
+module VectorRegFile #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 32, NUM_REG = 32, NUM_ELE = 32)(
+  input logic clk,
+  input logic reset_n,
+  // Read Ports
+  input logic [ADDR_WIDTH-1:0] rAddr1_1, rAddr2_1, // Reading vector and element address for port 1
+  output logic [DATA_WIDTH-1:0] rData1,
+  input logic [ADDR_WIDTH-1:0] rAddr1_2, rAddr2_2, // Reading vector and element address for port 2
+  output logic [DATA_WIDTH-1:0] rData2,
+  // Write Ports
+  input logic [ADDR_WIDTH-1:0] wAddr1, wAddr2, // Writing vector and element address
+  input logic [DATA_WIDTH-1:0] wData,
+  input logic wEnable
+);
+
+  // The vector register file
+  logic [DATA_WIDTH-1:0] reg_file [0:NUM_REG-1][0:NUM_ELE-1];
+
+  always_ff @(posedge clk or negedge reset_n) begin
+    if (!reset_n) begin
+      // Clear all the registers on reset
+      for (integer i = 0; i < NUM_REG; i = i + 1) 
+        for (integer j = 0; j < NUM_ELE; j = j + 1) 
+          reg_file[i][j] <= '0;
+    end else if(wEnable) begin
+      // Write the data at write address if write enable is high
+      reg_file[wAddr1][wAddr2] <= wData;
+    end
+  end
+
+  always_comb begin
+    // Read the data from the read addresses
+    rData1 = reg_file[rAddr1_1][rAddr2_1];
+    rData2 = reg_file[rAddr1_2][rAddr2_2];
+  end
+endmodule

@@ -1,8 +1,10 @@
 /.idea/
 /precheck_results/
+/build/
 */tmp
 */*/tmp
 *.hex*
 *.lst
 *.vcd
 *.gtkw
+*.pyc

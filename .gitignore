@@ -1,6 +1,9 @@
 /.idea/
 /precheck_results/
 /build/
+*/build/
+*/*/build/
+*/*/*/build/
 */tmp
 */*/tmp
 *.hex*

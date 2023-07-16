@@ -28,13 +28,13 @@ module fp_addsub #(parameter WIDTH = 32)
     assign sum = subtract ? a_mant_align - b_mant_align : a_mant_align + b_mant_align;
 
     // Normalize result
-    logic [WIDTH-2:WIDTH-9] y_exp;
+    logic [WIDTH-2:WIDTH-9] y_exp_temp, y_exp;
     logic [WIDTH-10:0] y_mant;
-    assign y_exp = a_exp + ($clog2(sum[WIDTH-1:WIDTH-10]) - WIDTH + 10);
+    assign y_exp_temp = a_exp + ($clog2(sum[WIDTH-1:WIDTH-10]) - WIDTH + 10);
     assign y_mant = sum[WIDTH-10:0];
 
     // Handle overflow and underflow
-    assign y_exp = (y_exp > 255) ? 255 : (y_exp < 0) ? 0 : y_exp;
+    assign y_exp = (y_exp_temp > 255) ? 255 : (y_exp_temp < 0) ? 0 : y_exp_temp;
     assign y_mant = (y_exp == 255 || y_exp == 0) ? 0 : y_mant;
 
     // Handle NaN and infinity

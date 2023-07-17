@@ -184,3 +184,87 @@ Thank you!
 
 You're welcome! If you have any other questions or need further help, feel free to ask. Happy coding!
 ------------------
+**You:**
+
+
+Now, for the inputs and expected outputs, write the values as floats and assume you have access to a function called float_to_hex that can be used to convert them to the necessary hexadecimal floating point representation
+------------------
+**ChatGPT:**
+
+
+Sure, I can rewrite the test case in such a way that it uses a hypothetical float_to_hex function to convert floating point numbers to their hexadecimal representation:
+
+python
+Copy code
+#===============================================================================
+# Float Add/Subtract Test
+#===============================================================================
+
+from pymtl3 import *
+from pymtl3.stdlib.test_utils import run_test_vector_sim
+from sim.fp_addsub import fp_addsub
+from utils import float_to_hex  # hypothetical import
+
+def test_small(cmdline_opts):
+    adder = fp_addsub(WIDTH=32)
+
+    run_test_vector_sim(adder, [
+        ('a       b       subtract y*'),
+        [float_to_hex(0.0), float_to_hex(0.0), 0x0, float_to_hex(0.0)],  # 0.0 + 0.0 = 0.0
+        [float_to_hex(1.0), float_to_hex(2.0), 0x0, float_to_hex(3.0)],  # 1.0 + 2.0 = 3.0
+        [float_to_hex(2.0), float_to_hex(1.0), 0x1, float_to_hex(1.0)],  # 2.0 - 1.0 = 1.0
+        [float_to_hex(1.0), float_to_hex(2.0), 0x1, float_to_hex(-1.0)],  # 1.0 - 2.0 = -1.0
+    ], cmdline_opts)
+
+def test_large(cmdline_opts):
+    adder = fp_addsub(WIDTH=32)
+
+    run_test_vector_sim(adder, [
+        ('a       b       subtract y*'),
+        [float_to_hex(1000.0), float_to_hex(1000.0), 0x0, float_to_hex(2000.0)],  # 1000.0 + 1000.0 = 2000.0
+        [float_to_hex(1000.0), float_to_hex(100.0), 0x0, float_to_hex(1100.0)],  # 1000.0 + 100.0 = 1100.0
+        [float_to_hex(1000.0), float_to_hex(100.0), 0x1, float_to_hex(900.0)],  # 1000.0 - 100.0 = 900.0
+        [float_to_hex(100.0), float_to_hex(1000.0), 0x1, float_to_hex(-900.0)],  # 100.0 - 1000.0 = -900.0
+    ], cmdline_opts)
+
+
+Please make sure to create the float_to_hex function in a module named utils or adjust the import statement according to where your float_to_hex function is located. Also, ensure that float_to_hex correctly converts floating point numbers into their hexadecimal representation in the IEEE 754 format.
+------------------
+**You:**
+
+
+Thank you!
+------------------
+**ChatGPT:**
+
+
+You're welcome! If you have any more questions or need further assistance, feel free to ask. Happy coding!
+------------------
+**You:**
+
+
+Please add another function with test cases where the values after the decimal point are nonzero
+------------------
+**ChatGPT:**
+
+
+Sure, here's an additional function that tests floating point addition and subtraction with numbers that have non-zero fractional parts:
+
+python
+Copy code
+def test_fractional(cmdline_opts):
+    adder = fp_addsub(WIDTH=32)
+
+    run_test_vector_sim(adder, [
+        ('a       b       subtract y*'),
+        [float_to_hex(1.1), float_to_hex(2.2), 0x0, float_to_hex(3.3)],  # 1.1 + 2.2 = 3.3
+        [float_to_hex(2.2), float_to_hex(1.1), 0x1, float_to_hex(1.1)],  # 2.2 - 1.1 = 1.1
+        [float_to_hex(5.67), float_to_hex(3.21), 0x0, float_to_hex(8.88)],  # 5.67 + 3.21 = 8.88
+        [float_to_hex(5.67), float_to_hex(3.21), 0x1, float_to_hex(2.46)],  # 5.67 - 3.21 = 2.46
+        [float_to_hex(0.1), float_to_hex(0.2), 0x0, float_to_hex(0.3)],  # 0.1 + 0.2 = 0.3
+        [float_to_hex(0.2), float_to_hex(0.1), 0x1, float_to_hex(0.1)],  # 0.2 - 0.1 = 0.1
+    ], cmdline_opts)
+
+
+Please note that the floating point arithmetic might have small precision errors due to the inherent nature of representing decimal fractions in binary. Therefore, the expected results might not be exact, and your tests should take into account some tolerance for these potential precision errors.
+------------------

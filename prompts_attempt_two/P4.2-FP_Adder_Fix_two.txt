@@ -1,0 +1,980 @@
+User
+I have the following code:
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [23:0] y_frac_intermediate;  // Intermediate fraction for normalization
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [4:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [4:0] priority_encoder (input [23:0] in);
+        integer i;
+        for (i=23; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 5'b00000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 5'b00000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[23] ? 5'b00000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        y_frac = y_frac_intermediate << shift_amount;
+        y_exp = y_exp_intermediate - shift_amount;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+Please modify:
+y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac to subtract the a_frac part from the b_frac part. 
+ChatGPT
+
+Sure, I can help with that. The line of code you're asking to modify is already subtracting a_frac from b_frac. However, it's doing so after potentially right-shifting a_frac based on the difference in exponents. If you want to subtract a_frac from b_frac without any shifting, you can simply change the line to:
+
+verilog
+
+y_frac_intermediate = b_frac - a_frac;
+
+This will subtract a_frac directly from b_frac without any shifting. Please note that this change will affect the behavior of your floating-point adder/subtractor, and may not produce the correct results if the exponents of a and b are not equal.
+User
+Keep the shift part for a_frac, please
+ChatGPT
+
+Sure, if you want to keep the shift for a_frac but still subtract a_frac from b_frac, you can modify the line as follows:
+
+verilog
+
+y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));
+
+This line of code will right-shift a_frac based on the difference in exponents, and then subtract the result from b_frac.
+User
+Can you please also extend the y_frac intermediate to 48 bits, and modify the priority_encoder function to take 48 bits on the input of the function. Change the for loop in the function to start with i=47.
+ChatGPT
+
+Sure, here's how you can modify your code to extend y_frac_intermediate to 48 bits and adjust the priority_encoder function accordingly:
+
+verilog
+
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);  // Input extended to 48 bits
+        integer i;
+        for (i=47; i>=0; i=i-1) begin  // Loop starts with i=47
+            if (in[i]) begin
+                return 47 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Rest of your code...
+
+Please note that I've also extended the return type of the priority_encoder function to 6 bits to accommodate the larger input size. This change will allow the function to return values up to 47, which is necessary given the increased size of the input.
+User
+Change return 47-i to be return 23 - i and print the entire module in one file so I can copy and paste, please.
+ChatGPT
+
+Sure, here's the entire module with the requested changes:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        y_frac = y_frac_intermediate << shift_amount;
+        y_exp = y_exp_intermediate - shift_amount;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+Please note that the priority_encoder function now returns 23 - i as requested. Also, the shift_amount is now 6 bits wide to accommodate the larger range of possible shift amounts.
+User
+Next, we need to make the y_frac = y_frac_intermediate << shift_amount shift dependent on the two's compliment representation of shift_amount. 
+ChatGPT
+
+To implement a shift operation that depends on the two's complement representation of shift_amount, you need to determine whether shift_amount is positive or negative. In two's complement representation, a negative number has a '1' in its most significant bit.
+
+If shift_amount is positive, you perform a left shift. If it's negative, you perform a right shift. The absolute value of shift_amount determines the number of places to shift.
+
+Here's how you can modify the shift operation:
+
+verilog
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+    end
+
+This code checks the most significant bit of shift_amount to determine the direction of the shift. If shift_amount is negative (i.e., its most significant bit is 1), it performs a right shift. Otherwise, it performs a left shift.
+
+Please note that -shift_amount in Verilog will give the two's complement of shift_amount, effectively giving us the absolute value we need for the shift operation.
+
+Here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+
+        y_exp = y_exp_intermediate - shift_amount;
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+Make it such that if shift_amount is negative, then you don't subtract anything from y_exp_intermediate
+ChatGPT
+
+Sure, you can add a condition to only subtract shift_amount from y_exp_intermediate when shift_amount is positive. Here's how you can modify the code:
+
+verilog
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        y_exp = y_exp_intermediate;  // Don't subtract anything from y_exp_intermediate
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        y_exp = y_exp_intermediate - shift_amount;
+    end
+
+And here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+            y_exp = y_exp_intermediate;  // Don't subtract anything from y_exp_intermediate
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+            y_exp = y_exp_intermediate - shift_amount;
+        end
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+2 / 2
+Can you please sign extend_shift_amount to the same bitwdith of y_exp_intermediate before doing the subtraction? Also remove the conditional subtraction, please
+ChatGPT
+
+Sure, to sign extend shift_amount to the same bit width as y_exp_intermediate, you can use the concatenation operator {}. Here's how you can modify the code:
+
+verilog
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+    end
+    y_exp = y_exp_intermediate - {3'b0, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+And here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+        y_exp = y_exp_intermediate - {3'b0, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+The extension needs to match the MSB of shift_amount. 
+ChatGPT
+
+I see, you want to sign extend shift_amount by replicating its most significant bit (MSB). You can do this by using the replication operator {} in Verilog. Here's how you can modify the code:
+
+verilog
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+    end
+    y_exp = y_exp_intermediate - {8{shift_amount[5]}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+And here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+        y_exp = y_exp_intermediate - {8{shift_amount[5]}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+Your resulting bitwdith will be wrong. If shift_amount is 6 bits wide, you only need to have two. Change {8{ to {2{
+ChatGPT
+
+I apologize for the oversight. You are correct. If shift_amount is 6 bits wide, we only need to replicate the MSB twice to match the bit width of y_exp_intermediate. Here's the corrected code:
+
+verilog
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+    end
+    y_exp = y_exp_intermediate - {2{shift_amount[5]}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+And here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+        y_exp = y_exp_intermediate - {2{shift_amount[5]}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+You are forgetting a pair of curly braces around the bit copying portion. change {2{shift_amount[5]} to {{2{shift_amount[5]}}
+ChatGPT
+
+I apologize for the oversight. You're right, the correct syntax for bit replication in Verilog requires an additional pair of curly braces. Here's the corrected line of code:
+
+verilog
+
+    y_exp = y_exp_intermediate - {{2{shift_amount[5]}}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+And here's the entire module with the updated shift operation:
+
+verilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
+
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+        y_exp = y_exp_intermediate - {{2{shift_amount[5]}}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+User
+How do we handle rounding with this module?
+ChatGPT
+
+In the current implementation of the module, rounding is not explicitly handled. The fraction part of the result (y_frac) is simply truncated to the lower 23 bits without any rounding.
+
+If you want to implement rounding, you could consider several methods, such as truncation (which is currently used), rounding to the nearest value, or rounding towards zero, among others. The choice of method depends on the specific requirements of your application.
+
+For example, if you want to implement rounding to the nearest value (also known as round half up), you could add a bit to the fraction part of the result if the bit being truncated is 1. Here's how you could modify the assignment of y_frac to implement this:
+
+verilog
+
+    // Pack fields into output with rounding
+    assign y = {y_sign, y_exp, y_frac[23] ? y_frac[22:0] + 1 : y_frac[22:0]};  // Only take the lower 23 bits of the fraction, add 1 if the bit being truncated is 1
+
+This is a simple form of rounding and may not be suitable for all applications, especially those that require more precise or specific rounding behavior. For more complex rounding methods, you may need to implement additional logic.

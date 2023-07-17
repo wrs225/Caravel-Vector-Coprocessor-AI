@@ -1,45 +1,99 @@
-module fp_addsub #(parameter WIDTH = 32)
-(
-    input logic [WIDTH-1:0] a, b,
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
     input logic subtract,
-    output logic [WIDTH-1:0] y
+    output logic [31:0] y
 );
 
-    // Extract fields
-    logic [WIDTH-2:WIDTH-9] a_exp, b_exp;
-    logic [WIDTH-10:0] a_mant, b_mant;
+    logic [31:0] b_neg;
     logic a_sign, b_sign;
-    assign a_sign = a[WIDTH-1];
-    assign a_exp = a[WIDTH-2:WIDTH-9];
-    assign a_mant = {1'b1, a[WIDTH-10:0]};
-    assign b_sign = b[WIDTH-1];
-    assign b_exp = b[WIDTH-2:WIDTH-9];
-    assign b_mant = {1'b1, b[WIDTH-10:0]};
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [5:0] shift_amount;  // Shift amount from priority encoder
 
-    // Align mantissas
-    logic [WIDTH-1:0] a_mant_align, b_mant_align;
-    logic [WIDTH-2:WIDTH-9] exp_diff;
-    assign exp_diff = a_exp - b_exp;
-    assign a_mant_align = a_mant << exp_diff;
-    assign b_mant_align = b_mant;
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
 
-    // Perform addition or subtraction
-    logic [WIDTH-1:0] sum;
-    assign sum = subtract ? a_mant_align - b_mant_align : a_mant_align + b_mant_align;
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);
+        integer i;
+        for (i=47; i>=0; i=i-1) begin
+            if (in[i]) begin
+                return 23 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
 
-    // Normalize result
-    logic [WIDTH-2:WIDTH-9] y_exp_temp, y_exp;
-    logic [WIDTH-10:0] y_mant;
-    assign y_exp_temp = a_exp + ($clog2(sum[WIDTH-1:WIDTH-10]) - WIDTH + 10);
-    assign y_mant = sum[WIDTH-10:0];
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
 
-    // Handle overflow and underflow
-    assign y_exp = (y_exp_temp > 255) ? 255 : (y_exp_temp < 0) ? 0 : y_exp_temp;
-    assign y_mant = (y_exp == 255 || y_exp == 0) ? 0 : y_mant;
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
 
-    // Handle NaN and infinity
-    assign y = (a_exp == 255 && a_mant != 0) || (b_exp == 255 && b_mant != 0) ? {1'b1, 8'b11111111, 23'b1} :
-               (a_exp == 255 && a_mant == 0 && a_sign != subtract) || (b_exp == 255 && b_mant == 0 && b_sign == subtract) ? {1'b0, 8'b11111111, 23'b0} :
-               {a_sign ^ subtract, y_exp, y_mant[WIDTH-11:0]};
+        // Normalize result using priority encoder
+        if (a == 32'b0 && b == 32'b0) begin
+            shift_amount = 6'b000000;  // No shift if both inputs are zero
+        end else begin
+            shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+        end
 
+        // Shift fraction and adjust exponent
+        if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+            y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+        end else begin
+            y_frac = y_frac_intermediate << shift_amount;  // Left shift
+        end
+
+        y_exp = y_exp_intermediate - shift_amount + 1;
+
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
 endmodule

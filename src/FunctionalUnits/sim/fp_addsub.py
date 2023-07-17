@@ -5,10 +5,10 @@ from pymtl3.passes.backends.verilog import *
 
 class fp_addsub(VerilogPlaceholder, Component):
 
-    def construct(self, WIDTH=32):
+    def construct(self):
         self.set_metadata(VerilogTranslationPass.explicit_module_name, 'FPAddSubWrapper')
 
-        self.a = InPort(mk_bits(WIDTH))
-        self.b = InPort(mk_bits(WIDTH))
+        self.a = InPort(mk_bits(32))
+        self.b = InPort(mk_bits(32))
         self.subtract = InPort(1)
-        self.y = OutPort(mk_bits(WIDTH))
+        self.y = OutPort(mk_bits(32))

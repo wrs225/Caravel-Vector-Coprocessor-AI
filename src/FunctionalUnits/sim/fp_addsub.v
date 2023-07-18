@@ -88,13 +88,11 @@ module fp_addsub (
             y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
         end else begin
             y_frac = y_frac_intermediate << shift_amount;  // Left shift
-            
         end
-
-        y_exp = y_exp_intermediate - {{2{shift_amount[5]}}, shift_amount};
+        y_exp = y_exp_intermediate - {{2{shift_amount[5]}}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
 
     end
 
     // Pack fields into output
-    assign y = {y_sign, y_exp, y_frac[23] ? y_frac[22:0] + 1 : y_frac[22:0]}; 
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
 endmodule

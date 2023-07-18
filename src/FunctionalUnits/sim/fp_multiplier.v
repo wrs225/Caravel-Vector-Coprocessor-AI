@@ -9,6 +9,7 @@ module fp_multiplier(
     logic [22:0] y_mantissa_temp, y_mantissa;
     logic a_sign, b_sign, y_sign;
     logic sticky_bit;
+    logic r;
 
     // Extract the sign, exponent, and mantissa from the inputs
     assign a_sign = a[31];
@@ -25,10 +26,15 @@ module fp_multiplier(
     assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
     assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
     assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
 
     // Check for infinities and NaNs
     always_comb begin
-        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
             // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
             y_exponent = 8'hFF;
             y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
@@ -36,20 +42,21 @@ module fp_multiplier(
             // If either input is zero, output is zero
             y_exponent = 8'h00;
             y_mantissa = 23'h0;
-        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
-            // a or b is NaN, result is NaN
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
             y_exponent = 8'hFF;
-            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+            y_mantissa = 23'h0;
+        end else if (a_exponent + b_exponent == 0) begin
+            // Subnormal case
+            y_exponent = 0;
+            y_mantissa = y_mantissa_temp >> -y_exponent_temp;
         end else begin
             // Normal case
             y_exponent = y_exponent_temp;
-            y_mantissa = y_mantissa_temp;
+            y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
         end
     end
 
     // Combine the sign, exponent, and mantissa into the output
     assign y = {y_sign, y_exponent, y_mantissa};
 endmodule
-
-
-/* Add a bit called r. If the highest order bit of mult_result is one, then r becomes the value of mult_result[23], otherwise r is [22]*/

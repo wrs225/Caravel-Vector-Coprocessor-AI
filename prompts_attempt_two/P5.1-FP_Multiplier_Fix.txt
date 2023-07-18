@@ -164,8 +164,8 @@ endmodule
 
 Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as NaNs, infinities, and denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.
 User
-If the input is zero, just output zero
 2 / 2
+If the input is zero, just output zero
 ChatGPT
 
 Sure, here is the revised version of the floating-point multiplier. I've added checks to output zero if either of the inputs is zero.
@@ -289,3 +289,1191 @@ module fp_multiplier(
 endmodule
 
 Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as NaNs, infinities, and denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.
+User
+Can you please add handling for infinities and NaNs?
+ChatGPT
+
+Sure, here is the revised version of the floating-point multiplier with handling for infinities and NaNs.
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if (a_exponent == 8'hFF && a_mantissa[22:0] == 0) begin
+            // a is infinity
+            if (b_exponent == 0 && b_mantissa[22:0] == 0) begin
+                // b is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (b_exponent == 8'hFF && b_mantissa[22:0] == 0) begin
+            // b is infinity
+            if (a_exponent == 0 && a_mantissa[22:0] == 0) begin
+                // a is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y = {y_sign, y_exponent, y_mantissa};
+        end
+    end
+endmodule
+
+Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.
+User
+Please ensure that if a single input is zero, the output is zero
+ChatGPT
+
+Sure, I understand your request. Here is the revised version of the floating-point multiplier with the added condition to output zero if either of the inputs is zero.
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y = 32'b0;
+        end else if (a_exponent == 8'hFF && a_mantissa[22:0] == 0) begin
+            // a is infinity
+            if (b_exponent == 0 && b_mantissa[22:0] == 0) begin
+                // b is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (b_exponent == 8'hFF && b_mantissa[22:0] == 0) begin
+            // b is infinity
+            if (a_exponent == 0 && a_mantissa[22:0] == 0) begin
+                // a is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y = {y_sign, y_exponent, y_mantissa};
+        end
+    end
+endmodule
+
+Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.
+User
+Your implementation breaks my multiplier.
+ChatGPT
+
+I apologize for any confusion. The implementation I provided is a simplified version of a floating-point multiplier and may not be suitable for all use cases. It's also important to note that floating-point multiplication is a complex operation that involves many edge cases, such as handling of special values (NaNs, infinities, zeros), denormalized numbers, and rounding.
+
+If you could provide more details about the specific issues you're encountering with the implementation, I would be happy to help troubleshoot and provide a more tailored solution. For example, it would be helpful to know:
+
+    What specific behavior or output is incorrect?
+    Are there specific inputs that cause the problem?
+    Are there any constraints or requirements that the current implementation doesn't meet?
+
+With more information, I can provide a more accurate and useful response.
+User
+You are assigning y conditionally. You should assign it unconditionally
+ChatGPT
+
+I apologize for the confusion. You're correct that the output y should be assigned unconditionally. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF && a_mantissa[22:0] == 0) begin
+            // a is infinity
+            if (b_exponent == 0 && b_mantissa[22:0] == 0) begin
+                // b is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (b_exponent == 8'hFF && b_mantissa[22:0] == 0) begin
+            // b is infinity
+            if (a_exponent == 0 && a_mantissa[22:0] == 0) begin
+                // a is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent;
+            y_mantissa = y_mantissa;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+This version of the code assigns y_exponent and y_mantissa unconditionally in the always_comb block, and then combines them with y_sign to form y outside the block. This should ensure that y is always assigned a value.
+User
+You have a circular assignment for the normal case. Use an intermediate variable before assigning
+ChatGPT
+
+I apologize for the oversight. You're correct, the assignment of y_exponent and y_mantissa to themselves in the normal case is a circular assignment. We should use intermediate variables to hold the results before assigning them to y_exponent and y_mantissa. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF && a_mantissa[22:0] == 0) begin
+            // a is infinity
+            if (b_exponent == 0 && b_mantissa[22:0] == 0) begin
+                // b is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (b_exponent == 8'hFF && b_mantissa[22:0] == 0) begin
+            // b is infinity
+            if (a_exponent == 0 && a_mantissa[22:0] == 0) begin
+                // a is zero, result is NaN
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h1;
+            end else begin
+                // result is infinity with the sign of a xor b
+                y_exponent = 8'hFF;
+                y_mantissa = 23'h0;
+            end
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, y_exponent_temp and y_mantissa_temp are used to hold the results of the multiplication and normalization, and then these are assigned to y_exponent and y_mantissa in the always_comb block. This should avoid the circular assignment issue.
+User
+a is infinite and B is 0, then the result should be NaN
+ChatGPT
+
+I apologize for the oversight. You're correct. According to the IEEE 754 standard for floating-point arithmetic, the multiplication of an infinity by a zero should result in NaN. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 0 && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is zero, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else if ((b_exponent == 8'hFF && b_mantissa[22:0] == 0) && (a_exponent == 0 && a_mantissa[22:0] == 0)) begin
+            // b is infinity and a is zero, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block checks if either a is infinity and b is zero, or b is infinity and a is zero, and assigns NaN to the output in these cases.
+User
+No it doesn't. If a or b are zero it just outputs zero still 
+ChatGPT
+
+I apologize for the confusion. You're correct. If either a or b is zero, the output should be zero unless the other input is infinity, in which case the output should be NaN. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h1;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block first checks if a is zero and b is infinity, or b is zero and a is infinity, and assigns NaN to the output in these cases. Then it checks if either a or b is zero, and assigns zero to the output if neither of the previous conditions were met.
+User
+Can you please make the mantissa = 23'h4 for NaN cases. This is an artifact of my testing. 
+ChatGPT
+
+Sure, I can modify the code to set the mantissa to 23'h4 for NaN cases. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h4; // Set mantissa to 23'h4 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h4; // Set mantissa to 23'h4 for NaN cases
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block sets the mantissa to 23'h4 for NaN cases.
+User
+Oh sorry, make the mantissa 23'h400000
+ChatGPT
+
+No problem, I can modify the code to set the mantissa to 23'h400000 for NaN cases. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block sets the mantissa to 23'h400000 for NaN cases.
+User
+Make it such that inf * inf resolves to inf and -inf * -inf resolves to inf
+ChatGPT
+
+Sure, I can modify the code to handle the multiplication of infinities. According to the IEEE 754 standard for floating-point arithmetic, the multiplication of two infinities should result in infinity, regardless of the sign. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block checks if both a and b are infinity, and assigns infinity to the output in this case.
+User
+Add that inf * 0 is NaN
+ChatGPT
+
+I apologize for the confusion earlier. You're correct. According to the IEEE 754 standard for floating-point arithmetic, the multiplication of an infinity by a zero should result in NaN. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if (a_exponent == 8'hFF || b_exponent == 8'hFF) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block checks if a is zero and b is infinity, or b is zero and a is infinity, and assigns NaN to the output in these cases.
+User
+Add that NaN * 0 is NaN, 
+ChatGPT
+
+You're correct. According to the IEEE 754 standard for floating-point arithmetic, the multiplication of NaN by any number, including zero, should result in NaN. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block checks if a or b is NaN, and assigns NaN to the output in these cases.
+User
+Add that NaN * -inf is NaN
+ChatGPT
+
+You're correct. According to the IEEE 754 standard for floating-point arithmetic, the multiplication of NaN by any number, including negative infinity, should result in NaN. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, the always_comb block checks if a or b is NaN, and assigns NaN to the output in these cases.
+User
+Add a bit called r. If the highest order bit of mult_result is one, then r becomes the value of mult_result[23], otherwise r is [22]
+ChatGPT
+
+Sure, I can add that. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+    logic r;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp;
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, I've added a new logic variable r and assigned it the value of mult_result[23] if the highest order bit of mult_result is one, otherwise mult_result[22].
+User
+Next, can you please add rounding based on sticky_bit and r
+ChatGPT
+
+Sure, I can add that. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+    logic r;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, I've added rounding to the mantissa in the normal case by adding the logical AND of r and sticky_bit to y_mantissa_temp. This will round up the mantissa if both r and sticky_bit are true.
+User
+Next can you please add subnormal value support?
+ChatGPT
+
+Sure, I can add that. Here's the updated code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+    logic r;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if (y_exponent_temp < 0) begin
+            // Subnormal case
+            y_exponent = 0;
+            y_mantissa = y_mantissa_temp >> -y_exponent_temp;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, I've added a check for subnormal values in the always_comb block. If y_exponent_temp is less than 0, the code sets y_exponent to 0 and right-shifts y_mantissa_temp by -y_exponent_temp to handle the subnormal case.
+User
+Because you are checking an unsigned integer, you should instead check the MSB rather than use an inequality. 
+ChatGPT
+
+You're correct, my apologies for the oversight. In Verilog, the comparison of an unsigned integer with a negative number can lead to unexpected results. Instead, we should check the most significant bit (MSB) of y_exponent_temp to determine if it's negative. Here's the corrected code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+    logic r;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if (y_exponent_temp[7]) begin
+            // Subnormal case
+            y_exponent = 0;
+            y_mantissa = y_mantissa_temp >> -y_exponent_temp;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, I've replaced the check y_exponent_temp < 0 with y_exponent_temp[7] to correctly handle the subnormal case. This checks the MSB of y_exponent_temp to determine if it's negative.
+User
+Actually, you should just be checking if a_exponent + b_exponent are equal to zero, not the sign of y_exponent_temp
+ChatGPT
+
+I see, my apologies for misunderstanding. We should indeed check if the sum of a_exponent and b_exponent is zero to handle the subnormal case. Here's the corrected code:
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa_temp, y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+    logic r;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent_temp = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa_temp = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+    assign r = mult_result[47] ? mult_result[23] : mult_result[22];
+
+    // Check for infinities and NaNs
+    always_comb begin
+        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+            // a or b is NaN, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+            // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
+        end else if (a == 32'b0 || b == 32'b0) begin
+            // If either input is zero, output is zero
+            y_exponent = 8'h00;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+            // a is infinity and b is infinity, result is infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if (a_exponent + b_exponent == 0) begin
+            // Subnormal case
+            y_exponent = 0;
+            y_mantissa = y_mantissa_temp >> -y_exponent_temp;
+        end else begin
+            // Normal case
+            y_exponent = y_exponent_temp;
+            y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
+        end
+    end
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+In this version, I've replaced the check y_exponent_temp[7] with a_exponent + b_exponent == 0 to correctly handle the subnormal case. This checks if the sum of a_exponent and b_exponent is zero.

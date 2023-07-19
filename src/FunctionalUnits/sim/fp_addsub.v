@@ -43,7 +43,7 @@ module fp_addsub (
         // Perform addition or subtraction
         if (a_exp > b_exp) begin
             y_exp_intermediate = a_exp;
-            if (b_sign) begin
+            if (b_sign ^ a_sign) begin
                 y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
             end else begin
                 y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
@@ -51,7 +51,7 @@ module fp_addsub (
             y_sign = a_sign;
         end else if (a_exp < b_exp) begin
             y_exp_intermediate = b_exp;
-            if (b_sign) begin
+            if (b_sign ^ a_sign) begin
                 y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
             end else begin
                 y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
@@ -60,14 +60,14 @@ module fp_addsub (
         end else begin
             y_exp_intermediate = a_exp;
             if (a_frac >= b_frac) begin
-                if (b_sign) begin
+                if (b_sign ^ a_sign) begin
                     y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
                 end else begin
                     y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
                 end
                 y_sign = a_sign;
             end else begin
-                if (b_sign) begin
+                if (b_sign ^ a_sign) begin
                     y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
                 end else begin
                     y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
@@ -93,6 +93,26 @@ module fp_addsub (
 
     end
 
-    // Pack fields into output
-    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+    // Check for infinity and pack fields into output
+    always_comb begin
+        // Check if either input is infinity
+        if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) && (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If both inputs are infinity and the operation is subtraction, the output is NaN
+            if (subtract && (a_sign ^ b_sign)) begin
+                y = {1'b0, 8'hFF, 23'h400000};
+            end else if (a_sign ^ b_sign) begin
+                y = {a_sign, 8'hFF, 23'b0};
+            end else begin
+                y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+            end
+        end else if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) || (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If either input is infinity (but not both), set the output to infinity as well
+            y = {a_sign | b_sign, 8'hFF, 23'b0};
+        end else if (y_frac_intermediate == 48'b0) begin
+            y = 32'b0;
+        end else begin
+            // If neither input is infinity and the output is not zero, perform regular assignment
+            y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+        end
+    end
 endmodule

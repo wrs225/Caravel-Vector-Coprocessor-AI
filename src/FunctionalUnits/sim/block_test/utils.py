@@ -8,9 +8,9 @@ def float_to_hex(f):
     # Check if the input is greater than the maximum finite positive value or smaller than the minimum positive normal value
     if f > MAX_VALUE:
         f = float('inf')
-    elif f != 0 and f < -MIN_VALUE:  # We don't want to turn 0 into -inf
+    elif f < -MAX_VALUE:
         f = float('-inf')
-    elif f != 0 and f > -MIN_VALUE and f < MIN_VALUE:  # We don't want to turn 0 into inf
+    elif f != 0 and abs(f) < MIN_VALUE:  # using abs here
         f = float('inf')
 
     # First, use the struct module to pack the float into a four byte sequence.
@@ -31,4 +31,5 @@ def float_to_hex(f):
 # print(float_to_hex(float('nan')))  # Output: 2143289344
 # print(float_to_hex(3.5e38))  # Output: 2139095040
 # print(float_to_hex(1e-40))  # Output: 2139095040
-# print(float_to_hex(-1e-40))  # Output: 4286578688
+# print(float_to_hex(-3.5e38))  # Output: 4286578688
+# print(float_to_hex(-1e-40))  # Output: 2139095040

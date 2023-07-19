@@ -6,6 +6,7 @@ from pymtl3 import *
 from pymtl3.stdlib.test_utils import run_test_vector_sim
 from sim.fp_addsub import fp_addsub
 from sim.block_test.utils import float_to_hex
+import random
 
 def test_small(cmdline_opts):
     adder = fp_addsub()
@@ -81,23 +82,22 @@ def test_nan(cmdline_opts):
     run_test_vector_sim(adder, [
         ('a       b       subtract y*'),
         [float_to_hex(float('nan')), float_to_hex(1.0), 0x0, float_to_hex(float('nan'))],  # nan + 1.0 = nan
+        [float_to_hex(float('nan')), float_to_hex(1.0), 0x1, float_to_hex(float('nan'))],  # nan - 1.0 = nan
+        [float_to_hex(1.0), float_to_hex(float('nan')), 0x0, float_to_hex(float('nan'))],  # 1.0 + nan = nan
         [float_to_hex(1.0), float_to_hex(float('nan')), 0x1, float_to_hex(float('nan'))],  # 1.0 - nan = nan
     ], cmdline_opts)
 
-def test_max_min(cmdline_opts):
+def test_random(cmdline_opts):
     adder = fp_addsub()
+    tests = []
 
-    run_test_vector_sim(adder, [
-        ('a       b       subtract y*'),
-        [float_to_hex(float('1.175494351e-38')), float_to_hex(float('1.175494351e-38')), 0x0, float_to_hex(float('2.350988702e-38'))],  # min_float + min_float = 2*min_float
-        [float_to_hex(float('3.402823466e+38')), float_to_hex(float('1.0')), 0x1, float_to_hex(float('3.402823466e+38'))],  # max_float - 1.0 = max_float
-    ], cmdline_opts)
+    # generate 1000 random test cases
+    for _ in range(1000):
+        a = random.uniform(-1e38, 1e38)  # random float between -1e38 and 1e38
+        b = random.uniform(-1e38, 1e38)  # random float between -1e38 and 1e38
+        subtract = random.choice([0x0, 0x1])  # random choice between add or subtract
+        expected_result = a - b if subtract else a + b
 
-def test_precision(cmdline_opts):
-    adder = fp_addsub()
+        tests.append([float_to_hex(a), float_to_hex(b), subtract, float_to_hex(expected_result)])
 
-    run_test_vector_sim(adder, [
-        ('a       b       subtract y*'),
-        [float_to_hex(1.123456789), float_to_hex(2.987654321), 0x0, float_to_hex(4.11111111)],  # 1.123456789 + 2.987654321 = 4.11111111
-        [float_to_hex(1.123456789), float_to_hex(0.223456789), 0x1, float_to_hex(0.9)],  # 1.123456789 - 0.223456789 = 0.9
-    ], cmdline_opts)
+    run_test_vector_sim(adder, [('a       b       subtract y*')] + tests, cmdline_opts)

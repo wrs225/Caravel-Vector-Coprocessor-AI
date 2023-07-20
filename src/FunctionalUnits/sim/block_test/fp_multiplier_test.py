@@ -49,7 +49,7 @@ def test_nan(cmdline_opts):
         [float_to_hex(float('nan')), float_to_hex(0.0), float_to_hex(float('nan'))],
         [float_to_hex(float('nan')), float_to_hex(float('inf')), float_to_hex(float('nan'))],
         [float_to_hex(float('nan')), float_to_hex(1.0), float_to_hex(float('nan'))],
-        [float_to_hex(float('nan')), float_to_hex(float('-inf')), float_to_hex(float('nan'))],
+        [float_to_hex(float('nan')), float_to_hex(float('-inf')), float_to_hex(float('-nan'))],
     ], cmdline_opts)
 
 def test_extremes(cmdline_opts):

@@ -10,8 +10,8 @@ def float_to_hex(f):
         f = float('inf')
     elif f < -MAX_VALUE:
         f = float('-inf')
-    elif f != 0 and abs(f) < MIN_VALUE:  # using abs here
-        f = float('inf')
+    elif f != 0 and abs(f) < MIN_VALUE:  # We don't want to turn exactly 0 into 0
+        f = 0.0  # Setting the value to zero
 
     # First, use the struct module to pack the float into a four byte sequence.
     # The 'f' format code specifies a single precision float, and the '<' specifies little-endian byte order.
@@ -30,6 +30,6 @@ def float_to_hex(f):
 # print(float_to_hex(float('-inf')))  # Output: 4286578688
 # print(float_to_hex(float('nan')))  # Output: 2143289344
 # print(float_to_hex(3.5e38))  # Output: 2139095040
-# print(float_to_hex(1e-40))  # Output: 2139095040
+# print(float_to_hex(1e-40))  # Output: 0
 # print(float_to_hex(-3.5e38))  # Output: 4286578688
-# print(float_to_hex(-1e-40))  # Output: 2139095040
+# print(float_to_hex(-1e-40))  # Output: 0

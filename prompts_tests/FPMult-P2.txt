@@ -183,3 +183,29 @@ def test_random(cmdline_opts):
 
 This new function, test_random(), generates and tests 1000 random floating point multiplication test cases. You can adjust the number and range of the generated floating point numbers to better fit your testing requirements.
 ------------------
+**You:**
+
+
+In test extremes, please change -0.0 to 0.0
+------------------
+**ChatGPT:**
+
+
+Sure, I can change that for you. Here is the updated test_extremes function:
+
+python
+Copy code
+def test_extremes(cmdline_opts):
+    multiplier = fp_multiplier()
+
+    run_test_vector_sim(multiplier, [
+        ('a       b       y*'),
+        [float_to_hex(float('1.8e308')), float_to_hex(float('1.8e308')), float_to_hex(float('inf'))],
+        [float_to_hex(float('1e-45')), float_to_hex(float('1e-45')), float_to_hex(0.0)],
+        [float_to_hex(float('1.8e308')), float_to_hex(float('-1.8e308')), float_to_hex(float('-inf'))],
+        [float_to_hex(float('1e-45')), float_to_hex(float('-1e-45')), float_to_hex(0.0)],
+    ], cmdline_opts)
+
+
+In this version, I've replaced -0.0 with 0.0 in the last line of test vectors.
+------------------

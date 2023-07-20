@@ -60,7 +60,7 @@ def test_extremes(cmdline_opts):
         [float_to_hex(float('1.8e308')), float_to_hex(float('1.8e308')), float_to_hex(float('inf'))],
         [float_to_hex(float('1e-45')), float_to_hex(float('1e-45')), float_to_hex(0.0)],
         [float_to_hex(float('1.8e308')), float_to_hex(float('-1.8e308')), float_to_hex(float('-inf'))],
-        [float_to_hex(float('1e-45')), float_to_hex(float('-1e-45')), float_to_hex(-0.0)],
+        [float_to_hex(float('1e-45')), float_to_hex(float('-1e-45')), float_to_hex(0.0)],
     ], cmdline_opts)
 
 def test_random(cmdline_opts):

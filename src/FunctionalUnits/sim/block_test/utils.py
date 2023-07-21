@@ -43,10 +43,6 @@ def ieee_754_to_float(int_val):
     exponent = int(binary_format[1:9], 2)
     mantissa = int(binary_format[9:], 2)
 
-    print(sign)
-    print(exponent)
-    print(mantissa)
-
     # If exponent is all 1's, it's either an infinity or a NaN
     if exponent == 255:
         if mantissa == 0:
@@ -60,8 +56,6 @@ def ieee_754_to_float(int_val):
 
     # Compute the actual exponent value
     exponent = exponent - 127
-
-    print(exponent)
 
     # Compute the actual mantissa value
     mantissa = 1 + mantissa / 2**23

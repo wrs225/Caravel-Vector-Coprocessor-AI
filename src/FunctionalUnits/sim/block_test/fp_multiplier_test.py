@@ -63,6 +63,16 @@ def test_extremes(cmdline_opts):
         [float_to_hex(float('1e-45')), float_to_hex(float('-1e-45')), float_to_hex(0.0)],
     ], cmdline_opts)
 
+def test_overflow_to_infinity(cmdline_opts):
+    multiplier = fp_multiplier()
+
+    run_test_vector_sim(multiplier, [
+        ('a       b       y*'),
+        [float_to_hex(float('1.8e308')), float_to_hex(float('1.0')), float_to_hex(float('1.8e308'))],
+        [float_to_hex(float('1.8e308')), float_to_hex(float('2.0')), float_to_hex(float('inf'))],
+        [float_to_hex(float('-1.8e308')), float_to_hex(float('2.0')), float_to_hex(float('-inf'))],
+    ], cmdline_opts)
+
 def test_random(cmdline_opts):
     multiplier = fp_multiplier()
     multiplier = config_model_with_cmdline_opts(multiplier, cmdline_opts, duts=[])

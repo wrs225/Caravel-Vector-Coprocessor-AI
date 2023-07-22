@@ -3,7 +3,8 @@ module fp_multiplier(
     input logic [31:0] b, // input b
     output logic [31:0] y // output y
 );
-    logic [7:0] a_exponent, b_exponent, y_exponent_temp, y_exponent;
+    logic [8:0] a_exponent, b_exponent, y_exponent_temp; // changed size to [8:0] to prevent overflow
+    logic [7:0] y_exponent;
     logic [23:0] a_mantissa, b_mantissa;
     logic [47:0] mult_result;
     logic [22:0] y_mantissa_temp, y_mantissa;
@@ -13,11 +14,11 @@ module fp_multiplier(
 
     // Extract the sign, exponent, and mantissa from the inputs
     assign a_sign = a[31];
-    assign a_exponent = a[30:23];
+    assign a_exponent = {1'b0, a[30:23]}; // added leading zero
     assign a_mantissa = {1'b1, a[22:0]};
 
     assign b_sign = b[31];
-    assign b_exponent = b[30:23];
+    assign b_exponent = {1'b0, b[30:23]}; // added leading zero
     assign b_mantissa = {1'b1, b[22:0]};
 
     // Perform the multiplication
@@ -30,11 +31,11 @@ module fp_multiplier(
 
     // Check for infinities and NaNs
     always_comb begin
-        if ((a_exponent == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent == 8'hFF && b_mantissa[22:0] != 0)) begin
+        if ((a_exponent[7:0] == 8'hFF && a_mantissa[22:0] != 0) || (b_exponent[7:0] == 8'hFF && b_mantissa[22:0] != 0)) begin
             // a or b is NaN, result is NaN
             y_exponent = 8'hFF;
             y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
-        end else if ((a == 32'b0 && b_exponent == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent == 8'hFF && a_mantissa[22:0] == 0)) begin
+        end else if ((a == 32'b0 && b_exponent[7:0] == 8'hFF && b_mantissa[22:0] == 0) || (b == 32'b0 && a_exponent[7:0] == 8'hFF && a_mantissa[22:0] == 0)) begin
             // a is zero and b is infinity, or b is zero and a is infinity, result is NaN
             y_exponent = 8'hFF;
             y_mantissa = 23'h400000; // Set mantissa to 23'h400000 for NaN cases
@@ -42,7 +43,11 @@ module fp_multiplier(
             // If either input is zero, output is zero
             y_exponent = 8'h00;
             y_mantissa = 23'h0;
-        end else if ((a_exponent == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent == 8'hFF && b_mantissa[22:0] == 0)) begin
+        end else if (y_exponent_temp[8]) begin
+            // overflow, set to infinity
+            y_exponent = 8'hFF;
+            y_mantissa = 23'h0;
+        end else if ((a_exponent[7:0] == 8'hFF && a_mantissa[22:0] == 0) && (b_exponent[7:0] == 8'hFF && b_mantissa[22:0] == 0)) begin
             // a is infinity and b is infinity, result is infinity
             y_exponent = 8'hFF;
             y_mantissa = 23'h0;
@@ -52,7 +57,7 @@ module fp_multiplier(
             y_mantissa = y_mantissa_temp >> -y_exponent_temp;
         end else begin
             // Normal case
-            y_exponent = y_exponent_temp;
+            y_exponent = y_exponent_temp[7:0];
             y_mantissa = y_mantissa_temp + (r & sticky_bit); // Add rounding
         end
     end

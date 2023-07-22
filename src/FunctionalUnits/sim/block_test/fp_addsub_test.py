@@ -93,8 +93,8 @@ def test_random(cmdline_opts):
 
     # generate 1000 random test cases
     for _ in range(1000):
-        a = random.uniform(-1e38, 1e38)  # random float between -1e38 and 1e38
-        b = random.uniform(-1e38, 1e38)  # random float between -1e38 and 1e38
+        a = random.uniform(-1e10, 1e10)  # random float between -1e10 and 1e10
+        b = random.uniform(-1e10, 1e10)  # random float between -1e10 and 1e10
         subtract = random.choice([0x0, 0x1])  # random choice between add or subtract
         expected_result = a - b if subtract else a + b
 

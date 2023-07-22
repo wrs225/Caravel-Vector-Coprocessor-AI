@@ -276,3 +276,30 @@ First, we multiply the largest representable positive floating-point number (1.8
 Then, we multiply the largest representable positive floating-point number (1.8e308) by 2.0, and the result should be positive infinity (inf) as the multiplication causes an overflow.
 Finally, we multiply the largest representable negative floating-point number (-1.8e308) by 2.0, and the result should be negative infinity (-inf) as the multiplication also causes an overflow.
 ------------------
+**ChatGPT:**
+
+
+For the random tests, please modify the random number generation so that the expected result is less likely to be infinity due to overflow
+------------------
+**ChatGPT:**
+
+
+Sure, to avoid overflow, we need to generate smaller random floating point numbers. Here's how to adjust the random number generation range in the test_random function:
+
+python
+Copy code
+def test_random(cmdline_opts):
+    multiplier = fp_multiplier()
+    test_vectors = [('a', 'b', 'y*')]
+
+    for _ in range(1000):
+        a = random.uniform(-1e18, 1e18)  # Adjusted range to avoid overflow
+        b = random.uniform(-1e18, 1e18)  # Adjusted range to avoid overflow
+        expected_result = a * b
+        test_vectors.append([float_to_hex(a), float_to_hex(b), float_to_hex(expected_result)])
+
+    run_test_vector_sim(multiplier, test_vectors, cmdline_opts)
+
+
+In this version of test_random(), I've reduced the range of the generated random floating point numbers from [-1e38, 1e38] to [-1e18, 1e18]. This reduces the chance of getting an overflow when multiplying two randomly generated numbers. You may further adjust this range to better fit your testing requirements.
+------------------

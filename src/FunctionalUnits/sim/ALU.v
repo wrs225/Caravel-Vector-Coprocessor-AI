@@ -1,3 +1,10 @@
+`include "Multiplier.v"
+`include "AddSub.v"
+`include "fp_addsub.v"
+`include "fp_multiplier.v"
+`include "BitwiseOperationUnit.v"
+`include "comparison_unit.v"
+
 module ALU #(parameter WIDTH = 32) (
     input logic [WIDTH-1:0] A,
     input logic [WIDTH-1:0] B,
@@ -37,7 +44,7 @@ module ALU #(parameter WIDTH = 32) (
     );
 
     // Instantiate fp_addsub
-    fp_addsub #(WIDTH) fpAddSub (
+    fp_addsub fpAddSub (
         .a(A),
         .b(muxOut),
         .subtract(AddSub),

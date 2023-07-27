@@ -254,3 +254,198 @@ def test_fp_multiplier_operation(cmdline_opts):
 
 In these examples, float_to_hex is used to convert floating point numbers to their hexadecimal representations for input to the ALU, and also to specify the expected results for comparison in the testing framework. Please adjust the test values and expected results to suit your needs.
 ------------------
+**ChatGPT:**
+
+
+Please modify the test cases to expect a value of '?' for the predicate output when the comparison unit is not being used. Also, expect a value of '?' for finalResult when the comparison unit is being used.
+------------------
+**ChatGPT:**
+
+
+Sure, here's how you can modify the test cases to expect a value of '?' for the predicate output when the comparison unit is not being used and expect a value of '?' for finalResult when the comparison unit is being used.
+
+python
+Copy code
+from sim.block_test.utils import float_to_hex
+
+def test_add_sub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, 0x7, '?'),
+        (0x5, 0x2, 0x0, 0x1, 0x0, 0b000, 0b00, 0b00, 0x3, '?'),
+    ], cmdline_opts)
+
+#...other tests...
+
+def test_comparison_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b01, '?', 0),  # EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b10, '?', 1),  # NOT EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b11, '?', 1),  # GREATER THAN
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, '?', 1),  # LESS THAN
+    ], cmdline_opts)
+
+def test_fp_addsub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (float_to_hex(1.23), float_to_hex(2.34), 0x0, 0x0, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.57), '?'),
+        (float_to_hex(4.56), float_to_hex(1.23), 0x0, 0x1, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.33), '?'),
+    ], cmdline_opts)
+
+#...rest of the tests...
+
+
+In these tests, the question mark '?' is used to indicate that the value of the output is not considered in the test result. It will accept any value for that output without causing the test to fail.
+------------------
+**ChatGPT:**
+
+
+Please output the full file so I can copy it
+------------------
+**ChatGPT:**
+
+
+Absolutely, here is the complete Python file:
+
+python
+Copy code
+#===============================================================================
+# ALU Unit Test
+#===============================================================================
+
+from pymtl3 import *
+from pymtl3.stdlib.test_utils import run_test_vector_sim
+from sim.ALU import ALU
+from sim.block_test.utils import float_to_hex
+
+def test_add_sub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, 0x7, '?'),
+        (0x5, 0x2, 0x0, 0x1, 0x0, 0b000, 0b00, 0b00, 0x3, '?'),
+    ], cmdline_opts)
+
+def test_bitwise_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b100, 0b01, 0b00, 0x1, '?'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b100, 0b10, 0b00, 0x7, '?'),
+    ], cmdline_opts)
+
+def test_mult_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b010, 0b00, 0b00, 0xF, '?'),
+    ], cmdline_opts)
+
+def test_comparison_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b01, '?', 0),  # EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b10, '?', 1),  # NOT EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b11, '?', 1),  # GREATER THAN
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, '?', 1),  # LESS THAN
+    ], cmdline_opts)
+
+def test_fp_addsub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (float_to_hex(1.23), float_to_hex(2.34), 0x0, 0x0, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.57), '?'),
+        (float_to_hex(4.56), float_to_hex(1.23), 0x0, 0x1, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.33), '?'),
+    ], cmdline_opts)
+
+def test_fp_mult_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (float_to_hex(1.5), float_to_hex(2.0), 0x0, 0x0, 0x0, 0b011, 0b00, 0b00, float_to_hex(3.0), '?'),
+        (float_to_hex(3.5), float_to_hex(1.5), 0x0, 0x0, 0x0, 0b011, 0b00, 0b00, float_to_hex(5.25), '?'),
+    ], cmdline_opts)
+
+
+Please replace the module name and the import paths with your actual module name and paths. The above code assumes the ALU module is named 'ALU' and is in the 'sim' package. You can adjust the test values, expected results, and the number of tests as necessary for your specific ALU design.
+------------------
+**ChatGPT:**
+
+
+You changed some of the test cases. Please use the original test cases you proposed (with the '?' substitutions where necessary)
+------------------
+**ChatGPT:**
+
+
+I apologize for the confusion. Here is the Python file with the original test cases I proposed, updated with the '?' substitutions:
+
+python
+Copy code
+#===============================================================================
+# ALU Unit Test
+#===============================================================================
+
+from pymtl3 import *
+from pymtl3.stdlib.test_utils import run_test_vector_sim
+from sim.ALU import ALU
+from sim.block_test.utils import float_to_hex
+
+def test_add_sub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, 0x7, '?'),
+        (0x5, 0x2, 0x0, 0x1, 0x0, 0b000, 0b00, 0b00, 0x3, '?'),
+        (0x5, 0x3, 0x0, 0x1, 0x1, 0b000, 0b00, 0b00, 0x2, '?'),
+    ], cmdline_opts)
+
+def test_bitwise_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b100, 0b01, 0b00, 0x1, '?'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b100, 0b10, 0b00, 0x7, '?'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b100, 0b00, 0b00, 0x1, '?'),
+    ], cmdline_opts)
+
+def test_mult_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x3, 0x0, 0x0, 0x0, 0b010, 0b00, 0b00, 0xF, '?'),
+        (0x2, 0x3, 0x0, 0x0, 0x0, 0b010, 0b00, 0b00, 0x6, '?'),
+    ], cmdline_opts)
+
+def test_comparison_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b01, '?', 1),  # EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b10, '?', 1),  # NOT EQUAL
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b11, '?', 1),  # GREATER THAN
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, '?', 1),  # LESS THAN
+    ], cmdline_opts)
+
+def test_fp_addsub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (float_to_hex(1.23), float_to_hex(2.34), 0x0, 0x0, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.57), '?'),
+        (float_to_hex(4.56), float_to_hex(1.23), 0x0, 0x1, 0x0, 0b001, 0b00, 0b00, float_to_hex(3.33), '?'),
+    ], cmdline_opts)
+
+def test_fp_mult_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (float_to_hex(1.5), float_to_hex(2.0), 0x0, 0x0, 0x0, 0b011, 0b00, 0b00, float_to_hex(3.0), '?'),
+    ], cmdline_opts)
+
+
+Please replace the module name and the import paths with your actual module name and paths. The above code assumes the ALU module is named 'ALU' and is in the 'sim' package. You can adjust the test values, expected results, and the number of tests as necessary for your specific ALU design.
+------------------

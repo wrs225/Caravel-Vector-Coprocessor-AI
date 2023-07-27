@@ -4,8 +4,8 @@
 
 from pymtl3 import *
 from pymtl3.stdlib.test_utils import run_test_vector_sim
-from sim.alu import ALU
-from sim.block_test.utils import float_to_hex
+from Dpath.alu import ALU
+from Dpath.block_test.utils import float_to_hex
 
 def test_add_sub_operation(cmdline_opts):
     alu = ALU()

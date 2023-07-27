@@ -449,3 +449,103 @@ def test_fp_mult_operation(cmdline_opts):
 
 Please replace the module name and the import paths with your actual module name and paths. The above code assumes the ALU module is named 'ALU' and is in the 'sim' package. You can adjust the test values, expected results, and the number of tests as necessary for your specific ALU design.
 ------------------
+**ChatGPT:**
+
+
+For the third test case of the test_add_sub_operation function, the muxControl input is set to 0x1, meaning that C will be used in the operation instead of B. Please fix the expected finalResult value
+------------------
+**ChatGPT:**
+
+
+I apologize for the oversight. You're correct, with the muxControl set to 0x1, the subtraction operation will be 0x5 - 0x0 which equals 0x5. Here is the corrected test case:
+
+python
+Copy code
+def test_add_sub_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b000, 0b00, 0b00, 0x7, '?'),
+        (0x5, 0x2, 0x0, 0x1, 0x0, 0b000, 0b00, 0b00, 0x3, '?'),
+        (0x5, 0x3, 0x0, 0x1, 0x1, 0b000, 0b00, 0b00, 0x5, '?'),  # Corrected expected result
+    ], cmdline_opts)
+
+
+This test case now correctly expects a result of 0x5 for the third case.
+------------------
+**ChatGPT:**
+
+
+For the bitwiseControl input value, a value of 0b00 means 'and', 0b01 means 'or', and 0b10 means 'xor'. Please revise the bitwise operation test cases based on this
+------------------
+**ChatGPT:**
+
+
+Sure, let's revise the bitwise operation test cases considering that 0b00 is for AND, 0b01 is for OR, and 0b10 is for XOR. Here are the revised test cases:
+
+python
+Copy code
+def test_bitwise_operation(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        # AND operation
+        (0xF, 0x5, 0x0, 0x0, 0x0, 0b100, 0b00, 0b00, 0x5, '?'),
+        (0xF, 0x2, 0x0, 0x0, 0x0, 0b100, 0b00, 0b00, 0x2, '?'),
+        # OR operation
+        (0xF, 0x5, 0x0, 0x0, 0x0, 0b100, 0b01, 0b00, 0xF, '?'),
+        (0xF, 0x2, 0x0, 0x0, 0x0, 0b100, 0b01, 0b00, 0xF, '?'),
+        # XOR operation
+        (0xF, 0x5, 0x0, 0x0, 0x0, 0b100, 0b10, 0b00, 0xA, '?'),
+        (0xF, 0x2, 0x0, 0x0, 0x0, 0b100, 0b10, 0b00, 0xD, '?'),
+    ], cmdline_opts)
+
+
+In the test cases:
+
+AND operation (bitwiseControl = 0b00): 0xF AND 0x5 equals 0x5, 0xF AND 0x2 equals 0x2.
+OR operation (bitwiseControl = 0b01): 0xF OR 0x5 equals 0xF, 0xF OR 0x2 equals 0xF.
+XOR operation (bitwiseControl = 0b10): 0xF XOR 0x5 equals 0xA, 0xF XOR 0x2 equals 0xD.
+
+Note that in each case, the B input is selected (since muxControl = 0x0), and the outputControl is set to 0b100 to select the result of the bitwise operation. The predicate output is expected to be '?' since the comparison unit is not being used in these test cases.
+------------------
+**ChatGPT:**
+
+
+For the compControl input, a value of 0b00 means equal, 0b01 means not equal, 0b10 means greater than, and 0b11 means less than. Please revise the comparison unit test cases based on this
+------------------
+**ChatGPT:**
+
+
+Absolutely, considering compControl values 0b00 for equals, 0b01 for not equals, 0b10 for greater than and 0b11 for less than, here are the updated comparison unit test cases:
+
+python
+Copy code
+def test_comparison_unit(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        # Equals operation
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b00, '?', 1),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b00, '?', 0),
+        # Not Equals operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b01, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b01, '?', 0),
+        # Greater than operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b10, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b10, '?', 0),
+        # Less than operation
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b11, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b11, '?', 0),
+    ], cmdline_opts)
+
+
+In the test cases:
+
+Equals operation (compControl = 0b00): 0x5 == 0x5 is True (1), 0x5 == 0x2 is False (0).
+Not equals operation (compControl = 0b01): 0x5 != 0x2 is True (1), 0x5 != 0x5 is False (0).
+Greater than operation (compControl = 0b10): 0x5 > 0x2 is True (1), 0x5 > 0x5 is False (0).
+Less than operation (compControl = 0b11): 0x2 < 0x5 is True (1), 0x5 < 0x5 is False (0).
+
+In each case, the B input is selected (since muxControl = 0x0), and the outputControl is set to 0b111 to select the predicate from the comparison unit. The finalResult output is expected to be '?' since the ALU operations are not being used in these test cases.
+------------------

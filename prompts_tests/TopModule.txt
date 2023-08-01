@@ -1,0 +1,1939 @@
+User
+I have a pyMTL wrapper for a Vector Accelerator that looks like this:
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.passes.backends.verilog import *
+
+class TopModule( VerilogPlaceholder, Component ):
+
+  # Constructor
+
+  def construct( s ):
+
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'top_module' )
+
+    # Interface
+
+    # Receive interface for load_queue
+    s.load_recv = stream.ifcs.RecvIfcRTL( Bits64 )
+
+    # Receive interface for instruction_queue
+    s.instruction_recv = stream.ifcs.RecvIfcRTL( Bits32 )
+
+    # Send interface for store_queue
+    s.store_send = stream.ifcs.SendIfcRTL( Bits32 )
+
+# Instantiate the Verilog module
+topmodule = TopModule
+
+I need to test different instructions for it, but want to make a test bench that looks similar to this:
+#=========================================================================
+# IntMulFixedLatRTL_test
+#=========================================================================
+
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from FFT.FFTTestHarnessRTL import FFTTestHarnessVRTL
+from .FixedPt_FFT import fixed_point_fft
+from .FixedPt_FFT import cooley_tukey_fft_recursive
+from fxpmath import Fxp
+import numpy as np
+import math
+
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+
+class TestHarness( Component ):
+
+  def construct( s, fft, BIT_WIDTH = 32, DECIMAL_PT = 16, N_SAMPLES = 8):
+
+    # Instantiate models
+
+    s.src  = stream.SourceRTL( mk_bits(BIT_WIDTH) )
+    s.sink = stream.SinkRTL  ( mk_bits(BIT_WIDTH), cmp_fn=lambda a, b: abs(a.int() - b.int()) <= (1 << (DECIMAL_PT // 2)) )
+    s.fft = fft
+
+    # Connect
+
+    s.src.send  //= s.fft.recv
+    s.fft.send //= s.sink.recv
+
+  def done( s ):
+    return s.src.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src.line_trace() + " > " + s.fft.line_trace() + " > " + s.sink.line_trace()
+
+def packed_msg(array, bitwidth, fft_size): #Array of ints
+#  input = Bits(1)
+#  bit_convert = mk_bits(bitwidth)
+#  output = input
+#  for i in range(len(array)):
+
+#    output = concat( bit_convert(array[i]), output )
+  
+#  output = output[1:bitwidth * fft_size + 1]
+  
+  return array[:fft_size]
+  
+
+"""Creates a singular FFT call and resposne """
+def fft_call_response(array_of_sample_integers, bitwidth, fft_size):
+  array = []
+
+  
+  output_array_unpacked = fixed_point_fft(BIT_WIDTH=bitwidth,DECIMAL_PT=16,SIZE_FFT=fft_size,x=array_of_sample_integers)
+  input_array  = []
+  output_array = []
+
+
+  for n in range(fft_size):
+    input_array.append(array_of_sample_integers[n])
+    output_array.append(output_array_unpacked[n])
+  
+  return revchunk(packed_msg(input_array, bitwidth, fft_size) + packed_msg(output_array, bitwidth, fft_size), fft_size)
+
+
+#----------------------------------------------------------------------
+# Test Case: small positive * positive
+#----------------------------------------------------------------------
+
+def two_point_dc(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00000000, 0x00020000
+  ]
+
+def two_point_dc_generated(bits, fft_size, frac_bits):
+  # print([Fxp( 1, signed = True, n_word = bits, n_frac = frac_bits ),Fxp( 1, signed = True, n_word = bits, n_frac = frac_bits )])
+  return fft_call_response([1 * (2**frac_bits),1 * (2**frac_bits)], bits, fft_size)
+
+
+def two_point_dc_generated_negative(bits, fft_size, frac_bits):
+
+  return fft_call_response([1 * (2**frac_bits),1 * (2**frac_bits)], bits, fft_size)
+
+
+def eight_point_dc(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00080000
+  ] 
+
+def eight_point_offset_sine(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xfffc0000, 0x00000000, 0x00000000, 0x00000000, 0x00040000
+  ]
+
+
+##################################################################################################################################################################
+def eight_point_ones_alt_twos(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00020000, 0x00010000, 0x00020000, 0x00010000, 0x00020000, 0x00010000, 0x00020000, 0x00000000, 0x00000000, 0x00000000, 0x00040000, 0x00000000, 0x00000000, 0x00000000, 0x000C0000
+  ]
+
+def eight_point_one_to_eight(bits, fft_size, frac_bits):
+  return [
+  0x00080000, 0x00070000, 0x00060000, 0x00050000, 0x00040000, 0x00030000, 0x00020000, 0x00010000, 0xfffc0000, 0xfffc0000, 0xfffc0000, 0xfffc0000, 0xfffc0000, 0xfffc0000, 0xfffc0000, 0x00240000
+  ]
+  
+def eight_point_assorted(bits, fft_size, frac_bits):
+  return [
+  0xfffc0000, 0x00000000, 0x00030000, 0x00000000, 0x00050000, 0xffff0000, 0x00010000, 0x00020000, 0xfff70000, 0x00030000, 0x000d0000, 0xfffc0000, 0x000d0000, 0x00030000, 0xfff70000, 0x00060000
+  ]
+
+def four_point_assorted(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00000000, 0xfffe0000, 0x00000000, 0x00020000
+  ]
+
+def four_point_offset_sine(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00020000, 0x00010000, 0x00020000, 0x00000000, 0x00020000, 0x00000000, 0x00060000
+  ]
+
+def four_point_non_sine(bits, fft_size, frac_bits):
+  return [
+  0x00020000, 0x00020000, 0x00030000, 0x00020000, 0x00000000, 0xFFFF0000, 0x00000000, 0x00090000
+  ]
+
+def four_point_dc(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00000000, 0x00000000, 0x00000000, 0x00040000
+  ]
+
+def four_point_one_to_four(bits, fft_size, frac_bits):
+  return [
+  0x00040000, 0x00030000, 0x00020000, 0x00010000, 0xfffe0000, 0xfffe0000, 0xfffe0000, 0x000A0000
+  ]
+
+def sixteen_point_dc(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 
+  0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00100000
+  ]
+def thirtytwo_point_dc(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 
+  0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00200000
+  ]
+
+def n_point_dc(bits, fft_size, frac_bits):
+	return [1 << frac_bits]*fft_size + [0] *(fft_size - 1) + [fft_size << frac_bits]
+
+######################################################################################################################################################################
+def two_point_two_samples(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00010000, 0x00000000, 0x00020000,
+  0x00000000, 0x00010000, 0x00010000, 0x00010000
+  ]
+
+def eight_point_two_samples(bits, fft_size, frac_bits):
+  return [
+  0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00010000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0xfffc0000, 0x00000000, 0x00000000, 0x00000000, 0x00040000,
+  0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00010000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00080000
+  ] 
+
+def descend_signal(bits, fft_size, frac_bits):
+  signal = []
+  for i in range(fft_size):
+    signal.append((fft_size - i) * (2**frac_bits))
+  
+  return fft_call_response( signal, bits, fft_size)
+
+def random_signal(bits, fft_size, frac_bits):
+  signal = []
+  smax = min(2**(bits-1), 20*2**frac_bits)
+  for i in range(fft_size):
+    signal.append(math.trunc(random.uniform(-smax,smax)))
+
+  return fft_call_response( signal, bits, fft_size)
+
+
+def random_stream(bits, fft_size,frac_bits):
+
+	output = []
+	smax = min(2**(bits-1), 20*2**frac_bits)
+  
+	for a in range(50):
+
+		signal = []
+		for i in range(fft_size):
+			signal.append(math.trunc(random.uniform(-smax,smax)))
+
+		output += fft_call_response(signal, bits, fft_size)
+
+	return output
+
+
+
+
+
+#----------------------------------------------------------------------
+# Test Case Table
+#----------------------------------------------------------------------
+
+
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs                                       src_delay sink_delay BIT_WIDTH DECIMAL_PT N_SAMPLES"),
+  [ "two_point_dc",                    two_point_dc,                              0,        0,         32,        16,       2         ],
+  [ "two_point_dc_generated",          two_point_dc_generated,                    0,        0,         32,        16,       2         ],
+  [ "two_point_dc_generated_negative", two_point_dc_generated_negative,           0,        0,         32,        16,       2         ],
+  [ "eight_point_dc",                  eight_point_dc,                            0,        0,         32,        16,       8         ],
+  [ "eight_point_offset_sine",         eight_point_offset_sine,                   0,        0,         32,        16,       8         ],
+  [ "two_point_random",                random_signal,                             0,        0,         32,        16,       2         ],
+  [ "two_points_random_stream",        random_stream,                             0,        0,         32,        16,       2         ],
+  [ "four_point_assorted",             four_point_assorted,                       0,        0,         32,        16,       4         ],
+  [ "four_point_offset_sine",          four_point_offset_sine,                    0,        0,         32,        16,       4,        ],
+  [ "four_point_non_sine",             four_point_non_sine,                       0,        0,         32,        16,       4,        ], 
+  [ "eight_point_random",              random_signal,                             0,        0,         32,        16,       8         ],
+  [ "two_point_two_samples",           two_point_two_samples,                     0,        0,         32,        16,       2         ],
+  [ "eight_point_two_ops",             eight_point_two_samples,                   0,        0,         32,        16,       8         ],
+  [ "eight_point_ones_alt_twos",       eight_point_ones_alt_twos,                 0,        0,         32,        16,       8         ],
+  [ "eight_point_one_to_eight",        eight_point_one_to_eight,                  0,        0,         32,        16,       8         ],
+  #[ "eight_point_assorted",            eight_point_assorted,                      0,        0,         32,        16,       8         ],
+  [ "four_point_dc",                   four_point_dc,                             0,        0,         32,        16,       4         ],
+  [ "four_point_one_to_four",          four_point_one_to_four,                    0,        0,         32,        16,       4         ], 
+  [ "sixteen_point_dc",                sixteen_point_dc,                          0,        0,         32,        16,       16        ],
+  [ "thirtytwo_point_dc",              thirtytwo_point_dc,                        0,        0,         32,        16,       32        ],
+  [ "descend_signal_2",                descend_signal,                            0,        0,         32,        16,       2        ],
+  [ "descend_signal_4",                descend_signal,                            0,        0,         32,        16,       4        ],
+  [ "descend_signal_16",               descend_signal,                            0,        0,         32,        16,       16        ],
+	*[
+		 [ f"{n}_point_dc_generated",      n_point_dc,                            0,        0,         32,        16,       n        ]
+		 for n in [16, 32, 128, 256]
+	], 
+	*[
+		 [ f"{n}_point_{f.__name__}",                f,                           0,        0,         32,        16,       n        ]
+		 for n in [16, 32, 128, 256]
+		 for f in [random_signal]]
+	], 
+)
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+# Reverse chunks (reverses endianness for serdes)
+def revchunk(l, i):
+	return sum(
+		[(l[k:k+i])[::-1] for k in range(0, len(l), i)]
+	, [])
+
+def chunk(l, i, n, sep):
+	return sum(
+		[l[k:k+n] for k in range(i, len(l), sep)]
+	, [])
+
+def make_signed(i, n):
+	if isinstance(i, int):
+		return mk_bits(n)(i)
+	elif isinstance(i, float):
+		return make_signed(int(i), n)
+	else:
+		return i
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+	th = TestHarness( FFTTestHarnessVRTL(test_params.BIT_WIDTH, test_params.DECIMAL_PT,test_params.N_SAMPLES), test_params.BIT_WIDTH, test_params.DECIMAL_PT, test_params.N_SAMPLES )
+
+	msgs = test_params.msgs(test_params.BIT_WIDTH, test_params.N_SAMPLES, test_params.DECIMAL_PT)
+	msgs = revchunk(msgs, test_params.N_SAMPLES)
+	msgs = [make_signed(m, test_params.BIT_WIDTH) for m in msgs]
+
+	send_msgs = chunk(msgs, 0, test_params.N_SAMPLES, test_params.N_SAMPLES * 2)
+	recv_msgs = chunk(msgs, test_params.N_SAMPLES, test_params.N_SAMPLES, test_params.N_SAMPLES * 2)
+
+	print("Expecting", send_msgs, recv_msgs)
+
+	th.set_param("top.src.construct",
+	msgs=send_msgs,
+	initial_delay=test_params.src_delay+3,
+	interval_delay=test_params.src_delay )
+
+	th.set_param("top.sink.construct",
+		msgs=recv_msgs,
+	initial_delay=test_params.sink_delay+3,
+	interval_delay=test_params.sink_delay )
+
+	cmdline_opts["dump_vcd"] = f'FFT_{request.node.name}'
+
+	run_sim( th, cmdline_opts, duts=['fft'] )
+
+Can you please use this example FFT testbench to create a skeleton for the vector coprocessor?
+ChatGPT
+
+Sure, I can help you create a skeleton for the vector coprocessor testbench based on the FFT testbench you provided. Here's a basic outline:
+
+python
+
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from VectorAccelerator.VectorTestHarnessRTL import VectorTestHarnessVRTL
+from fxpmath import Fxp
+import numpy as np
+import math
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, BIT_WIDTH = 32):
+
+    # Instantiate models
+
+    s.src  = stream.SourceRTL( mk_bits(BIT_WIDTH) )
+    s.sink = stream.SinkRTL( mk_bits(BIT_WIDTH) )
+    s.vector_accelerator = vector_accelerator
+
+    # Connect
+
+    s.src.send  //= s.vector_accelerator.recv
+    s.vector_accelerator.send //= s.sink.recv
+
+  def done( s ):
+    return s.src.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+#----------------------------------------------------------------------
+# Test Case Table
+#----------------------------------------------------------------------
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs                                       src_delay sink_delay BIT_WIDTH"),
+  # Add your test cases here
+  # [ "test_case_name",                 test_case_function,                       src_delay, sink_delay, BIT_WIDTH ],
+])
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness( VectorTestHarnessVRTL(test_params.BIT_WIDTH), test_params.BIT_WIDTH)
+
+  msgs = test_params.msgs(test_params.BIT_WIDTH)
+  msgs = [make_signed(m, test_params.BIT_WIDTH) for m in msgs]
+
+  send_msgs = msgs # Modify this if necessary
+  recv_msgs = msgs # Modify this if necessary
+
+  print("Expecting", send_msgs, recv_msgs)
+
+  th.set_param("top.src.construct",
+    msgs=send_msgs,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=recv_msgs,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This is a basic skeleton for your vector coprocessor testbench. You will need to fill in the details for your specific test cases in the test_case_table. The send_msgs and recv_msgs variables should be set to the appropriate values for your test cases. The VectorTestHarnessVRTL class should be defined in the VectorAccelerator.VectorTestHarnessRTL module, and should encapsulate the behavior of your vector accelerator.
+User
+Technically, we need two     s.src  = stream.SourceRTL( mk_bits(BIT_WIDTH) ), because our block has two stream interface inputs. Also remove the parametrization of  BIT_WIDTH = 32, just include the bit sizes they should be
+ChatGPT
+
+Sure, I understand. Here's the updated skeleton for the vector coprocessor testbench:
+
+python
+
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from VectorAccelerator.VectorTestHarnessRTL import VectorTestHarnessVRTL
+from fxpmath import Fxp
+import numpy as np
+import math
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator):
+
+    # Instantiate models
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )
+    s.vector_accelerator = vector_accelerator
+
+    # Connect
+
+    s.src_load.send  //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+#----------------------------------------------------------------------
+# Test Case Table
+#----------------------------------------------------------------------
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction                 src_delay sink_delay"),
+  # Add your test cases here
+  # [ "test_case_name",                 test_case_function_load, test_case_function_instruction, src_delay, sink_delay ],
+])
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness( VectorTestHarnessVRTL())
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  print("Expecting", msgs_load, msgs_instruction)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+In this updated skeleton, I've added another stream.SourceRTL for the second stream interface input. I've also removed the BIT_WIDTH parameter and hardcoded the bit sizes for each stream interface. You will need to fill in the details for your specific test cases in the test_case_table. The VectorTestHarnessVRTL class should be defined in the VectorAccelerator.VectorTestHarnessRTL module, and should encapsulate the behavior of your vector accelerator.
+User
+Next, let's add a simple function which does a load, add, then store. Here are the mappings between the instructions and register selects:
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+Here is a copy of the ISA:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+ChatGPT
+
+Sure, let's create a function that generates the instructions for a load, add, and store operation. We'll use the instruction format you provided:
+
+python
+
+def load_add_store(load_addr, load_len, add_reg, store_addr, store_len):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Return the instructions as a list
+    return [load_instr, add_instr, store_instr]
+
+This function takes in the addresses and lengths for the load and store operations, as well as the register to add to the loaded vector. It then creates the instructions according to the format you provided and returns them as a list.
+
+You can use this function in your test cases to generate the instruction stream. For example:
+
+python
+
+def test_case_function():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+
+    # Generate the instructions
+    instrs = load_add_store(load_addr, load_len, add_reg, store_addr, store_len)
+
+    # Return the instructions as the test data
+    return instrs
+
+This will generate a load, add, and store operation for your test case. You can adjust the parameters as needed for your specific tests.
+User
+When you do a store, you must also include the address and data to be stored in the src_load queue in this form:
+data = load_msg[63:32]
+addr  = load_msg[31:0]
+ChatGPT
+
+I see, so you need to include the address and data to be stored in the src_load queue. Here's how you can modify the load_add_store function to include this:
+
+python
+
+def load_add_store(load_addr, load_len, add_reg, store_addr, store_len, store_data):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Create the load message
+    load_msg = (store_data << 32) | store_addr
+
+    # Return the instructions and load message as a list
+    return [load_instr, add_instr, store_instr, load_msg]
+
+This function now also takes in the data to be stored and includes it in the src_load queue. The load_msg is created by concatenating the data and the address. This function now returns a list that includes the instructions and the load message.
+
+You can use this function in your test cases to generate the instruction stream and the load message. For example:
+
+python
+
+def test_case_function():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+    store_data = 0x12345678
+
+    # Generate the instructions and load message
+    instrs_and_load_msg = load_add_store(load_addr, load_len, add_reg, store_addr, store_len, store_data)
+
+    # Return the instructions and load message as the test data
+    return instrs_and_load_msg
+
+This will generate a load, add, and store operation and a load message for your test case. You can adjust the parameters as needed for your specific tests.
+User
+The load_msg needs to be the return value of a completely separate function than the one that sends the instruction
+ChatGPT
+
+I see, you want to separate the generation of the load message and the instructions. Here's how you can do that:
+
+python
+
+def generate_instructions(load_addr, load_len, add_reg, store_addr, store_len):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Return the instructions as a list
+    return [load_instr, add_instr, store_instr]
+
+def generate_load_msg(store_addr, store_data):
+    # Create the load message
+    load_msg = (store_data << 32) | store_addr
+
+    # Return the load message
+    return load_msg
+
+Now you have two separate functions: generate_instructions for creating the instruction stream, and generate_load_msg for creating the load message. You can use these functions in your test cases to generate the instruction stream and the load message separately. For example:
+
+python
+
+def test_case_function_instructions():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+
+    # Generate the instructions
+    instrs = generate_instructions(load_addr, load_len, add_reg, store_addr, store_len)
+
+    # Return the instructions as the test data
+    return instrs
+
+def test_case_function_load_msg():
+    # Generate some test data
+    store_addr = 0x20
+    store_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(store_addr, store_data)
+
+    # Return the load message as the test data
+    return load_msg
+
+This will generate a load, add, and store operation and a load message for your test case. You can adjust the parameters as needed for your specific tests.
+User
+test_case_function_load_msg needs to return a load_msg and a store_msg of the same format of the load_msg
+ChatGPT
+
+Understood. Here's how you can modify the test_case_function_load_msg function to return both a load_msg and a store_msg:
+
+python
+
+def test_case_function_load_msg():
+    # Generate some test data
+    load_addr = 0x10
+    load_data = 0x12345678
+    store_addr = 0x20
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(load_addr, load_data)
+    store_msg = generate_load_msg(store_addr, store_data)
+
+    # Return the load and store messages as a tuple
+    return load_msg, store_msg
+
+This function now generates a load_msg and a store_msg using the generate_load_msg function and returns them as a tuple. You can adjust the parameters as needed for your specific tests.
+User
+Can you please return them as an array? Also the load and store addresses should be the same, while the data may be different. 
+ChatGPT
+
+Sure, you can return the load_msg and store_msg as a list and use the same address for both. Here's how you can modify the test_case_function_load_msg function:
+
+python
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    # Return the load and store messages as a list
+    return [load_msg, store_msg]
+
+This function now generates a load_msg and a store_msg using the same address but different data, and returns them as a list. You can adjust the parameters as needed for your specific tests.
+User
+Please print the entire file so I know you know it works. 
+ChatGPT
+
+Sure, here is the complete file with the modifications:
+
+python
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.passes.backends.verilog import *
+
+class TopModule( VerilogPlaceholder, Component ):
+
+  # Constructor
+
+  def construct( s ):
+
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'top_module' )
+
+    # Interface
+
+    # Receive interface for load_queue
+    s.load_recv = stream.ifcs.RecvIfcRTL( Bits64 )
+
+    # Receive interface for instruction_queue
+    s.instruction_recv = stream.ifcs.RecvIfcRTL( Bits32 )
+
+    # Send interface for store_queue
+    s.store_send = stream.ifcs.SendIfcRTL( Bits32 )
+
+class TestHarness( Component ):
+
+  def construct( s ):
+
+    # Instantiate models
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instr = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )
+
+    # Connect
+
+    s.src_load.send  //= s.dut.load_recv
+    s.src_instr.send //= s.dut.instruction_recv
+    s.dut.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instr.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instr.line_trace() + " > " + s.sink.line_trace()
+
+def generate_instructions(load_addr, load_len, add_reg, store_addr, store_len):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Return the instructions as a list
+    return [load_instr, add_instr, store_instr]
+
+def generate_load_msg(addr, data):
+    # Create the load message
+    load_msg = (data << 32) | addr
+
+    # Return the load message
+    return load_msg
+
+def test_case_function_instructions():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+
+    # Generate the instructions
+    instrs = generate_instructions(load_addr, load_len, add_reg, store_addr, store_len)
+
+    # Return the instructions as the test data
+    return instrs
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    # Return the load and store messages as a list
+    return [load_msg, store_msg]
+
+This file now includes the TopModule and TestHarness classes, as well as the generate_instructions and generate_load_msg functions. It also includes the test_case_function_instructions and test_case_function_load_msg functions that generate the instruction stream and the load and store messages for your test cases. You can adjust the parameters as needed for your specific tests.
+User
+You are forgetting this part:
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction                 src_delay sink_delay"),
+  # Add your test cases here
+  # [ "test_case_name",                 test_case_function_load, test_case_function_instruction, src_delay, sink_delay ],
+])
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness( VectorTestHarnessVRTL())
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  print("Expecting", msgs_load, msgs_instruction)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+ChatGPT
+
+I see, you want to include the test case table and the pytest function. Here is the complete file with those additions:
+
+python
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+
+class TopModule( VerilogPlaceholder, Component ):
+
+  # Constructor
+
+  def construct( s ):
+
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'top_module' )
+
+    # Interface
+
+    # Receive interface for load_queue
+    s.load_recv = stream.ifcs.RecvIfcRTL( Bits64 )
+
+    # Receive interface for instruction_queue
+    s.instruction_recv = stream.ifcs.RecvIfcRTL( Bits32 )
+
+    # Send interface for store_queue
+    s.store_send = stream.ifcs.SendIfcRTL( Bits32 )
+
+class TestHarness( Component ):
+
+  def construct( s ):
+
+    # Instantiate models
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instr = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )
+
+    # Connect
+
+    s.src_load.send  //= s.dut.load_recv
+    s.src_instr.send //= s.dut.instruction_recv
+    s.dut.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instr.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instr.line_trace() + " > " + s.sink.line_trace()
+
+def generate_instructions(load_addr, load_len, add_reg, store_addr, store_len):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Return the instructions as a list
+    return [load_instr, add_instr, store_instr]
+
+def generate_load_msg(addr, data):
+    # Create the load message
+    load_msg = (data << 32) | addr
+
+    # Return the load message
+    return load_msg
+
+def test_case_function_instructions():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+
+    # Generate the instructions
+    instrs = generate_instructions(load_addr, load_len, add_reg, store_addr, store_len)
+
+    # Return the instructions as the test data
+    return instrs
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    # Return the load and store messages as a list
+    return [load_msg, store_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction                 src_delay sink_delay"),
+  # Add your test cases here
+  [ "test_case_name",                 test_case_function_load_msg, test_case_function_instructions, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness( TopModule() )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  print("Expecting", msgs_load, msgs_instruction)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator
+
+User
+For this function call:
+  th.set_param("top.sink.construct",
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+you need to include msgs=msgs_sink and modify additional lines as needed to  include messages to check the sink results
+ChatGPT
+
+I see, you want to check the output of the Vector Accelerator as well. Here is the updated code:
+
+python
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+
+class TopModule( VerilogPlaceholder, Component ):
+
+  # Constructor
+
+  def construct( s ):
+
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'top_module' )
+
+    # Interface
+
+    # Receive interface for load_queue
+    s.load_recv = stream.ifcs.RecvIfcRTL( Bits64 )
+
+    # Receive interface for instruction_queue
+    s.instruction_recv = stream.ifcs.RecvIfcRTL( Bits32 )
+
+    # Send interface for store_queue
+    s.store_send = stream.ifcs.SendIfcRTL( Bits32 )
+
+class TestHarness( Component ):
+
+  def construct( s ):
+
+    # Instantiate models
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instr = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )
+
+    # Connect
+
+    s.src_load.send  //= s.dut.load_recv
+    s.src_instr.send //= s.dut.instruction_recv
+    s.dut.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instr.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instr.line_trace() + " > " + s.sink.line_trace()
+
+def generate_instructions(load_addr, load_len, add_reg, store_addr, store_len):
+    # Create the instructions
+    load_instr = (0x00 << 27) | (0 << 22) | (load_addr << 17) | (load_len << 12)
+    add_instr = (0x02 << 27) | (0 << 22) | (0 << 17) | (add_reg << 12)
+    store_instr = (0x01 << 27) | (0 << 22) | (store_addr << 17) | (store_len << 12)
+
+    # Return the instructions as a list
+    return [load_instr, add_instr, store_instr]
+
+def generate_load_msg(addr, data):
+    # Create the load message
+    load_msg = (data << 32) | addr
+
+    # Return the load message
+    return load_msg
+
+def test_case_function_instructions():
+    # Generate some test data
+    load_addr = 0x10
+    load_len = 8
+    add_reg = 1
+    store_addr = 0x20
+    store_len = 8
+
+    # Generate the instructions
+    instrs = generate_instructions(load_addr, load_len, add_reg, store_addr, store_len)
+
+    # Return the instructions as the test data
+    return instrs
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    # Return the load and store messages as a list
+    return [load_msg, store_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x20
+    store_data = 0x87654321
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+  # Add your test cases here
+  [ "test_case_name",                 test_case_function_load_msg, test_case_function_instructions, test_case_function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness( TopModule() )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This code now includes a function to generate the expected output messages (test_case_function_sink_msg), and the pytest function has been updated to use these messages to check the output of the Vector Accelerator.
+User
+This function needs to be changed so addr=0x10 and store_data=0x12345678:
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x20
+    store_data = 0x87654321
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+ChatGPT
+
+Sure, here is the updated test_case_function_sink_msg function:
+
+python
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+Now, the function generates a sink message with an address of 0x10 and data of 0x12345678.
+User
+Remove:
+class TopModule( VerilogPlaceholder, Component ):
+
+  # Constructor
+
+  def construct( s ):
+
+    # If translated into Verilog, we use the explicit name
+
+    s.set_metadata( VerilogTranslationPass.explicit_module_name, 'top_module' )
+
+    # Interface
+
+    # Receive interface for load_queue
+    s.load_recv = stream.ifcs.RecvIfcRTL( Bits64 )
+
+    # Receive interface for instruction_queue
+    s.instruction_recv = stream.ifcs.RecvIfcRTL( Bits32 )
+
+    # Send interface for store_queue
+    s.store_send = stream.ifcs.SendIfcRTL( Bits32 )
+
+and please print the entire file so I know you understand
+ChatGPT
+
+Sure, here is the updated code with the TopModule class removed:
+
+python
+
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from fxpmath import Fxp
+
+#-------------------------------------------------------------------------
+# TestHarness
+#-------------------------------------------------------------------------
+
+class TestHarness( Component ):
+
+  def construct( s ):
+
+    # Instantiate models
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )
+
+    # Connect
+    s.src_load.send  //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def test_case_function_instruction_msg():
+    # Generate some test data
+    opcode = 0x02
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_name",                 test_case_function_load_msg, test_case_function_instruction_msg, test_case_function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  th = TestHarness()
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This code now includes a test harness for the Vector Accelerator, with functions to generate load messages, instruction messages, and sink messages. The pytest function has been updated to use these messages to test the Vector Accelerator.
+User
+The make_signed function is not defined here
+ChatGPT
+
+My apologies for the confusion. The make_signed function is not a built-in function in PyMTL3 or Python. It seems to be a custom function that is not defined in the provided code.
+
+However, if you want to convert an unsigned integer to a signed integer in Python, you can use the ctypes library. Here is a simple function that does that:
+
+python
+
+import ctypes
+
+def make_signed(value, bits):
+    value = value & ((1 << bits) - 1)
+    if value & (1 << (bits - 1)):
+        value -= 1 << bits
+    return value
+
+This function takes a value and the number of bits. It first masks the value to the specified number of bits. Then it checks if the value is negative (i.e., if the most significant bit is 1). If it is, it subtracts 2^bits from the value to get the correct negative value.
+
+Please replace make_signed with this function in your code.
+User
+to def construct(s), add an argument caled vector_accelerator. In the body add s.vector_accelerator = vector_accelerator
+ChatGPT
+
+Sure, here is how you can modify the construct method of the TestHarness class to include the vector_accelerator argument:
+
+python
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits64 )
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+In this modification, I've added vector_accelerator as an argument to the construct method. Then, I've assigned vector_accelerator to s.vector_accelerator inside the method. This allows the vector_accelerator instance to be used within the TestHarness class.
+User
+in def test( request, test_params, cmdline_opts ): add a constructor for class TopModule( VerilogPlaceholder, Component ): then pass that into the th = TestHarness() constructor as an argument
+ChatGPT
+
+Sure, here is how you can modify the test function to include the instantiation of TopModule and pass it to the TestHarness constructor:
+
+python
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs
+
+User
+2 / 2
+please continue and be sure to import TopModule.py, which is located in parent folder of block_test called sim. 
+ChatGPT
+
+Sure, to import TopModule from a parent folder called sim, you can use the following import statement at the top of your script:
+
+python
+
+import sys
+sys.path.insert(0, '../sim')
+
+from TopModule import TopModule
+
+This will add the parent directory sim to the system path and then import the TopModule from there.
+
+Here is the complete script with the import statement:
+
+python
+
+import sys
+sys.path.insert(0, '../sim')
+
+from TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def test_case_function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     test_case_function_load_msg, test_case_function_instruction_msg, test_case_function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits64 )
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 64) for m in msgs_sink]
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+Please note that the relative path '../sim' assumes that the script is being run from a directory that is a sibling to the sim directory. If the script is being run from a different location, you may need to
+User
+2 / 2
+Can we just do from sim.TopModule import TopModule
+ChatGPT
+
+Yes, if the sim directory is in the Python path, you can directly import the TopModule class from it. Here is the updated script:
+
+python
+
+from sim.TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def test_case_function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     test_case_function_load_msg, test_case_function_instruction_msg, test_case_function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits64 )
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 64) for m in msgs_sink]
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This assumes that the sim directory is in the Python path. If it's not, you may need to adjust the Python path accordingly.
+User
+You also need to include make_signed
+ChatGPT
+
+The make_signed function is used to convert an unsigned integer to a signed integer. Here is a simple implementation of the function:
+
+python
+
+def make_signed(value, bits):
+    if value & (1 << (bits - 1)):
+        return value - (1 << bits)
+    else:
+        return value
+
+You can add this function at the top of your script. Here is the updated script:
+
+python
+
+from sim.TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def make_signed(value, bits):
+    if value & (1 << (bits - 1)):
+        return value - (1 << bits)
+    else:
+        return value
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def test_case_function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     test_case_function_load_msg, test_case_function_instruction_msg, test_case_function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits64 )
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 64) for m in msgs_sink]
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+User
+stream.SinkRTL(Bits64) should be stream.SinkRTL(Bits32)
+ChatGPT
+
+I apologize for the oversight. Here is the corrected script:
+
+python
+
+from sim.TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def make_signed(value, bits):
+    if value & (1 << (bits - 1)):
+        return value - (1 << bits)
+    else:
+        return value
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def test_case_function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def test_case_function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def test_case_function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     test_case_function_load_msg, test_case_function_instruction_msg, test_case_function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )  # Changed to Bits32
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 32) for m in msgs_sink]  # Changed to 32
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )

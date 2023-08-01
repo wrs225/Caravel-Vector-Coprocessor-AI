@@ -1,4 +1,4 @@
-module top_module (
+module TopModule (
     input logic clk,
     input logic reset,
 
@@ -65,6 +65,10 @@ module top_module (
     // Mux outputs for VectorRegFile wAddr1 and wAddr2
     logic [4:0] wAddr1_mux_out;
     logic [4:0] wAddr2_mux_out;
+
+    // 2-input muxes for VectorRegFile rAddr1_1 and rAddr2_1
+    logic [4:0] rAddr1_1_mux_out;
+    logic [4:0] rAddr2_1_mux_out;
 
     // Instantiate load_queue
     queue #(.WIDTH(64), .DEPTH(16)) load_queue (
@@ -151,12 +155,16 @@ module top_module (
     assign wAddr1_mux_out = load_store_bit ? wb_addr[9:5] : vector_reg_write_select;
     assign wAddr2_mux_out = load_store_bit ? wb_addr[4:0] : counter;
 
+    // 2-input muxes for VectorRegFile rAddr1_1 and rAddr2_1
+    assign rAddr1_1_mux_out = load_store_bit ? wb_addr[9:5] : reg_file_addr1;
+    assign rAddr2_1_mux_out = load_store_bit ? wb_addr[4:0] : counter;
+
     // Instantiate VectorRegFile
     VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
         .clk(clk),
         .reset_n(~reset),
-        .rAddr1_1(reg_file_addr1),
-        .rAddr2_1(counter),
+        .rAddr1_1(rAddr1_1_mux_out),
+        .rAddr2_1(rAddr2_1_mux_out),
         .rData1(rData1),
         .rAddr1_2(reg_file_addr2),
         .rAddr2_2(counter),

@@ -1400,8 +1400,31 @@ def test( request, test_params, cmdline_opts ):
   msgs_instruction = test_params.msgs_instruction()
   msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
 
-  msgs
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 64) for m in msgs_sink]
 
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+In this modification, I've added the instantiation of TopModule as vector_accelerator and passed it to the TestHarness constructor. This allows the TestHarness to use the vector_accelerator instance for its connections and operations.
 User
 2 / 2
 please continue and be sure to import TopModule.py, which is located in parent folder of block_test called sim. 
@@ -1937,3 +1960,1070 @@ def test( request, test_params, cmdline_opts ):
   cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
 
   run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+User
+You need to take test_ out of the names of functions because it confuses pytest. 
+ChatGPT
+
+I see, pytest automatically discovers test functions based on their names, and it can get confused if non-test functions have "test_" in their names. Here is the corrected script:
+
+python
+
+from sim.TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def make_signed(value, bits):
+    if value & (1 << (bits - 1)):
+        return value - (1 << bits)
+    else:
+        return value
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = generate_load_msg(addr, store_data)
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )  # Changed to Bits32
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 32) for m in msgs_sink]  # Changed to 32
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+User
+You also cannot use sink_msg = generate_load_msg(addr, store_data) in function_sink_msg because sink_msg must be 32 bits, but generate_load_msg is 64 bits
+ChatGPT
+
+I see, if the sink_msg needs to be 32 bits, we cannot use the generate_load_msg function as it generates a 64-bit message. Instead, we can directly use the store_data as the sink_msg since it is already a 32-bit value. Here is the corrected function:
+
+python
+
+def function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = store_data
+
+    # Return the sink message
+    return [sink_msg]
+
+And here is the corrected full script:
+
+python
+
+from sim.TopModule import TopModule
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+import pytest
+import random
+
+random.seed(0xdeadbeef)
+
+def make_signed(value, bits):
+    if value & (1 << (bits - 1)):
+        return value - (1 << bits)
+    else:
+        return value
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+
+def function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+
+def function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = store_data
+
+    # Return the sink message
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+  (                                   "msgs_load msgs_instruction msgs_sink      src_delay sink_delay"),
+  [ "test_case_1",                     function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, src_delay=0, sink_delay=0 ):
+
+    # Instantiate models
+    s.vector_accelerator = vector_accelerator
+
+    s.src_load  = stream.SourceRTL( Bits64 )
+    s.src_instruction = stream.SourceRTL( Bits32 )
+    s.sink = stream.SinkRTL( Bits32 )  # Changed to Bits32
+
+    # Connect
+    s.src_load.send //= s.vector_accelerator.load_recv
+    s.src_instruction.send //= s.vector_accelerator.instruction_recv
+    s.vector_accelerator.store_send //= s.sink.recv
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  # Instantiate the TopModule
+  vector_accelerator = TopModule()
+
+  # Pass the TopModule instance to the TestHarness
+  th = TestHarness( vector_accelerator )
+
+  msgs_load = test_params.msgs_load()
+  msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+  msgs_instruction = test_params.msgs_instruction()
+  msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+  msgs_sink = test_params.msgs_sink()
+  msgs_sink = [make_signed(m, 32) for m in msgs_sink]  # Changed to 32
+
+  print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+  th.set_param("top.src_load.construct",
+    msgs=msgs_load,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=msgs_instruction,
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=msgs_sink,
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+User
+Next, the function def function_instruction_msg():
+    # Generate some test data
+    opcode = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction message
+    instruction_msg = generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction message
+    return [instruction_msg]
+Needs to include the load and store instructions as well. It is a quirk of the system where for loads and stores you need to send a message into both the instruction_msg port as well as the load_msg port. For stores you should expect a message back on the sink_msg port
+ChatGPT
+
+I see, if I understand correctly, you want the function_instruction_msg to generate instruction messages for both load and store operations. Here's how you can modify the function:
+
+python
+
+def function_instruction_msg():
+    # Generate some test data
+    opcode_load = 0x00
+    opcode_store = 0x01
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    # Generate the instruction messages
+    instruction_msg_load = generate_instruction_msg(opcode_load, dest_reg, src_reg1, src_reg2)
+    instruction_msg_store = generate_instruction_msg(opcode_store, dest_reg, src_reg1, src_reg2)
+
+    # Return the instruction messages
+    return [instruction_msg_load, instruction_msg_store]
+
+This function will now return a list of two instruction messages: one for the load operation and one for the store operation. The opcode for the load operation is 0x00 and for the store operation is 0x01, as per the ISA you provided. The destination and source registers are the same for both operations in this example, but you can modify them as needed.
+User
+Perfect! You also need to add load and store data/addresses in the function def function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+
+    # Generate the load message
+    load_msg = generate_load_msg(addr, load_data)
+
+    # Return the load message
+    return [load_msg]
+ChatGPT
+
+Sure, if you want to include both load and store data/addresses in the function_load_msg, you can modify the function like this:
+
+python
+
+def function_load_msg():
+    # Generate some test data
+    addr_load = 0x10
+    load_data = 0x12345678
+
+    addr_store = 0x20
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr_load, load_data)
+    store_msg = generate_load_msg(addr_store, store_data)  # Using the same function to generate store message
+
+    # Return the load and store messages
+    return [load_msg, store_msg]
+
+In this function, addr_load and load_data are the address and data for the load operation, and addr_store and store_data are the address and data for the store operation. The generate_load_msg function is used to generate both load and store messages, assuming that they have the same format. If the format for the store message is different, you should use a different function to generate it.
+User
+For this particular test, you need to load and sore from the same address. 
+ChatGPT
+
+Understood. If you want to load and store from the same address, you can modify the function like this:
+
+python
+
+def function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)  # Using the same function to generate store message
+
+    # Return the load and store messages
+    return [load_msg, store_msg]
+
+In this function, addr is the address for both the load and store operations. load_data is the data for the load operation, and store_data is the data for the store operation. The generate_load_msg function is used to generate both load and store messages, assuming that they have the same format. If the format for the store message is different, you should use a different function to generate it.
+User
+Please print the entire file so I can confirm understanding. 
+ChatGPT
+
+Here is the entire file with all the modifications:
+
+python
+
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def make_signed(i, n):
+    if isinstance(i, int):
+        return mk_bits(n)(i)
+    elif isinstance(i, float):
+        return make_signed(int(i), n)
+    else:
+        return i
+
+class TestHarness( Component ):
+    def construct( s, vector_accelerator ):
+        s.src_load = stream.SourceRTL(Bits64)
+        s.src_instruction = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.vector_accelerator = vector_accelerator
+
+        s.src_load.send //= s.vector_accelerator.load_recv
+        s.src_instruction.send //= s.vector_accelerator.instruction_recv
+        s.vector_accelerator.store_send //= s.sink.recv
+
+    def done(s):
+        return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    load_msg = generate_load_msg(addr, load_data)
+    return [load_msg]
+
+def function_instruction_msg():
+    opcode_load = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+    load_instruction_msg = generate_instruction_msg(opcode_load, dest_reg, src_reg1, src_reg2)
+
+    opcode_store = 0x01
+    store_instruction_msg = generate_instruction_msg(opcode_store, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x87654321
+    sink_msg = generate_load_msg(addr, store_data)
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+    ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    vector_accelerator = TopModule()
+    th = TestHarness(vector_accelerator)
+
+    msgs_load = test_params.msgs_load()
+    msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+    msgs_instruction = test_params.msgs_instruction()
+    msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+    print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+    th.set_param("top.src_load.construct",
+        msgs=msgs_load,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.src_instruction.construct",
+        msgs=msgs_instruction,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This script creates a test harness for the vector accelerator, generates load and instruction messages, and runs the simulation. The function_load_msg, function_instruction_msg, and function_sink_msg functions generate the load, instruction, and sink messages, respectively. The test function sets up the test harness, generates the messages, and runs the simulation.
+User
+Change function_load_msg to this: def function_load_msg():
+    # Generate some test data
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    # Generate the load and store messages
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)  # Using the same function to generate store message
+
+    # Return the load and store messages
+    return [load_msg, store_msg]
+
+And function_sink_msg to this:
+def function_sink_msg():
+    # Generate some test data
+    addr = 0x10
+    store_data = 0x12345678
+
+    # Generate the sink message
+    sink_msg = store_data
+
+    # Return the sink message
+    return [sink_msg]
+ChatGPT
+
+Here is the updated file with the changes you requested:
+
+python
+
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def make_signed(i, n):
+    if isinstance(i, int):
+        return mk_bits(n)(i)
+    elif isinstance(i, float):
+        return make_signed(int(i), n)
+    else:
+        return i
+
+class TestHarness( Component ):
+    def construct( s, vector_accelerator ):
+        s.src_load = stream.SourceRTL(Bits64)
+        s.src_instruction = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.vector_accelerator = vector_accelerator
+
+        s.src_load.send //= s.vector_accelerator.load_recv
+        s.src_instruction.send //= s.vector_accelerator.instruction_recv
+        s.vector_accelerator.store_send //= s.sink.recv
+
+    def done(s):
+        return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+    return [load_msg, store_msg]
+
+def function_instruction_msg():
+    opcode_load = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+    load_instruction_msg = generate_instruction_msg(opcode_load, dest_reg, src_reg1, src_reg2)
+
+    opcode_store = 0x01
+    store_instruction_msg = generate_instruction_msg(opcode_store, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x12345678
+    sink_msg = store_data
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+    ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    vector_accelerator = TopModule()
+    th = TestHarness(vector_accelerator)
+
+    msgs_load = test_params.msgs_load()
+    msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+    msgs_instruction = test_params.msgs_instruction()
+    msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+    print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+    th.set_param("top.src_load.construct",
+        msgs=msgs_load,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.src_instruction.construct",
+        msgs=msgs_instruction,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+In function_load_msg, I've added the generation of store_msg using the same generate_load_msg function but with store_data. In function_sink_msg, I've changed sink_msg to be just store_data as per your request.
+User
+Please change this function:
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+to put addr in the MSBs and data in the LSBs
+ChatGPT
+
+Sure, here is the updated function:
+
+python
+
+def generate_load_msg(addr, data):
+    return (addr << 32) | data
+
+This function now shifts the address to the most significant bits and places the data in the least significant bits.
+User
+Please print the entire file so I can confirm understanding
+ChatGPT
+2 / 2
+
+Sure, here is the updated file:
+
+python
+
+from pymtl3 import *
+from pymtl3.stdlib.test import TestSinkCL, TestSrcCL, TestRandomDelay
+from pymtl3.stdlib.test.test_src import TestSrcRTL
+from pymtl3.stdlib.test.test_sink import TestSinkRTL
+from pymtl3.stdlib.stream import StreamSource, StreamSink, StreamSourceRTL, StreamSinkRTL
+from pymtl3.stdlib.test import mk_test_case_table, run_sim
+from pymtl3.passes.backends.verilog import *
+from sim.TopModule import TopModule
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def generate_load_msg(addr, data):
+    return (addr << 32) | data
+
+def make_signed(n, bitwidth):
+    if n >= 2**(bitwidth-1):
+        n = n - 2**bitwidth
+    return n
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    return [load_msg, store_msg]
+
+def function_instruction_msg():
+    load_opcode = 0x00
+    store_opcode = 0x01
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    load_instruction_msg = generate_instruction_msg(load_opcode, dest_reg, src_reg1, src_reg2)
+    store_instruction_msg = generate_instruction_msg(store_opcode, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x12345678
+
+    sink_msg = store_data
+
+    return [sink_msg]
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, msgs_load, msgs_instruction, msgs_sink, src_delay, sink_delay ):
+
+    s.src_load = TestSrcRTL( Bits64, msgs_load )
+    s.src_instruction = TestSrcRTL( Bits32, msgs_instruction )
+    s.sink = TestSinkRTL( Bits32, msgs_sink )
+
+    s.vector_accelerator = vector_accelerator
+
+    connect( s.src_load.send, s.vector_accelerator.load_recv )
+    connect( s.src_instruction.send, s.vector_accelerator.instruction_recv )
+    connect( s.vector_accelerator.store_send, s.sink.recv )
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return f"{s.src_load.line_trace()} > {s.vector_accelerator.line_trace()} > {s.sink.line_trace()}"
+
+test_case_table = mk_test_case_table([
+  ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+  [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  vector_accelerator = TopModule()
+  th = TestHarness( vector_accelerator, test_params.msgs_load(), test_params.msgs_instruction(), test_params.msgs_sink(), test_params.src_delay, test_params.sink_delay )
+
+  th.set_param("top.src_load.construct",
+    msgs=test_params.msgs_load(),
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=test_params.msgs_instruction(),
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=test_params.msgs_sink(),
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This file now includes the updated generate_load_msg function and the changes to the function_load_msg and function_sink_msg functions. It also includes the import of TopModule from the sim directory and the creation of a TopModule instance in the test function.
+User
+Your imports need to be:
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+ChatGPT
+
+Sure, here is the updated file with the correct imports:
+
+python
+
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def generate_load_msg(addr, data):
+    return (addr << 32) | data
+
+def make_signed(n, bitwidth):
+    if n >= 2**(bitwidth-1):
+        n = n - 2**bitwidth
+    return n
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+
+    return [load_msg, store_msg]
+
+def function_instruction_msg():
+    load_opcode = 0x00
+    store_opcode = 0x01
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+
+    load_instruction_msg = generate_instruction_msg(load_opcode, dest_reg, src_reg1, src_reg2)
+    store_instruction_msg = generate_instruction_msg(store_opcode, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x12345678
+
+    sink_msg = store_data
+
+    return [sink_msg]
+
+class TestHarness( Component ):
+
+  def construct( s, vector_accelerator, msgs_load, msgs_instruction, msgs_sink, src_delay, sink_delay ):
+
+    s.src_load = stream.StreamSource(Bits64, msgs_load)
+    s.src_instruction = stream.StreamSource(Bits32, msgs_instruction)
+    s.sink = stream.StreamSink(Bits32, msgs_sink)
+
+    s.vector_accelerator = vector_accelerator
+
+    connect( s.src_load.send, s.vector_accelerator.load_recv )
+    connect( s.src_instruction.send, s.vector_accelerator.instruction_recv )
+    connect( s.vector_accelerator.store_send, s.sink.recv )
+
+  def done( s ):
+    return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+  def line_trace( s ):
+    return f"{s.src_load.line_trace()} > {s.vector_accelerator.line_trace()} > {s.sink.line_trace()}"
+
+test_case_table = mk_test_case_table([
+  ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+  [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+
+  vector_accelerator = TopModule()
+  th = TestHarness( vector_accelerator, test_params.msgs_load(), test_params.msgs_instruction(), test_params.msgs_sink(), test_params.src_delay, test_params.sink_delay )
+
+  th.set_param("top.src_load.construct",
+    msgs=test_params.msgs_load(),
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.src_instruction.construct",
+    msgs=test_params.msgs_instruction(),
+    initial_delay=test_params.src_delay+3,
+    interval_delay=test_params.src_delay )
+
+  th.set_param("top.sink.construct",
+    msgs=test_params.msgs_sink(),
+    initial_delay=test_params.sink_delay+3,
+    interval_delay=test_params.sink_delay )
+
+  cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+  run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This file now includes the updated imports as per your request.
+User
+Add:
+def generate_load_msg(addr, data):
+    return (addr << 32) | data
+To this file:
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+
+def generate_load_msg(addr, data):
+    return (data << 32) | addr
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def make_signed(i, n):
+    if isinstance(i, int):
+        return mk_bits(n)(i)
+    elif isinstance(i, float):
+        return make_signed(int(i), n)
+    else:
+        return i
+
+class TestHarness( Component ):
+    def construct( s, vector_accelerator ):
+        s.src_load = stream.SourceRTL(Bits64)
+        s.src_instruction = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.vector_accelerator = vector_accelerator
+
+        s.src_load.send //= s.vector_accelerator.load_recv
+        s.src_instruction.send //= s.vector_accelerator.instruction_recv
+        s.vector_accelerator.store_send //= s.sink.recv
+
+    def done(s):
+        return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+    return [load_msg, store_msg]
+
+def function_instruction_msg():
+    opcode_load = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+    load_instruction_msg = generate_instruction_msg(opcode_load, dest_reg, src_reg1, src_reg2)
+
+    opcode_store = 0x01
+    store_instruction_msg = generate_instruction_msg(opcode_store, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x12345678
+    sink_msg = store_data
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+    ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    vector_accelerator = TopModule()
+    th = TestHarness(vector_accelerator)
+
+    msgs_load = test_params.msgs_load()
+    msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+    msgs_instruction = test_params.msgs_instruction()
+    msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+    print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+    th.set_param("top.src_load.construct",
+        msgs=msgs_load,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.src_instruction.construct",
+        msgs=msgs_instruction,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+ChatGPT
+
+Sure, here is the updated file with the function generate_load_msg added:
+
+python
+
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+from sim.TopModule import TopModule
+
+def generate_load_msg(addr, data):
+    return (addr << 32) | data
+
+def generate_instruction_msg(opcode, dest_reg, src_reg1, src_reg2):
+    return (opcode << 27) | (dest_reg << 22) | (src_reg1 << 17) | (src_reg2 << 12)
+
+def make_signed(i, n):
+    if isinstance(i, int):
+        return mk_bits(n)(i)
+    elif isinstance(i, float):
+        return make_signed(int(i), n)
+    else:
+        return i
+
+class TestHarness( Component ):
+    def construct( s, vector_accelerator ):
+        s.src_load = stream.SourceRTL(Bits64)
+        s.src_instruction = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.vector_accelerator = vector_accelerator
+
+        s.src_load.send //= s.vector_accelerator.load_recv
+        s.src_instruction.send //= s.vector_accelerator.instruction_recv
+        s.vector_accelerator.store_send //= s.sink.recv
+
+    def done(s):
+        return s.src_load.done() and s.src_instruction.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src_load.line_trace() + " > " + s.src_instruction.line_trace() + " > " + s.vector_accelerator.line_trace() + " > " + s.sink.line_trace()
+
+def function_load_msg():
+    addr = 0x10
+    load_data = 0x12345678
+    store_data = 0x87654321
+    load_msg = generate_load_msg(addr, load_data)
+    store_msg = generate_load_msg(addr, store_data)
+    return [load_msg, store_msg]
+
+def function_instruction_msg():
+    opcode_load = 0x00
+    dest_reg = 0x01
+    src_reg1 = 0x02
+    src_reg2 = 0x03
+    load_instruction_msg = generate_instruction_msg(opcode_load, dest_reg, src_reg1, src_reg2)
+
+    opcode_store = 0x01
+    store_instruction_msg = generate_instruction_msg(opcode_store, dest_reg, src_reg1, src_reg2)
+
+    return [load_instruction_msg, store_instruction_msg]
+
+def function_sink_msg():
+    addr = 0x10
+    store_data = 0x12345678
+    sink_msg = store_data
+    return [sink_msg]
+
+test_case_table = mk_test_case_table([
+    ( "msgs_load msgs_instruction msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_load_msg, function_instruction_msg, function_sink_msg, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    vector_accelerator = TopModule()
+    th = TestHarness(vector_accelerator)
+
+    msgs_load = test_params.msgs_load()
+    msgs_load = [make_signed(m, 64) for m in msgs_load]
+
+    msgs_instruction = test_params.msgs_instruction()
+    msgs_instruction = [make_signed(m, 32) for m in msgs_instruction]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [make_signed(m, 32) for m in msgs_sink]
+
+    print("Expecting", msgs_load, msgs_instruction, msgs_sink)
+
+    th.set_param("top.src_load.construct",
+        msgs=msgs_load,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.src_instruction.construct",
+        msgs=msgs_instruction,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'VectorAccelerator_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['vector_accelerator'] )
+
+This file now includes the generate_load_msg function as per your request.

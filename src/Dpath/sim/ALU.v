@@ -1,9 +1,10 @@
-`include "../FunctionalUnits/sim/Multiplier.v"
-`include "../FunctionalUnits/sim/AddSub.v"
-`include "../FunctionalUnits/sim/fp_addsub.v"
-`include "../FunctionalUnits/sim/fp_multiplier.v"
-`include "../FunctionalUnits/sim/BitwiseOperationUnit.v"
-`include "../FunctionalUnits/sim/comparison_unit.v"
+//Modified by a human
+`include "../../FunctionalUnits/sim/Multiplier.v"
+`include "../../FunctionalUnits/sim/AddSub.v"
+`include "../../FunctionalUnits/sim/fp_addsub.v"
+`include "../../FunctionalUnits/sim/fp_multiplier.v"
+`include "../../FunctionalUnits/sim/BitwiseOperationUnit.v"
+`include "../../FunctionalUnits/sim/comparison_unit.v"
 
 module ALU #(parameter WIDTH = 32) (
     input logic [WIDTH-1:0] A,

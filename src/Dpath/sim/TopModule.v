@@ -1,3 +1,9 @@
+//Filepaths added by humans
+`include "./Queue.v"
+`include "./Counter.v"
+`include "./Decoder.v"
+`include "../../RegisterFiles/sim/VectorRegFile.v"
+`include "./ALU.v"
 module TopModule (
     input logic clk,
     input logic reset,
@@ -189,10 +195,8 @@ module TopModule (
         .predicate(predicate_reg_write_bit)
     );
 
-    // Connect rData1 to store_send_msg
-    assign store_send_msg = rData1;
-
-    // Assign store_send_val to load_store_bit anded with vector_reg_write_bit
-    assign store_send_val = load_store_bit & vector_reg_write_bit;
+    // Corrected line
+    assign store_recv_msg = rData1;
+    assign store_recv_val = load_store_bit & !vector_reg_write_bit;
 
 endmodule

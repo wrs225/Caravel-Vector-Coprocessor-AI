@@ -1,5 +1,5 @@
 //Filepaths added by humans
-`include "./Queue.v"
+`include "./queue.v"
 `include "./Counter.v"
 `include "./Decoder.v"
 `include "../../RegisterFiles/sim/VectorRegFile.v"

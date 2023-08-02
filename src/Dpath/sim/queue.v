@@ -28,13 +28,16 @@ module queue #(parameter WIDTH = 8, DEPTH = 16) (
             if (recv_rdy && recv_val && !full) begin
                 queue[tail] <= recv_msg;
                 tail <= tail + 1;
-                if (tail == DEPTH-1)
+                if (tail == DEPTH)
+                    tail <= 0;
+                if (tail == head)
                     full <= 1;
                 empty <= 0;
             end
             if (send_rdy && send_val && !empty) begin
-                send_msg <= queue[head];
                 head <= head + 1;
+                if (head == DEPTH)
+                    head <= 0;
                 if (head == tail)
                     empty <= 1;
                 full <= 0;
@@ -43,6 +46,7 @@ module queue #(parameter WIDTH = 8, DEPTH = 16) (
     end
 
     assign recv_rdy = !full;
-    assign send_val = !empty && (head != tail);
+    assign send_val = !empty;
+    assign send_msg = queue[head]; // The data is read in the combinational part, which removes the delay
 
 endmodule

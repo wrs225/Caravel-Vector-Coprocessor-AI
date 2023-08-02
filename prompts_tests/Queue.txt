@@ -379,3 +379,318 @@ def test( request, test_params, cmdline_opts ):
 
 This test script will send the numbers 0x12345678 and 0x87654321 through the queue and check if they come out the other side in the same order. You can add more sophisticated test cases depending on your requirements.
 ------------------
+**ChatGPT:**
+
+
+Please add more test cases, enough that the queue should fill the entire depth (size)
+------------------
+**ChatGPT:**
+
+
+To achieve a more comprehensive test, we can add more messages in a single test case to fill the entire depth of the queue. We'll use a depth of 16, which you have previously used as the default depth in your queue component. Also, we'll add more test cases to test different scenarios and different source and sink delays. Please see the updated test function:
+
+python
+Copy code
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+
+from queue import queue
+
+class TestHarness( Component ):
+    def construct( s, queue_instance ):
+        s.src = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.queue = queue_instance
+
+        s.src.send //= s.queue.recv_msg
+        s.queue.send_msg //= s.sink.recv
+
+    def done(s):
+        return s.src.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src.line_trace() + " > " + s.queue.line_trace() + " > " + s.sink.line_trace()
+
+def function_source_msg_test_case_1():
+    # 16 messages to fill the queue
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_source_msg_test_case_2():
+    # 8 messages, less than the depth of the queue
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_sink_msg_test_case_1():
+    # Expecting the same messages in the same order as they were sent
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_sink_msg_test_case_2():
+    # Expecting the same messages in the same order as they were sent
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+test_case_table = mk_test_case_table([
+    ( "msgs_source msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
+    [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    queue_instance = queue(WIDTH=32, DEPTH=16) # set width to 32 bits and depth to 16
+    th = TestHarness(queue_instance)
+
+    msgs_source = test_params.msgs_source()
+    msgs_source = [mk_bits(32)(m) for m in msgs_source]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [mk_bits(32)(m) for m in msgs_sink]
+
+    print("Expecting", msgs_source, msgs_sink)
+
+    th.set_param("top.src.construct",
+        msgs=msgs_source,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'Queue_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['queue'] )
+
+
+In this version of the script, we have added more test cases. In the first test case, we are sending 16 messages which is equal to the depth of the queue. In the second test case, we are sending 8 messages, which is less than the depth of the queue, with different source and sink delays to test how the queue behaves under different timing conditions. Please adjust these test cases as per your requirements.
+------------------
+**ChatGPT:**
+
+
+Great! Please also add one more test case that has more values than the depth of the queue. The queue should be able to handle that as well
+------------------
+**ChatGPT:**
+
+
+Sure, I added another test case where the number of messages exceeds the depth of the queue. In this case, the queue should behave as a circular buffer and the oldest messages should be dropped when it is full. Here is the updated test file:
+
+python
+Copy code
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+
+from queue import queue
+
+class TestHarness( Component ):
+    def construct( s, queue_instance ):
+        s.src = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.queue = queue_instance
+
+        s.src.send //= s.queue.recv_msg
+        s.queue.send_msg //= s.sink.recv
+
+    def done(s):
+        return s.src.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src.line_trace() + " > " + s.queue.line_trace() + " > " + s.sink.line_trace()
+
+def function_source_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_source_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_source_msg_test_case_3():
+    # 20 messages, more than the depth of the queue
+    return list(range(1, 21))
+
+def function_sink_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_sink_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_sink_msg_test_case_3():
+    # Expecting the last 16 messages of the source, as the first 4 should have been dropped due to the queue being full
+    return list(range(5, 21))
+
+test_case_table = mk_test_case_table([
+    ( "msgs_source msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
+    [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
+    [ "test_case_3", function_source_msg_test_case_3, function_sink_msg_test_case_3, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    queue_instance = queue(WIDTH=32, DEPTH=16) # set width to 32 bits and depth to 16
+    th = TestHarness(queue_instance)
+
+    msgs_source = test_params.msgs_source()
+    msgs_source = [mk_bits(32)(m) for m in msgs_source]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [mk_bits(32)(m) for m in msgs_sink]
+
+    print("Expecting", msgs_source, msgs_sink)
+
+    th.set_param("top.src.construct",
+        msgs=msgs_source,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'Queue_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['queue'] )
+
+
+In this updated script, test_case_3 sends 20 messages to the queue, which has a depth of 16. The queue should drop the first 4 messages (1 to 4) and keep the last 16 (5 to 20). So the expected output should be the messages from 5 to 20. The queue is tested as a circular buffer here. If the queue does not behave as expected, this test case will fail.
+------------------
+**ChatGPT:**
+
+
+The messages are sent one at a time and deleted when they are sent out, so no messages should actually be dropped
+------------------
+**ChatGPT:**
+
+
+I see, thank you for clarifying. If the queue is implemented such that each message is removed as soon as it's sent, and a new message is only sent when the queue is ready to receive it, then you're correct that no messages should be dropped, even if more messages are sent than the queue's depth. The queue's depth only limits the number of messages that can be held in the queue at any given time, not the total number of messages it can process.
+
+With that understanding, here's the updated test case:
+
+python
+Copy code
+import pytest
+from pymtl3 import *
+from pymtl3.stdlib import stream
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim
+
+from queue import queue
+
+class TestHarness( Component ):
+    def construct( s, queue_instance ):
+        s.src = stream.SourceRTL(Bits32)
+        s.sink = stream.SinkRTL(Bits32)
+        s.queue = queue_instance
+
+        s.src.send //= s.queue.recv_msg
+        s.queue.send_msg //= s.sink.recv
+
+    def done(s):
+        return s.src.done() and s.sink.done()
+
+    def line_trace(s):
+        return s.src.line_trace() + " > " + s.queue.line_trace() + " > " + s.sink.line_trace()
+
+def function_source_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_source_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_source_msg_test_case_3():
+    # 20 messages, more than the depth of the queue
+    return list(range(1, 21))
+
+def function_sink_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_sink_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_sink_msg_test_case_3():
+    # Expecting all 20 messages from the source, since the queue should not drop any messages
+    return list(range(1, 21))
+
+test_case_table = mk_test_case_table([
+    ( "msgs_source msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
+    [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
+    [ "test_case_3", function_source_msg_test_case_3, function_sink_msg_test_case_3, 0, 0 ],
+])
+
+@pytest.mark.parametrize( **test_case_table )
+def test( request, test_params, cmdline_opts ):
+    queue_instance = queue(WIDTH=32, DEPTH=16) # set width to 32 bits and depth to 16
+    th = TestHarness(queue_instance)
+
+    msgs_source = test_params.msgs_source()
+    msgs_source = [mk_bits(32)(m) for m in msgs_source]
+
+    msgs_sink = test_params.msgs_sink()
+    msgs_sink = [mk_bits(32)(m) for m in msgs_sink]
+
+    print("Expecting", msgs_source, msgs_sink)
+
+    th.set_param("top.src.construct",
+        msgs=msgs_source,
+        initial_delay=test_params.src_delay+3,
+        interval_delay=test_params.src_delay )
+
+    th.set_param("top.sink.construct",
+        msgs=msgs_sink,
+        initial_delay=test_params.sink_delay+3,
+        interval_delay=test_params.sink_delay )
+
+    cmdline_opts["dump_vcd"] = f'Queue_{request.node.name}'
+
+    run_sim( th, cmdline_opts, duts=['queue'] )
+
+
+In this updated script, test_case_3 now expects all 20 source messages to be received by the sink, in the same order that they were sent. This test case will verify that the queue properly handles a number of messages greater than its depth, without dropping any messages.
+------------------
+**ChatGPT:**
+
+
+Please add more tests with a wide range of numbers of messages and with various source and sink delays
+------------------
+**ChatGPT:**
+
+
+Certainly! Adding more tests with various source and sink delays and different numbers of messages will give more comprehensive coverage. Here's an expanded test suite:
+
+python
+Copy code
+# ... other imports and definitions ...
+
+def function_source_msg_test_case_4():
+    return [0x1] * 50 # 50 messages
+
+def function_source_msg_test_case_5():
+    return [0x2, 0x4] * 25 # 50 messages
+
+def function_sink_msg_test_case_4():
+    return [0x1] * 50 # Expecting the same 50 messages
+
+def function_sink_msg_test_case_5():
+    return [0x2, 0x4] * 25 # Expecting the same 50 messages
+
+test_case_table = mk_test_case_table([
+    ( "msgs_source msgs_sink src_delay sink_delay"),
+    [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
+    [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
+    [ "test_case_3", function_source_msg_test_case_3, function_sink_msg_test_case_3, 0, 0 ],
+    [ "test_case_4", function_source_msg_test_case_4, function_sink_msg_test_case_4, 3, 1 ],
+    [ "test_case_5", function_source_msg_test_case_5, function_sink_msg_test_case_5, 5, 5 ],
+    [ "test_case_6", function_source_msg_test_case_1, function_sink_msg_test_case_1, 10, 0 ],
+    [ "test_case_7", function_source_msg_test_case_2, function_sink_msg_test_case_2, 0, 10 ],
+    [ "test_case_8", function_source_msg_test_case_3, function_sink_msg_test_case_3, 5, 5 ],
+    [ "test_case_9", function_source_msg_test_case_4, function_sink_msg_test_case_4, 0, 5 ],
+    [ "test_case_10", function_source_msg_test_case_5, function_sink_msg_test_case_5, 7, 3 ],
+])
+
+# ... rest of the test function ...
+
+
+This includes additional test cases (test_case_4 to test_case_10) with varying numbers of messages and different source and sink delays. These cover various scenarios and help ensure that the queue handles different numbers of messages and timing conditions correctly.
+------------------

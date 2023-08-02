@@ -40,11 +40,30 @@ def function_sink_msg_test_case_3():
     # Expecting all 20 messages from the source, since the queue should not drop any messages
     return list(range(1, 21))
 
+def function_source_msg_test_case_4():
+    return [0x1] * 50 # 50 messages
+
+def function_source_msg_test_case_5():
+    return [0x2, 0x4] * 25 # 50 messages
+
+def function_sink_msg_test_case_4():
+    return [0x1] * 50 # Expecting the same 50 messages
+
+def function_sink_msg_test_case_5():
+    return [0x2, 0x4] * 25 # Expecting the same 50 messages
+
 test_case_table = mk_test_case_table([
     ( "msgs_source msgs_sink src_delay sink_delay"),
     [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
     [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
     [ "test_case_3", function_source_msg_test_case_3, function_sink_msg_test_case_3, 0, 0 ],
+    [ "test_case_4", function_source_msg_test_case_4, function_sink_msg_test_case_4, 3, 1 ],
+    [ "test_case_5", function_source_msg_test_case_5, function_sink_msg_test_case_5, 5, 5 ],
+    [ "test_case_6", function_source_msg_test_case_1, function_sink_msg_test_case_1, 10, 0 ],
+    [ "test_case_7", function_source_msg_test_case_2, function_sink_msg_test_case_2, 0, 10 ],
+    [ "test_case_8", function_source_msg_test_case_3, function_sink_msg_test_case_3, 5, 5 ],
+    [ "test_case_9", function_source_msg_test_case_4, function_sink_msg_test_case_4, 0, 5 ],
+    [ "test_case_10", function_source_msg_test_case_5, function_sink_msg_test_case_5, 7, 3 ],
 ])
 
 @pytest.mark.parametrize( **test_case_table )

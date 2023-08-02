@@ -20,20 +20,36 @@ class TestHarness( Component ):
     def line_trace(s):
         return s.src.line_trace() + " > " + s.queue.line_trace() + " > " + s.sink.line_trace()
 
-def function_source_msg():
-    return [0x12345678, 0x87654321]
+def function_source_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
 
-def function_sink_msg():
-    return [0x12345678, 0x87654321]
+def function_source_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_source_msg_test_case_3():
+    # 20 messages, more than the depth of the queue
+    return list(range(1, 21))
+
+def function_sink_msg_test_case_1():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc, 0xd, 0xe, 0xf, 0x10]
+
+def function_sink_msg_test_case_2():
+    return [0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8]
+
+def function_sink_msg_test_case_3():
+    # Expecting all 20 messages from the source, since the queue should not drop any messages
+    return list(range(1, 21))
 
 test_case_table = mk_test_case_table([
     ( "msgs_source msgs_sink src_delay sink_delay"),
-    [ "test_case_1", function_source_msg, function_sink_msg, 0, 0 ],
+    [ "test_case_1", function_source_msg_test_case_1, function_sink_msg_test_case_1, 0, 0 ],
+    [ "test_case_2", function_source_msg_test_case_2, function_sink_msg_test_case_2, 1, 2 ],
+    [ "test_case_3", function_source_msg_test_case_3, function_sink_msg_test_case_3, 0, 0 ],
 ])
 
 @pytest.mark.parametrize( **test_case_table )
 def test( request, test_params, cmdline_opts ):
-    queue_instance = queue(WIDTH=32) # set width to 32 bits
+    queue_instance = queue(WIDTH=32, DEPTH=16) # set width to 32 bits and depth to 16
     th = TestHarness(queue_instance)
 
     msgs_source = test_params.msgs_source()

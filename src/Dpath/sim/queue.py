@@ -11,9 +11,9 @@ class queue( VerilogPlaceholder, Component ):
     s.set_metadata( VerilogTranslationPass.explicit_module_name, 'queue_wrapper' )
 
     # Interface
-    s.recv_msg = stream.ifcs.RecvIfcRTL(mk_bits(WIDTH))
+    s.recv = stream.ifcs.RecvIfcRTL(mk_bits(WIDTH))
     
-    s.send_msg = stream.ifcs.SendIfcRTL(mk_bits(WIDTH))
+    s.send = stream.ifcs.SendIfcRTL(mk_bits(WIDTH))
 
 # Instantiate the Verilog module
 queue_instance = queue

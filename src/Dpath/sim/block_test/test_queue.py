@@ -11,8 +11,8 @@ class TestHarness( Component ):
         s.sink = stream.SinkRTL(Bits32)
         s.queue = queue_instance
 
-        s.src.send //= s.queue.recv_msg
-        s.queue.send_msg //= s.sink.recv
+        s.src.send //= s.queue.recv
+        s.queue.send //= s.sink.recv
 
     def done(s):
         return s.src.done() and s.sink.done()

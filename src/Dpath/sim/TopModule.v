@@ -151,8 +151,8 @@ module TopModule (
     assign instruction_send_rdy = done | clock_bypass;
 
     // Create new wires for wb_addr and wb_data
-    assign wb_addr = load_recv_msg[63:32];
-    assign wb_data = load_recv_msg[31:0];
+    assign wb_addr = load_send_msg[63:32];
+    assign wb_data = load_send_msg[31:0];
 
     // 2-input mux for VectorRegFile wData
     assign wData_mux_out = load_store_bit ? wb_data : functional_unit_output_mux;

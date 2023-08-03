@@ -1,7 +1,7 @@
 from pymtl3 import *
 from pymtl3.passes.backends.verilog import *
 
-# PyMTL wrapper for the Multiplier Verilog model
+# PyMTL wrapper for the Predicate Register File Verilog model
 
 class Predicate_Register_File(VerilogPlaceholder, Component):
 

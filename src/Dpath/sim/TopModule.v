@@ -199,4 +199,7 @@ module TopModule (
     assign store_recv_msg = rData1;
     assign store_recv_val = load_store_bit & !vector_reg_write_bit;
 
+    // Corrected line
+    assign load_send_rdy = load_store_bit;
+
 endmodule

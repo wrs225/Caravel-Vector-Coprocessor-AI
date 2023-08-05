@@ -121,7 +121,6 @@ Here, wb_tr is a transaction function that sets the Wishbone signals and advance
 You can use these functions to interact with your WrapperBlock component in a more abstract way, similar to how you interact with your SPI component.
 
 Note: The above code assumes that the Wishbone interface is operating in a basic mode without pipelining or burst transactions. Depending on the exact behavior of your RTL model, you may need to modify the driver to match.
-
 User
 In this file, please add a check for the case where ack never becomes 1
 ChatGPT
@@ -174,3 +173,122 @@ def wb_read(dut, address, timeout=1000):
     return data
 
 In this version, a TimeoutError is raised if the ack signal does not become 1 within a certain number of ticks. The timeout value is specified as an argument to the wb_write and wb_read functions, and defaults to 1000 ticks if not provided. You can adjust this value as needed for your specific use case.
+User
+Another thing:
+Here you need to save the values of dut.wbs_ack_o and dut.wbs_dat_o before calling dut.sim_tick and return the value of the saved variables. 
+ChatGPT
+
+Sure, you can save the values of dut.wbs_ack_o and dut.wbs_dat_o before calling dut.sim_tick(). Here's how you can modify the wb_tr function to do this:
+
+python
+
+from pymtl3 import *
+
+def wb_tr( dut, stb, cyc, we, sel, dat, adr):
+    dut.wb_rst_i  @= 0
+    dut.wbs_stb_i @= stb
+    dut.wbs_cyc_i @= cyc
+    dut.wbs_we_i  @= we
+    dut.wbs_sel_i @= sel
+    dut.wbs_dat_i @= dat
+    dut.wbs_adr_i @= adr
+
+    # Save the values of dut.wbs_ack_o and dut.wbs_dat_o
+    ack = dut.wbs_ack_o
+    dat = dut.wbs_dat_o
+
+    dut.sim_tick()
+
+    return ack, dat
+
+def wb_write(dut, address, data, timeout=1000):
+    # Start the transaction
+    ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for write acknowledgment")
+        ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+        count += 1
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+def wb_read(dut, address, timeout=1000):
+    # Start the transaction
+    ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for read acknowledgment")
+        ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+        count += 1
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+    return data
+
+In this version, the wb_tr function saves the values of dut.wbs_ack_o and dut.wbs_dat_o before calling dut.sim_tick(), and returns these saved values.
+User
+There is a subtle bug here. If ack is 1 in either case, we want to call dut.sim_tick() again, as dut.sim_tick() aligns the simulation at a negative edge of the clocj
+ChatGPT
+
+I see, thanks for pointing that out. If the ack signal is high, you want to advance the simulation by one more tick to align with the negative edge of the clock. Here's how you can modify the wb_write and wb_read functions to do this:
+
+python
+
+from pymtl3 import *
+
+def wb_tr( dut, stb, cyc, we, sel, dat, adr):
+    dut.wb_rst_i  @= 0
+    dut.wbs_stb_i @= stb
+    dut.wbs_cyc_i @= cyc
+    dut.wbs_we_i  @= we
+    dut.wbs_sel_i @= sel
+    dut.wbs_dat_i @= dat
+    dut.wbs_adr_i @= adr
+
+    # Save the values of dut.wbs_ack_o and dut.wbs_dat_o
+    ack = dut.wbs_ack_o
+    dat = dut.wbs_dat_o
+
+    dut.sim_tick()
+
+    return ack, dat
+
+def wb_write(dut, address, data, timeout=1000):
+    # Start the transaction
+    ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for write acknowledgment")
+        ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+        count += 1
+    # If ack is high, advance the simulation by one more tick
+    if ack:
+        dut.sim_tick()
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+def wb_read(dut, address, timeout=1000):
+    # Start the transaction
+    ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for read acknowledgment")
+        ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+        count += 1
+    # If ack is high, advance the simulation by one more tick
+    if ack:
+        dut.sim_tick()
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+    return data
+
+In this version, the wb_write and wb_read functions call dut.sim_tick() an additional time if the ack signal is high, before ending the transaction.

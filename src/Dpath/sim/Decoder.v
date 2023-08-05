@@ -117,7 +117,13 @@ always_comb begin
                 functional_unit_mux_bit = 4;
                 add_subtract_bit = 0;
                 load_store_bit = 0;
-                bitwise_op_select = opcode[1:0];
+                if (opcode == 5'b01001) begin
+                    bitwise_op_select = 2'b00; // VAND
+                end else if (opcode == 5'b01010) begin
+                    bitwise_op_select = 2'b01; // VOR
+                end else if (opcode == 5'b01011) begin
+                    bitwise_op_select = 2'b10; // VXOR
+                end
                 predicate_op_select = 2'b00;
             end
             5'b01100, 5'b01101, 5'b01110, 5'b01111: begin // Predicate instructions (VSEQ, VSNE, VSGT, VSLT)
@@ -136,7 +142,22 @@ always_comb begin
                 predicate_op_select = opcode[1:0];
             end
             default: begin // Unrecognized opcode
-                // Here, you may want to specify some default behavior for when an unrecognized opcode is encountered
+                reg_file_addr1 = 5'b0;
+                reg_file_addr2 = 5'b0;
+                mux_bit = 1'b0;
+                vector_reg_write_bit = 1'b0;
+                predicate_reg_write_bit = 1'b0;
+                scalar_reg_write_bit = 1'b0;
+                vector_reg_load_mux_bit = 1'b0;
+                scalar_reg_load_mux_bit = 1'b0;
+                functional_unit_mux_bit = 3'b0;
+                add_subtract_bit = 1'b0;
+                load_store_bit = 1'b0;
+                clock_enable = 1'b0;
+                clock_bypass = 1'b1;
+                bitwise_op_select = 2'b0;
+                predicate_op_select = 2'b0;
+                vector_reg_write_select = 5'b0;
             end
         endcase
     end

@@ -148,7 +148,7 @@ module TopModule (
     );
 
     // OR the done output with clock_bypass and connect this result to instruction_send_rdy
-    assign instruction_send_rdy = done | clock_bypass;
+    assign instruction_send_rdy = (counter == 5'd0) | clock_bypass;
 
     // Create new wires for wb_addr and wb_data
     assign wb_addr = load_send_msg[63:32];

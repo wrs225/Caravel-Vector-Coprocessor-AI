@@ -1,3 +1,7 @@
+
+
+User
+I have the following verilog module which instantiates a VectorRegFile module. I have changed the VectorRegFile to have an active high reset called 'reset' instead of an active low reset. Please change this file to account for that. You should only have to change one line. 
 //Filepaths added by humans
 `include "./queue.v"
 `include "./Counter.v"
@@ -168,7 +172,7 @@ module TopModule (
     // Instantiate VectorRegFile
     VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
         .clk(clk),
-        .reset(reset), // Changed line
+        .reset_n(~reset),
         .rAddr1_1(rAddr1_1_mux_out),
         .rAddr2_1(rAddr2_1_mux_out),
         .rData1(rData1),
@@ -203,3 +207,37 @@ module TopModule (
     assign load_send_rdy = load_store_bit;
 
 endmodule
+
+ChatGPT
+Certainly! Since you have changed the VectorRegFile to have an active high reset signal named 'reset', you'll want to change the line where the reset signal is connected to the VectorRegFile instantiation.
+
+You can find the line where the reset_n signal is connected to the ~reset. Since the reset is now active high, you can change this line:
+
+verilog
+Copy code
+.reset_n(~reset),
+to:
+
+verilog
+Copy code
+.reset(reset),
+So, the updated part of the code for the VectorRegFile instantiation will look like this:
+
+verilog
+Copy code
+// Instantiate VectorRegFile
+VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
+    .clk(clk),
+    .reset(reset), // Changed line
+    .rAddr1_1(rAddr1_1_mux_out),
+    .rAddr2_1(rAddr2_1_mux_out),
+    .rData1(rData1),
+    .rAddr1_2(reg_file_addr2),
+    .rAddr2_2(counter),
+    .rData2(rData2),
+    .wAddr1(wAddr1_mux_out),
+    .wAddr2(wAddr2_mux_out),
+    .wData(wData_mux_out),
+    .wEnable(vector_reg_write_bit)
+);
+This change aligns the reset signal with the new active high behavior of the VectorRegFile module.

@@ -8,8 +8,6 @@ class VectorRegFile(VerilogPlaceholder, Component):
     def construct(self, ADDR_WIDTH=5, DATA_WIDTH=32, NUM_REG=32, NUM_ELE=32):
         self.set_metadata(VerilogTranslationPass.explicit_module_name, 'vector_register_file')
 
-        self.reset_n = InPort(mk_bits(1))
-
         self.rAddr1_1 = InPort(mk_bits(ADDR_WIDTH))
         self.rAddr2_1 = InPort(mk_bits(ADDR_WIDTH))
         self.rData1 = OutPort(mk_bits(DATA_WIDTH))

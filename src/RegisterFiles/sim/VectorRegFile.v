@@ -1,6 +1,6 @@
 module VectorRegFile #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 32, NUM_REG = 32, NUM_ELE = 32)(
   input logic clk,
-  input logic reset_n,
+  input logic reset, // Changed the name from reset_n to reset to indicate active high
   // Read Ports
   input logic [ADDR_WIDTH-1:0] rAddr1_1, rAddr2_1, // Reading vector and element address for port 1
   output logic [DATA_WIDTH-1:0] rData1,
@@ -15,8 +15,8 @@ module VectorRegFile #(parameter ADDR_WIDTH = 5, DATA_WIDTH = 32, NUM_REG = 32, 
   // The vector register file
   logic [DATA_WIDTH-1:0] reg_file [0:NUM_REG-1][0:NUM_ELE-1];
 
-  always_ff @(posedge clk or negedge reset_n) begin
-    if (!reset_n) begin
+  always_ff @(posedge clk or posedge reset) begin // Changed negedge reset_n to posedge reset
+    if (reset) begin // Changed from !reset_n to reset
       // Clear all the registers on reset
       for (integer i = 0; i < NUM_REG; i = i + 1) 
         for (integer j = 0; j < NUM_ELE; j = j + 1) 

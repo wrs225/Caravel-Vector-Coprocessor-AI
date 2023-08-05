@@ -1,9 +1,9 @@
 //Filepaths added by humans
-`include "./queue.v"
-`include "./Counter.v"
-`include "./Decoder.v"
+`include "../../Dpath/sim/queue.v"
+`include "../../Dpath/sim/Counter.v"
+`include "../../Dpath/sim/Decoder.v"
 `include "../../RegisterFiles/sim/VectorRegFile.v"
-`include "./ALU.v"
+`include "../../Dpath/sim/ALU.v"
 module TopModule (
     input logic clk,
     input logic reset,

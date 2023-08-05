@@ -1,0 +1,176 @@
+User
+2 / 2
+I have the following RTL model with a PyMTL Wishbone Bus interface like this:
+class WrapperBlock( VerilogPlaceholder, Component ):
+
+  # Constructor
+  def construct( s ):
+
+    # Inputs
+    s.wb_clk_i  = InPort ( Bits1 )
+    s.wb_rst_i  = InPort ( Bits1 )
+    s.wbs_stb_i = InPort ( Bits1 )
+    s.wbs_cyc_i = InPort ( Bits1 )
+    s.wbs_we_i  = InPort ( Bits1 )
+    s.wbs_sel_i = InPort ( Bits4 )
+    s.wbs_dat_i = InPort ( Bits32 )
+    s.wbs_adr_i = InPort ( Bits32 )
+
+    # Outputs
+    s.wbs_ack_o = OutPort( Bits1 )
+    s.wbs_dat_o = OutPort( Bits32 )
+
+# Define the variable outside of the class
+wrapperblock = WrapperBlock
+
+What I want to do is create a driver that abstracts away communication with the block to something that looks like this spi driver I made in the past:
+
+from pymtl3 import *
+
+def tr( dut, cs, sclk, mosi): #going to be so messy on the screen, must be a better way to do this. 
+
+    # Write input value to input port
+    dut.spi_min.cs      @= cs
+    dut.spi_min.sclk    @= sclk
+    dut.spi_min.mosi    @= mosi
+    retval = dut.spi_min.miso 
+  
+    dut.sim_tick()
+
+    return retval
+
+
+#Writes/Reads an SPI transaction. Lowest level of abstraction. 
+def spi_write(dut, src_msg : Bits) -> Bits:
+
+    packet_size = src_msg.nbits
+    snk_msg     = Bits(src_msg.nbits)
+
+
+
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+
+    for i in range(packet_size):
+        tr(                                dut, 0, 0,   0                            )
+        tr(                                dut, 0, 0,   0                            )
+        tr(                                dut, 0, 0,   0                            )
+        tr(                                dut, 0, 0,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 0,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   src_msg[packet_size - i - 1] )
+        tr(                                dut, 0, 1,   0                            )
+        snk_msg[packet_size - i - 1] = tr( dut, 0, 0,   0                            )
+
+      #pull CS high to end transaction
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+    tr( dut, 1, 0, 0 )
+
+    return snk_msg
+ChatGPT
+
+Certainly! You can create a Wishbone driver that abstracts away the communication with the block similar to the SPI driver you've created. Here's a simple example of how you might do that:
+
+python
+
+from pymtl3 import *
+
+def wb_tr( dut, stb, cyc, we, sel, dat, adr):
+    dut.wb_rst_i  @= 0
+    dut.wbs_stb_i @= stb
+    dut.wbs_cyc_i @= cyc
+    dut.wbs_we_i  @= we
+    dut.wbs_sel_i @= sel
+    dut.wbs_dat_i @= dat
+    dut.wbs_adr_i @= adr
+
+    dut.sim_tick()
+
+    return dut.wbs_ack_o, dut.wbs_dat_o
+
+def wb_write(dut, address, data):
+    # Start the transaction
+    ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # Wait for acknowledgment
+    while not ack:
+        ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+def wb_read(dut, address):
+    # Start the transaction
+    ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # Wait for acknowledgment
+    while not ack:
+        ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+    return data
+
+Here, wb_tr is a transaction function that sets the Wishbone signals and advances the simulation by one tick. The wb_write and wb_read functions use wb_tr to perform write and read transactions, respectively.
+
+You can use these functions to interact with your WrapperBlock component in a more abstract way, similar to how you interact with your SPI component.
+
+Note: The above code assumes that the Wishbone interface is operating in a basic mode without pipelining or burst transactions. Depending on the exact behavior of your RTL model, you may need to modify the driver to match.
+
+User
+In this file, please add a check for the case where ack never becomes 1
+ChatGPT
+
+Sure, you can add a timeout mechanism to handle the case where the ack signal never becomes 1. Here's how you can modify the wb_write and wb_read functions to include this:
+
+python
+
+from pymtl3 import *
+
+def wb_tr( dut, stb, cyc, we, sel, dat, adr):
+    dut.wb_rst_i  @= 0
+    dut.wbs_stb_i @= stb
+    dut.wbs_cyc_i @= cyc
+    dut.wbs_we_i  @= we
+    dut.wbs_sel_i @= sel
+    dut.wbs_dat_i @= dat
+    dut.wbs_adr_i @= adr
+
+    dut.sim_tick()
+
+    return dut.wbs_ack_o, dut.wbs_dat_o
+
+def wb_write(dut, address, data, timeout=1000):
+    # Start the transaction
+    ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for write acknowledgment")
+        ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+        count += 1
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+def wb_read(dut, address, timeout=1000):
+    # Start the transaction
+    ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # Wait for acknowledgment
+    count = 0
+    while not ack:
+        if count > timeout:
+            raise TimeoutError("Timeout waiting for read acknowledgment")
+        ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+        count += 1
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+    return data
+
+In this version, a TimeoutError is raised if the ack signal does not become 1 within a certain number of ticks. The timeout value is specified as an argument to the wb_write and wb_read functions, and defaults to 1000 ticks if not provided. You can adjust this value as needed for your specific use case.

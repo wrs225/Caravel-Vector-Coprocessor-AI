@@ -1103,3 +1103,584 @@ module wb_converter (
 endmodule
 
 In this version, load_recv_msg, load_recv_val, instruction_recv_msg, and instruction_recv_val are all assigned default values at the beginning of the always block, which should prevent inferred latches.
+
+User
+Can you please change all reg types to logic
+ChatGPT
+
+Certainly! In SystemVerilog, the logic type is generally preferred over reg for declaring variables that can hold a value. Here's the updated code with all reg types changed to logic:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000004) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {4'b0001, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VSTORE opcode, base address, length 1
+            end else begin
+                // Load operation
+                instruction_recv_msg = {4'b0000, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VLOAD opcode, base address, length 1
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+I've changed all reg types to logic and also updated the always block to use always_comb, which is a more modern way to describe combinational logic in SystemVerilog.
+
+User
+Change  (wbs_adr_i > 32'h30000004) to > 30000000
+ChatGPT
+
+I see, you want to change the condition to check if the address is greater than 0x30000000 instead of 0x30000004. Here's the updated code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000000) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {4'b0001, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VSTORE opcode, base address, length 1
+            end else begin
+                // Load operation
+                instruction_recv_msg = {4'b0000, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VLOAD opcode, base address, length 1
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the condition checks if wbs_adr_i is greater than 0x30000000 instead of 0x30000004. This means that the load/store instructions and data will be sent to the processor when the address is greater than 0x30000000.
+
+User
+Change this line:
+load_recv_msg = {(wbs_adr_i - 32'h30000000) >> 2, wbs_dat_i}; 
+to use 300000004 instead of 30000000
+ChatGPT
+
+I see, you want to change the offset for the address in load_recv_msg to 0x30000004 instead of 0x30000000. Here's the updated code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {4'b0001, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VSTORE opcode, base address, length 1
+            end else begin
+                // Load operation
+                instruction_recv_msg = {4'b0000, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001};  // VLOAD opcode, base address, length 1
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the load_recv_msg is formed by shifting the address (wbs_adr_i - 0x30000004) right by 2 bits and concatenating it with wbs_dat_i. This means that the load/store instructions and data will be sent to the processor with the correct offset when the address is greater than 0x30000000.
+User
+This line has multiple issues
+instruction_recv_msg = {4'b0001, 8'h00, (wbs_adr_i[23:0] - 32'h00000001) >> 2, 32'h00000001}
+(wbs_adr_i[23:0] - 32'h00000001) >> 2 should be changed to -0x04 
+Additionally, instruction_recv_msg should only be 32 bits with the following format:
+        reg_file_addr1 = instruction[20:16];
+        reg_file_addr2 = instruction[15:11];
+        vector_reg_write_select = instruction[25:21];
+        opcode = instruction[31:27];
+ChatGPT
+
+I see, you want to change the offset for the address in instruction_recv_msg to 0x04 instead of 0x01 and adjust the structure of instruction_recv_msg to match the 32-bit format you've specified. Here's the updated code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {4'b0001, (wbs_adr_i[23:0] - 32'h04) >> 2, 5'b0, 5'b0};  // VSTORE opcode, base address, zero padding
+            end else begin
+                // Load operation
+                instruction_recv_msg = {4'b0000, (wbs_adr_i[23:0] - 32'h04) >> 2, 5'b0, 5'b0};  // VLOAD opcode, base address, zero padding
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the instruction_recv_msg is formed by concatenating the opcode, the shifted address ((wbs_adr_i[23:0] - 0x04) >> 2), and two 5-bit zero paddings. This means that the load/store instructions will be sent to the processor with the correct offset and format when the address is greater than 0x30000000.
+User
+This line:
+instruction_recv_msg = {4'b0001, (wbs_adr_i[23:0] - 32'h04) >> 2, 5'b0, 5'b0}; 
+Is over 32 bits, It needs to be 32 bits. wbs_adr_i[23:0] - 32'h04 is far too large
+
+I see, you're right. I apologize for the oversight. The instruction_recv_msg should indeed be 32 bits. Let's adjust the format to fit within 32 bits.
+
+Assuming that the opcode is 5 bits, and the register addresses reg_file_addr1, reg_file_addr2, and vector_reg_write_select are each 5 bits, we can take the 16 most significant bits of the adjusted address (wbs_adr_i - 32'h04) >> 2 for reg_file_addr1 and reg_file_addr2, and use zeros for vector_reg_write_select. Here's the corrected code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {5'b00001, (wbs_adr_i[15:0] - 16'h4), 5'b0};  // VSTORE opcode, base address, zero padding
+            end else begin
+                // Load operation
+                instruction_recv_msg = {5'b00000, (wbs_adr_i[15:0] - 16'h4), 5'b0};  // VLOAD opcode, base address, zero padding
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the instruction_recv_msg is formed by concatenating the opcode, the adjusted address (wbs_adr_i[15:0] - 16'h4), and a 5-bit zero padding. This ensures that the instruction_recv_msg is 32 bits.
+User
+This line:
+instruction_recv_msg = {4'b0001, (wbs_adr_i[23:0] - 32'h04) >> 2, 5'b0, 5'b0}; 
+Is over 32 bits, It needs to be 32 bits. wbs_adr_i[23:0] - 32'h04 is far too large
+ChatGPT
+
+I see, you're right. I apologize for the oversight. The instruction_recv_msg should indeed be 32 bits. Let's adjust the format to fit within 32 bits.
+
+Assuming that the opcode is 5 bits, and the register addresses reg_file_addr1, reg_file_addr2, and vector_reg_write_select are each 5 bits, we can take the 16 most significant bits of the adjusted address (wbs_adr_i - 32'h04) >> 2 for reg_file_addr1 and reg_file_addr2, and use zeros for vector_reg_write_select. Here's the corrected code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {5'b00001, (wbs_adr_i[15:0] - 16'h4), 5'b0};  // VSTORE opcode, base address, zero padding
+            end else begin
+                // Load operation
+                instruction_recv_msg = {5'b00000, (wbs_adr_i[15:0] - 16'h4), 5'b0};  // VLOAD opcode, base address, zero padding
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the instruction_recv_msg is formed by concatenating the opcode, the adjusted address (wbs_adr_i[15:0] - 16'h4), and a 5-bit zero padding. This ensures that the instruction_recv_msg is 32 bits.
+User
+For this line:
+instruction_recv_msg = {5'b00001, (wbs_adr_i[15:0] - 16'h4), 5'b0};
+just pad the right side with 27 zeros
+ChatGPT
+
+I see, you want to pad the right side of the instruction_recv_msg with 27 zeros. Here's the updated code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {5'b00001, 27'b0};  // VSTORE opcode, zero padding
+            end else begin
+                // Load operation
+                instruction_recv_msg = {5'b00000, 27'b0};  // VLOAD opcode, zero padding
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the instruction_recv_msg is formed by concatenating the opcode and a 27-bit zero padding. This ensures that the instruction_recv_msg is 32 bits.
+User
+This is backwards:
+            if (wbs_we_i) begin
+                // Store operation
+                instruction_recv_msg = {5'b00001, 27'b0};  // VSTORE opcode, zero padding
+            end else begin
+                // Load operation
+                instruction_recv_msg = {5'b00000, 27'b0};  // VLOAD opcode, zero padding
+            end
+If wbs_we_i == 1, instruction_recv_msg = {5'b00000,...
+ChatGPT
+
+I see, you're right. I apologize for the confusion. The wbs_we_i signal indicates a write operation, so when wbs_we_i is 1, it should be a load operation (VLOAD), and when wbs_we_i is 0, it should be a store operation (VSTORE). Here's the corrected code:
+
+verilog
+
+module wb_converter (
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output logic wbs_ack_o,
+    output [31:0] wbs_dat_o,
+
+    output logic [63:0] load_recv_msg,
+    output logic load_recv_val,
+    input load_recv_rdy,
+
+    output logic [31:0] instruction_recv_msg,
+    output logic instruction_recv_val,
+    input instruction_recv_rdy,
+
+    input [31:0] store_send_msg,
+    input store_send_val,
+    output logic store_send_rdy
+);
+
+    assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
+                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val)) ||
+                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000) && wbs_we_i;
+    assign wbs_dat_o = store_send_msg;
+
+    always_comb begin
+        // Default values
+        load_recv_msg = 64'b0;
+        load_recv_val = 0;
+        instruction_recv_msg = 32'b0;
+        instruction_recv_val = 0;
+
+        if (wbs_adr_i == 32'h30000000) begin
+            // Send instruction to processor
+            instruction_recv_msg = wbs_dat_i;
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end else if (wbs_adr_i > 32'h30000000) begin
+            // Send load/store instruction and data to processor
+            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
+            load_recv_val = wbs_cyc_i && wbs_stb_i;
+            if (wbs_we_i) begin
+                // Load operation
+                instruction_recv_msg = {5'b00000, 27'b0};  // VLOAD opcode, zero padding
+            end else begin
+                // Store operation
+                instruction_recv_msg = {5'b00001, 27'b0};  // VSTORE opcode, zero padding
+            end
+            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+        end
+    end
+
+endmodule
+
+In this version, the instruction_recv_msg is formed by concatenating the opcode and a 27-bit zero padding. The opcode is 5'b00000 for a load operation (when wbs_we_i is 1) and 5'b00001 for a store operation (when wbs_we_i is 0). This ensures that the instruction_recv_msg is 32 bits and correctly indicates the operation type.

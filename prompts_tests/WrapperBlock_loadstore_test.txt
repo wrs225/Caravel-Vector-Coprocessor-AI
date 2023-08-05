@@ -1,0 +1,459 @@
+User
+I have the following python file called wishbone_interface_driver with the following code:
+from pymtl3 import *
+
+def wb_tr( dut, stb, cyc, we, sel, dat, adr):
+    dut.wb_rst_i  @= 0
+    dut.wbs_stb_i @= stb
+    dut.wbs_cyc_i @= cyc
+    dut.wbs_we_i  @= we
+    dut.wbs_sel_i @= sel
+    dut.wbs_dat_i @= dat
+    dut.wbs_adr_i @= adr
+
+    dut.sim_tick()
+
+    return dut.wbs_ack_o, dut.wbs_dat_o
+
+def wb_write(dut, address, data):
+    # Start the transaction
+    ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # Wait for acknowledgment
+    while not ack:
+        ack, _ = wb_tr(dut, 1, 1, 1, 0xF, data, address)
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+def wb_read(dut, address):
+    # Start the transaction
+    ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # Wait for acknowledgment
+    while not ack:
+        ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
+    # End the transaction
+    wb_tr(dut, 0, 0, 0, 0, 0, 0)
+
+    return data
+
+I also happen to have a block with the following interface:
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+
+class WrapperBlock( VerilogPlaceholder, Component ):
+
+  # Constructor
+  def construct( s ):
+
+    # Inputs
+    s.wb_clk_i  = InPort ( Bits1 )
+    s.wb_rst_i  = InPort ( Bits1 )
+    s.wbs_stb_i = InPort ( Bits1 )
+    s.wbs_cyc_i = InPort ( Bits1 )
+    s.wbs_we_i  = InPort ( Bits1 )
+    s.wbs_sel_i = InPort ( Bits4 )
+    s.wbs_dat_i = InPort ( Bits32 )
+    s.wbs_adr_i = InPort ( Bits32 )
+
+    # Outputs
+    s.wbs_ack_o = OutPort( Bits1 )
+    s.wbs_dat_o = OutPort( Bits32 )
+
+# Define the variable outside of the class
+wrapperblock = WrapperBlock
+
+Can you please make a file which drives the tester with the provided helper functions and makes a simple load-store test with a similar interface to this test, which I created for a different ASIC in the past?
+def test_loopback( cmdline_opts ):
+
+
+  dut = FFTInterconnectVRTL()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  dut.sim_reset()
+  loopback(dut)
+
+Another thing: The ISA is as follows
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+
+A Load store command is implied if the address is >= 0x30000004
+ChatGPT
+
+Certainly! Based on the provided information, I'll create a test file that drives the tester and performs a simple load-store test using the Wishbone interface. Since the ISA is provided, I'll assume that the address 0x30000004 or higher is used for load and store operations.
+
+Here's the code for the test file:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from wishbone_interface_driver import wb_write, wb_read, WrapperBlock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store test
+  load_store_test(dut)
+
+def load_store_test(dut):
+  # Define some constants for the test
+  LOAD_ADDRESS = 0x30000004
+  STORE_ADDRESS = 0x30000008
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the LOAD_ADDRESS
+  wb_write(dut, LOAD_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the LOAD_ADDRESS
+  read_data = wb_read(dut, LOAD_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  # Perform a write operation (store) to the STORE_ADDRESS with the read data
+  wb_write(dut, STORE_ADDRESS, read_data)
+
+  # Perform a read operation (load) from the STORE_ADDRESS
+  final_read_data = wb_read(dut, STORE_ADDRESS)
+
+  # Verify that the final read data matches the initial written data
+  assert final_read_data == TEST_DATA, f"Final read data {final_read_data} does not match initial written data {TEST_DATA}"
+
+  print("Load-store test passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+This test file includes a function load_store_test that performs a simple load-store test using the provided Wishbone interface. It writes data to a load address, reads it back, verifies it, writes it to a store address, reads it back again, and verifies it. If everything matches, it prints a success message.
+
+You can run this test by executing the Python file from the command line, passing any necessary command-line options. Make sure that the wishbone_interface_driver module is accessible from the location where you run the test.
+User
+For this function: load_store_test(dut), you cannot have _test in the name, as that will cause pytest to run this function and it will probably error
+ChatGPT
+
+Certainly! You can rename the function to avoid conflicts with pytest. Here's the updated code snippet:
+
+python
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  LOAD_ADDRESS = 0x30000004
+  STORE_ADDRESS = 0x30000008
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the LOAD_ADDRESS
+  wb_write(dut, LOAD_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the LOAD_ADDRESS
+  read_data = wb_read(dut, LOAD_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  # Perform a write operation (store) to the STORE_ADDRESS with the read data
+  wb_write(dut, STORE_ADDRESS, read_data)
+
+  # Perform a read operation (load) from the STORE_ADDRESS
+  final_read_data = wb_read(dut, STORE_ADDRESS)
+
+  # Verify that the final read data matches the initial written data
+  assert final_read_data == TEST_DATA, f"Final read data {final_read_data} does not match initial written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+And you would also update the call to this function in the test_wrapper_block function:
+
+python
+
+def test_wrapper_block( cmdline_opts ):
+  # ...
+  load_store_operation(dut) # Updated function name
+
+This change should prevent pytest from automatically running the function as a test.
+User
+Can you please write and read from the same address?
+ChatGPT
+
+Certainly! Here's the updated code snippet that writes to and reads from the same address:
+
+python
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+This code writes data to a specific address and then reads from the same address, verifying that the read data matches the written data. If everything matches, it prints a success message.
+User
+Excellent, last can you please print the entire file to confirm understanding?
+ChatGPT
+
+Certainly! Here's the entire file that includes the test function and the load-store operation:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from wishbone_interface_driver import wb_write, wb_read, WrapperBlock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+This code includes the main test function test_wrapper_block, which sets up the device under test (DUT) and calls the load_store_operation function to perform the load-store operation. The load_store_operation function writes data to a specific address and reads from the same address, verifying that the read data matches the written data. If everything matches, it prints a success message.
+User
+Can you please import wrapperblock from WrapperBlock.WrapperBlock
+ChatGPT
+
+Certainly! You can import the WrapperBlock class from the WrapperBlock module by using the following import statement:
+
+python
+
+from WrapperBlock.WrapperBlock import wrapperblock
+
+Here's the updated code with the correct import:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from wishbone_interface_driver import wb_write, wb_read
+from WrapperBlock.WrapperBlock import wrapperblock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = wrapperblock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+Make sure that the WrapperBlock module is accessible from the location where you run the test, and that the wrapperblock variable is defined in the WrapperBlock module as shown in your original code snippet.
+User
+wrapperblock should use case WrapperBlock
+ChatGPT
+
+Certainly! My apologies for the confusion. Here's the corrected code:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from wishbone_interface_driver import wb_write, wb_read
+from WrapperBlock.WrapperBlock import WrapperBlock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+I've updated the import and instantiation to use the correct case for WrapperBlock. Thank you for pointing that out!
+
+User
+make from wishbone_interface_driver into from .wishbone_interface_driver
+ChatGPT
+
+Sure, if you want to import from a module in the same directory, you can use a relative import. Here's the updated code:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from .wishbone_interface_driver import wb_write, wb_read
+from WrapperBlock.WrapperBlock import WrapperBlock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+Please note that relative imports like this one only work if the script is being imported as a module, not if it's being run as a standalone script. If you're running this script directly, you might need to use an absolute import instead.
+
+User
+Add this import:
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+ChatGPT
+
+Certainly! Here's the updated code with the additional import:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from WrapperBlock.WrapperBlock import WrapperBlock
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+if __name__ == "__main__":
+  import sys
+  test_wrapper_block( sys.argv[1:] )
+
+The mk_test_case_table, run_sim, and config_model_with_cmdline_opts functions from the pymtl3.stdlib.test_utils module are now imported and can be used in your test.

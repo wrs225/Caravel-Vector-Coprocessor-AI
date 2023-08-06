@@ -1,0 +1,1308 @@
+User
+2 / 2
+I have the following file of test cases. Can we make a new one with more random tests?
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VADD_OPCODE = 0x02
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_add(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector add operation
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector add operation passed!")
+
+def test_random_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector add operation
+  random_test_vector_add(dut)
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def test_all_registers_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Test all registers
+  all_registers_operation(dut)
+
+def test_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector add operation
+  vector_add_operation(dut)
+
+def test_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector sub operation
+  vector_sub_operation(dut)
+
+def test_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector mul operation
+  vector_mul_operation(dut)
+
+def test_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector and operation
+  vector_and_operation(dut)
+
+def test_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector or operation
+  vector_or_operation(dut)
+
+def test_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector xor operation
+  vector_xor_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+def all_registers_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32 * 32
+
+  # Create a list to store the test data for each register
+  test_data_list = [i for i in range(NUM_REGISTERS)]  # Or any other function of i
+
+  # First, write to all registers
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a write operation (store) to the current register
+    wb_write(dut, register_address, test_data_list[i])
+
+  # Then, read from all registers and verify the data
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a read operation (load) from the current register
+    read_data = wb_read(dut, register_address)
+
+    # Verify that the read data matches the written data
+    assert read_data == test_data_list[i], f"Read data {read_data} does not match written data {test_data_list[i]} at address {register_address}"
+
+  print("All register operation passed!")
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+
+def vector_and_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise AND operation on the two vectors
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector AND operation passed!")
+
+def vector_or_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise OR operation on the two vectors
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector OR operation passed!")
+
+def vector_xor_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise XOR operation on the two vectors
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector XOR operation passed!")
+ChatGPT
+2 / 2
+
+Sure, we can add more random tests for the other operations as well. Here are the random test functions for the other operations:
+
+python
+
+def random_test_vector_sub(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector sub operation
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] - inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector sub operation passed!")
+
+def random_test_vector_mul(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 10) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector mul operation
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] * inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector mul operation passed!")
+
+You can add similar functions for the bitwise operations as well. Just remember to generate inputs that are appropriate for each operation. For example, for the bitwise operations, you might want to generate random binary numbers instead of integers.
+User
+Can you please put these tests in a new file, including the required imports and functions that begin with test_ 
+ChatGPT
+
+Sure, here is a new file with the random test functions for the vector subtraction and multiplication operations:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+
+def random_test_vector_sub(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector sub operation
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] - inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector sub operation passed!")
+
+def random_test_vector_mul(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 10) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector mul operation
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] * inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector mul operation passed!")
+
+def test_random_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector sub operation
+  random_test_vector_sub(dut)
+
+def test_random_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector mul operation
+  random_test_vector_mul(dut)
+
+You can add this file to your test suite and run these tests in the same way as your existing tests. Just remember to import this file in your test runner script.
+User
+Make expected_result into Bits(32,v=expected_result)
+ChatGPT
+
+Sure, you can use the Bits function from pymtl3.datatypes to convert the expected result to a 32-bit value. Here's how you can modify the random test functions:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+
+def random_test_vector_sub(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector sub operation
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i] - inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector sub operation passed!")
+
+def random_test_vector_mul(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 10) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector mul operation
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i] * inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector mul operation passed!")
+
+In the above code, Bits(32, inputs[i] - inputs[i + NUM_REGISTERS]) and Bits(32, inputs[i] * inputs[i + NUM_REGISTERS]) convert the expected results to 32-bit values.
+User
+You are forgetting def test_random_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector sub operation
+  random_test_vector_sub(dut)
+
+def test_random_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector mul operation
+  random_test_vector_mul(dut)
+ChatGPT
+
+I apologize for the oversight. Here is the complete file with the random test functions for the vector subtraction and multiplication operations, including the test functions:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+
+def random_test_vector_sub(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector sub operation
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i] - inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector sub operation passed!")
+
+def random_test_vector_mul(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 10) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector mul operation
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i] * inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector mul operation passed!")
+
+def test_random_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector sub operation
+  random_test_vector_sub(dut)
+
+def test_random_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector mul operation
+  random_test_vector_mul(dut)
+
+You can add this file to your test suite and run these tests in the same way as your existing tests. Just remember to import this file in your test runner script.
+User
+Can you please make it such that the random numbers can be negative. Be sure to cast them to bits objects
+ChatGPT
+
+Sure, you can generate random numbers in a range that includes negative values. Here's how you can modify the random test functions to generate random numbers between -100 and 100:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+
+def random_test_vector_sub(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector sub operation
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() - inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector sub operation passed!")
+
+def random_test_vector_mul(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-10, 10)) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector mul operation
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() * inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector mul operation passed!")
+
+def test_random_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector sub operation
+  random_test_vector_sub(dut)
+
+def test_random_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector mul operation
+  random_test_vector_mul(dut)
+
+In this code, random.randint(-100, 100) generates a random integer between -100 and 100, and Bits(32, random.randint(-100, 100)) converts it to a 32-bit value. The .int() method is used to convert the Bits objects back to integers for the subtraction and multiplication operations.
+User
+Please add randomized tests for the following instructions:
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+ChatGPT
+
+Sure, here are the randomized test functions for the floating-point vector addition and multiplication operations, as well as the bitwise AND, OR, and XOR operations:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits, bfloat16
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VFADD_OPCODE = 0x07
+VFMUL_OPCODE = 0x08
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_fadd(dut):
+  # Generate random inputs
+  inputs = [bfloat16(random.uniform(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector floating-point add operation
+  fadd_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, fadd_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = bfloat16(inputs[i] + inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector floating-point add operation passed!")
+
+def random_test_vector_fmul(dut):
+  # Generate random inputs
+  inputs = [bfloat16(random.uniform(-10, 10)) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector floating-point mul operation
+  fmul_instruction = (VFMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, fmul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = bfloat16(inputs[i] * inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector floating-point mul operation passed!")
+
+def random_test_vector_and(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise AND operation
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() & inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise AND operation passed!")
+
+def random_test_vector_or(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise OR operation
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() | inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise OR operation passed!")
+
+def random_test_vector_xor(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise XOR operation
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() ^ inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise XOR operation passed!")
+
+Please note that the floating-point operations use the bfloat16 data type, which is a 16-bit floating-point number. The range of the random numbers for the floating-point operations is limited to avoid overflow.
+User
+You are forgetting the driver functions
+ChatGPT
+
+I apologize for the oversight. Here are the driver functions for the new tests:
+
+python
+
+def test_random_vector_fadd( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector floating-point add operation
+  random_test_vector_fadd(dut)
+
+def test_random_vector_fmul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector floating-point mul operation
+  random_test_vector_fmul(dut)
+
+def test_random_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise AND operation
+  random_test_vector_and(dut)
+
+def test_random_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise OR operation
+  random_test_vector_or(dut)
+
+def test_random_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise XOR operation
+  random_test_vector_xor(dut)
+
+These functions instantiate the device under test (DUT), configure it, reset the simulation, and then call the corresponding random test function.
+User
+Can you please print the entire file to confirm understanding
+ChatGPT
+
+Sure, here is the entire file with the new tests included:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits, bfloat16
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VFADD_OPCODE = 0x07
+VFMUL_OPCODE = 0x08
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_fadd(dut):
+  # Generate random inputs
+  inputs = [bfloat16(random.uniform(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector floating-point add operation
+  fadd_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, fadd_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = bfloat16(inputs[i] + inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector floating-point add operation passed!")
+
+def random_test_vector_fmul(dut):
+  # Generate random inputs
+  inputs = [bfloat16(random.uniform(-10, 10)) for _ in range(NUM_REGISTERS * 2)]  # Limit to 10 to avoid overflow
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector floating-point mul operation
+  fmul_instruction = (VFMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, fmul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = bfloat16(inputs[i] * inputs[i + NUM_REGISTERS])
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector floating-point mul operation passed!")
+
+def random_test_vector_and(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise AND operation
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() & inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise AND operation passed!")
+
+def random_test_vector_or(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise OR operation
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() | inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise OR operation passed!")
+
+def random_test_vector_xor(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise XOR operation
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() ^ inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise XOR operation passed!")
+
+def test_random_vector_fadd( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector floating-point add operation
+  random_test_vector_fadd(dut)
+
+def test_random_vector_fmul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector floating-point mul operation
+  random_test_vector_fmul(dut)
+
+def test_random_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise AND operation
+  random_test_vector_and(dut)
+
+def test_random_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise OR operation
+  random_test_vector_or(dut)
+
+def test_random_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise XOR operation
+  random_test_vector_xor(dut)
+
+This file now includes the new random test functions for the floating-point add, floating-point multiply, bitwise AND, bitwise OR, and bitwise XOR operations, as well as the corresponding driver functions.
+User
+Please remove the floating point tests and just keep the bitwise instruction tests
+ChatGPT
+
+I apologize for the confusion. Here is the revised file with only the bitwise instruction tests:
+
+python
+
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from pymtl3.datatypes import Bits
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_and(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise AND operation
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() & inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise AND operation passed!")
+
+def random_test_vector_or(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise OR operation
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() | inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise OR operation passed!")
+
+def random_test_vector_xor(dut):
+  # Generate random inputs
+  inputs = [Bits(32, random.randint(-100, 100)) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector bitwise XOR operation
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = Bits(32, inputs[i].int() ^ inputs[i + NUM_REGISTERS].int())
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector bitwise XOR operation passed!")
+
+def test_random_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise AND operation
+  random_test_vector_and(dut)
+
+def test_random_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise OR operation
+  random_test_vector_or(dut)
+
+def test_random_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector bitwise XOR operation
+  random_test_vector_xor(dut)
+
+This file now includes the new random test functions for the bitwise AND, OR, and XOR operations, as well as the corresponding driver functions.

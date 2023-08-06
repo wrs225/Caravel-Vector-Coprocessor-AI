@@ -1,14 +1,34 @@
-# Caravel User Project
+# Vector Extension to Caravel Management SoC
+Written for the EFabless AI Chip competition, this project adds vector instructions to the Caravel Management SoC.
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![UPRJ_CI](https://github.com/efabless/caravel_project_example/actions/workflows/user_project_ci.yml/badge.svg)](https://github.com/efabless/caravel_project_example/actions/workflows/user_project_ci.yml) [![Caravel Build](https://github.com/efabless/caravel_project_example/actions/workflows/caravel_build.yml/badge.svg)](https://github.com/efabless/caravel_project_example/actions/workflows/caravel_build.yml)
+All code, besides one line of verilog and file paths are written using ChatGPT. This includes test cases, C libraries, blocks, etc. 
 
-| :exclamation: Important Note            |
-|-----------------------------------------|
+All Prompts used to generate code are included in this repository. The prompts within a file may not be in the order we asked ChatGPT. As we would find bugs, we would go back to previous prompts and fix the implementation within those prompts. However, the files are separated by block and topic. We have found it is difficult to do complex things within a single, long prompt, as GPT4 reaches its token limit and forgets how to do things.
 
-## Please fill in your project documentation in this README.md file 
+# Features
+- [x] Integer Operations
+- [x] (almost*) IEEE-754 compliant floating point adder and multiplier
+- [x] Bitwise logical operations
+- [ ] Scalar instructions
+- [x] Register files directly accessable through wishbone interface
+- [ ] Predicate Instructions for vectored-conditionals
+- [ ] C-Library for wrapping Wishbone calls
+- [x] Tested using randomized UVM
 
-Refer to [README](docs/source/index.rst#section-quickstart) for a quickstart of how to use caravel_user_project
+# Nice to Add in the Future if We Have Time
+- [ ] Support for Chimes 
 
-Refer to [README](docs/source/index.rst) for this sample project documentation. 
 
-Refer to the following [readthedocs](https://caravel-sim-infrastructure.readthedocs.io/en/latest/index.html) for how to add cocotb tests to your project. 
+# Instruction Set
+
+# Register Mapping
+
+# C++ Library
+
+# Microarchitecture
+
+# Testing Strategy
+
+# Performance
+
+# Learnings

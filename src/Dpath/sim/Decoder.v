@@ -90,7 +90,7 @@ always_comb begin
                 bitwise_op_select = 2'b00;
                 predicate_op_select = 2'b00;
             end
-            5'b00111, 5'b01000: begin // Floating point add/sub instructions (VFADD, VFSUB)
+            5'b00111, 5'b10000: begin // Floating point add/sub instructions (VFADD, VFSUB)
                 clock_bypass = 0;
                 clock_enable = 1;
                 mux_bit = 0;
@@ -100,8 +100,23 @@ always_comb begin
                 vector_reg_load_mux_bit = 0;
                 scalar_reg_load_mux_bit = 0;
                 functional_unit_mux_bit = 1;
-                add_subtract_bit = (opcode == 5'b01000) ? 1 : 0;
+                add_subtract_bit = (opcode == 5'b10000) ? 1 : 0;
                 load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            5'b01000: begin // Floating point multiplication (VFMUL)
+                clock_enable = 1;
+                vector_reg_write_bit = 1;
+                functional_unit_mux_bit = 3'b011;
+                mux_bit = 0;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                clock_bypass = 0;
                 bitwise_op_select = 2'b00;
                 predicate_op_select = 2'b00;
             end

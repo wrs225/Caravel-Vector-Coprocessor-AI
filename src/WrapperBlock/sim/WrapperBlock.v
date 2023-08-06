@@ -28,7 +28,7 @@ module WrapperBlock (
 
     // Instance of wb_converter
     wb_converter wb_converter_inst (
-        .wb_clk_i(wb_clk_i),
+        .wb_clk_i(clk),  // Modified connection
         .wb_rst_i(wb_rst_i),
         .wbs_stb_i(wbs_stb_i),
         .wbs_cyc_i(wbs_cyc_i),

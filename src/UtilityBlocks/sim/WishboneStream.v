@@ -23,12 +23,25 @@ module wb_converter (
     output logic store_send_rdy
 );
 
+    // Internal signals
+    logic store_transaction_in_progress;
+
     assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
                        ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
                        ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val && store_send_rdy)) ||
                        ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
     assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000);
     assign wbs_dat_o = store_send_msg;
+
+    always_ff @(posedge wb_clk_i or posedge wb_rst_i) begin
+        if (wb_rst_i) begin
+            store_transaction_in_progress <= 0;
+        end else if (wbs_ack_o) begin
+            store_transaction_in_progress <= 0;
+        end else if (instruction_recv_val && load_recv_val && (wbs_adr_i > 32'h30000000) && (!wbs_we_i)) begin
+            store_transaction_in_progress <= 1;
+        end
+    end
 
     always_comb begin
         // Default values
@@ -37,22 +50,24 @@ module wb_converter (
         instruction_recv_msg = 32'b0;
         instruction_recv_val = 0;
 
-        if (wbs_adr_i == 32'h30000000) begin
-            // Send instruction to processor
-            instruction_recv_msg = wbs_dat_i;
-            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
-        end else if (wbs_adr_i > 32'h30000000) begin
-            // Send load/store instruction and data to processor
-            load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};  // Shift address right by 2 bits
-            load_recv_val = wbs_cyc_i && wbs_stb_i;
-            if (wbs_we_i) begin
-                // Load operation
-                instruction_recv_msg = {5'b00000, 27'b0};  // VLOAD opcode, zero padding
-            end else begin
-                // Store operation
-                instruction_recv_msg = {5'b00001, 27'b0};  // VSTORE opcode, zero padding
+        if (!store_transaction_in_progress) begin
+            if (wbs_adr_i == 32'h30000000) begin
+                // Send instruction to processor
+                instruction_recv_msg = wbs_dat_i;
+                instruction_recv_val = wbs_cyc_i && wbs_stb_i;
+            end else if (wbs_adr_i > 32'h30000000) begin
+                // Send load/store instruction and data to processor
+                load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};
+                load_recv_val = wbs_cyc_i && wbs_stb_i;
+                if (wbs_we_i) begin
+                    // Load operation
+                    instruction_recv_msg = {5'b00000, 27'b0};
+                end else begin
+                    // Store operation
+                    instruction_recv_msg = {5'b00001, 27'b0};
+                end
+                instruction_recv_val = wbs_cyc_i && wbs_stb_i;
             end
-            instruction_recv_val = wbs_cyc_i && wbs_stb_i;
         end
     end
 

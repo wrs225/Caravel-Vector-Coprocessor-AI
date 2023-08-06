@@ -44,8 +44,7 @@ def wb_read(dut, address, timeout=1000):
         ack, data = wb_tr(dut, 1, 1, 0, 0xF, 0, address)
         count += 1
     # If ack is high, advance the simulation by one more tick
-    if ack:
-        dut.sim_tick()
+
     # End the transaction
     wb_tr(dut, 0, 0, 0, 0, 0, 0)
 

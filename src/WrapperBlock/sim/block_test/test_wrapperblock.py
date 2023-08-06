@@ -3,6 +3,54 @@ from pymtl3.passes.backends.verilog import *
 from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
 from .wishbone_interface_driver import wb_write, wb_read
 from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VADD_OPCODE = 0x02
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_add(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector add operation
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector add operation passed!")
+
+def test_random_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector add operation
+  random_test_vector_add(dut)
 
 def test_wrapper_block( cmdline_opts ):
   # Instantiate the DUT (Device Under Test)
@@ -187,7 +235,7 @@ def vector_sub_operation(dut):
     wb_write(dut, register_address, 1)
 
   # Subtract the two vectors
-  sub_instruction = (0x03 << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
 
   # Read and check the results from the third vector register
@@ -210,7 +258,7 @@ def vector_mul_operation(dut):
     wb_write(dut, register_address, 1)
 
   # Multiply the two vectors
-  mul_instruction = (0x04 << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
 
   # Read and check the results from the third vector register
@@ -233,7 +281,7 @@ def vector_and_operation(dut):
     wb_write(dut, register_address, 1)
 
   # Perform bitwise AND operation on the two vectors
-  and_instruction = (0x09 << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
 
   # Read and check the results from the third vector register
@@ -256,7 +304,7 @@ def vector_or_operation(dut):
     wb_write(dut, register_address, 1)
 
   # Perform bitwise OR operation on the two vectors
-  or_instruction = (0x0A << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
 
   # Read and check the results from the third vector register
@@ -279,7 +327,7 @@ def vector_xor_operation(dut):
     wb_write(dut, register_address, 1)
 
   # Perform bitwise XOR operation on the two vectors
-  xor_instruction = (0x0B << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
 
   # Read and check the results from the third vector register

@@ -18,7 +18,7 @@ VFSUB_OPCODE = 0x10
 
 # Tolerances for floating point comparisons
 VFADD_VFSUB_TOLERANCE = 1e-4
-VFMUL_TOLERANCE = 1e4
+VFMUL_TOLERANCE = 1e-4
 
 def test_vfadd(cmdline_opts):
     # Instantiate and configure the DUT

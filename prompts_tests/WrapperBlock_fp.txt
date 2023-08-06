@@ -1,0 +1,478 @@
+**ChatGPT:**
+
+
+I have the following python test file for a vector co-processor unit. This tests integer arithmetic operations. I'd like you to write another file to test IEEE 745 floating point operations.
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VADD_OPCODE = 0x02
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+
+def random_test_vector_add(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector add operation
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector add operation passed!")
+
+def test_random_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector add operation
+  random_test_vector_add(dut)
+
+def test_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector add operation
+  vector_add_operation(dut)
+
+def test_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector sub operation
+  vector_sub_operation(dut)
+
+def test_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector mul operation
+  vector_mul_operation(dut)
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+
+Please use the given code as a template and write a file that tests the floating point add, subtract, and multiply operations (VFADD, VFMUL, and VFSUB). This is very important: write tests for only the VFADD, VFMUL, and VFSUB instructions. The interface for these are:
+Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+
+You can assume you have access to the functions float_to_hex() and ieee_754_to_float() by importing them from sim.block_test.utils. These functions convert between floats and bit representations, which you will need to create the instructions. Please also add an appropriate tolerance for the expected results.
+------------------
+**ChatGPT:**
+
+
+Certainly! Given the integer arithmetic operations provided, I can generate a similar test suite for the floating point operations VFADD, VFMUL, and VFSUB. Here's a file to test IEEE 745 floating point operations:
+
+python
+Copy code
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+from sim.block_test.utils import float_to_hex, ieee_754_to_float
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VFADD_OPCODE = 0x07
+VFMUL_OPCODE = 0x08
+VFSUB_OPCODE = 0x10
+TOLERANCE = 1e-6
+
+def random_test_vector_fadd(dut):
+    inputs = [random.uniform(-1000, 1000) for _ in range(NUM_REGISTERS * 2)]
+
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    fadd_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, fadd_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data = ieee_754_to_float(wb_read(dut, register_address))
+        expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+        assert abs(read_data - expected_result) < TOLERANCE, f"Error at {register_address}: Expected {expected_result}, got {read_data}"
+
+    print("Random test for vector float add operation passed!")
+
+def test_vector_fadd(dut):
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(1.0))
+
+    fadd_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, fadd_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data = ieee_754_to_float(wb_read(dut, register_address))
+        assert abs(read_data - 2.0) < TOLERANCE, f"Error at {register_address}: Expected 2.0, got {read_data}"
+
+    print("Vector float add operation passed!")
+
+def test_vector_fmul(dut):
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(2.0))
+
+    fmul_instruction = (VFMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, fmul_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data = ieee_754_to_float(wb_read(dut, register_address))
+        assert abs(read_data - 4.0) < TOLERANCE, f"Error at {register_address}: Expected 4.0, got {read_data}"
+
+    print("Vector float multiply operation passed!")
+
+def test_vector_fsub(dut):
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(3.0))
+
+    fsub_instruction = (VFSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, fsub_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data = ieee_754_to_float(wb_read(dut, register_address))
+        assert abs(read_data - 0.0) < TOLERANCE, f"Error at {register_address}: Expected 0.0, got {read_data}"
+
+    print("Vector float subtract operation passed!")
+
+def run_test( test_func ):
+    # Instantiate the DUT (Device Under Test)
+    dut = WrapperBlock()
+    dut = config_model_with_cmdline_opts( dut, cmdline_opts=None, duts=[] )
+    dut.apply( DefaultPassGroup( linetrace=False ) )
+
+    # Reset the simulation
+    dut.sim_reset()
+
+    # Perform the given test function
+    test_func(dut)
+
+if __name__ == '__main__':
+    run_test( random_test_vector_fadd )
+    run_test( test_vector_fadd )
+    run_test( test_vector_fmul )
+    run_test( test_vector_fsub )
+
+
+In this code:
+
+I've defined the opcodes for VFADD, VFMUL, and VFSUB.
+I've written separate test functions for each of the three instructions.
+For each test, I have used random values and known values to test the correct operation of the instructions.
+The tolerance is set at 1e-6 to handle floating-point inaccuracies.
+The run_test function can be used to run individual tests.
+------------------
+**ChatGPT:**
+
+
+Please take the code in run_test and copy it into the individual tests so that they can be called by the py.test library I am using
+------------------
+**ChatGPT:**
+
+
+Alright, I understand. You'd like each test to be self-contained so that they can be invoked individually by py.test. Let's rewrite the tests to be self-contained by including the instantiation and configuration of the DUT, as well as the reset logic, in each test function.
+
+Here's how the tests for floating point add, subtract, and multiply operations (VFADD, VFMUL, and VFSUB) can be structured:
+
+python
+Copy code
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+from sim.block_test.utils import float_to_hex, ieee_754_to_float
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VFADD_OPCODE = 0x07
+VFMUL_OPCODE = 0x08
+VFSUB_OPCODE = 0x10
+
+# Tolerance for floating point comparisons
+TOLERANCE = 1e-7
+
+def test_vfadd(cmdline_opts):
+    # Instantiate and configure the DUT
+    dut = WrapperBlock()
+    dut = config_model_with_cmdline_opts(dut, cmdline_opts, duts=[])
+    dut.apply(DefaultPassGroup(linetrace=False))
+
+    # Reset the simulation
+    dut.sim_reset()
+
+    # Run vfadd test logic
+    vfadd_operation(dut)
+
+def vfadd_operation(dut):
+    inputs = [random.uniform(0, 100) for _ in range(NUM_REGISTERS * 2)]
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    add_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data_hex = wb_read(dut, register_address)
+        read_data = ieee_754_to_float(read_data_hex)
+        expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+        assert abs(read_data - expected_result) <= TOLERANCE, f"Error in VFADD at address {register_address}"
+
+    print("VFADD operation passed!")
+
+def test_vfsub(cmdline_opts):
+    # Instantiate and configure the DUT
+    dut = WrapperBlock()
+    dut = config_model_with_cmdline_opts(dut, cmdline_opts, duts=[])
+    dut.apply(DefaultPassGroup(linetrace=False))
+
+    # Reset the simulation
+    dut.sim_reset()
+
+    # Run vfsub test logic
+    vfsub_operation(dut)
+
+def vfsub_operation(dut):
+    inputs = [random.uniform(0, 100) for _ in range(NUM_REGISTERS * 2)]
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    sub_instruction = (VFSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data_hex = wb_read(dut, register_address)
+        read_data = ieee_754_to_float(read_data_hex)
+        expected_result = inputs[i] - inputs[i + NUM_REGISTERS]
+        assert abs(read_data - expected_result) <= TOLERANCE, f"Error in VFSUB at address {register_address}"
+
+    print("VFSUB operation passed!")
+
+def test_vfmul(cmdline_opts):
+    # Instantiate and configure the DUT
+    dut = WrapperBlock()
+    dut = config_model_with_cmdline_opts(dut, cmdline_opts, duts=[])
+    dut.apply(DefaultPassGroup(linetrace=False))
+
+    # Reset the simulation
+    dut.sim_reset()
+
+    # Run vfmul test logic
+    vfmul_operation(dut)
+
+def vfmul_operation(dut):
+    inputs = [random.uniform(0, 100) for _ in range(NUM_REGISTERS * 2)]
+    for i in range(NUM_REGISTERS * 2):
+        register_address = BASE_ADDRESS + (i * 4)
+        wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    mul_instruction = (VFMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+    for i in range(NUM_REGISTERS):
+        register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)
+        read_data_hex = wb_read(dut, register_address)
+        read_data = ieee_754_to_float(read_data_hex)
+        expected_result = inputs[i] * inputs[i + NUM_REGISTERS]
+        assert abs(read_data - expected_result) <= TOLERANCE, f"Error in VFMUL at address {register_address}"
+
+    print("VFMUL operation passed!")
+
+
+You can run these tests individually with py.test by invoking them with their function names. For example: py.test test_vfadd.
+------------------
+**ChatGPT:**
+
+
+Great start! The tolerance value is too low. Please make separate tolerances for add/sub and multiply. Both of them should be larger, but the multiply tolerance should be much larger since the expected results are much larger
+------------------
+**ChatGPT:**
+
+
+Certainly! Floating point arithmetic, especially multiplication, can introduce greater imprecision depending on the precision of the data path and the exact operands. Hence, it's appropriate to use different tolerances.
+
+Let's define separate tolerances for the add/sub and multiply operations:
+
+python
+Copy code
+# Tolerances for floating point comparisons
+VFADD_VFSUB_TOLERANCE = 1e-5
+VFMUL_TOLERANCE = 1e-3
+
+
+Then, update the assertions in each of the tests to utilize these tolerances:
+
+python
+Copy code
+# For VFADD:
+assert abs(read_data - expected_result) <= VFADD_VFSUB_TOLERANCE, f"Error in VFADD at address {register_address}"
+
+# For VFSUB:
+assert abs(read_data - expected_result) <= VFADD_VFSUB_TOLERANCE, f"Error in VFSUB at address {register_address}"
+
+# For VFMUL:
+assert abs(read_data - expected_result) <= VFMUL_TOLERANCE, f"Error in VFMUL at address {register_address}"
+
+
+The provided tolerances are just initial estimates and can be fine-tuned based on the observed precision of the operations in your design. You might need to adjust them further based on the results of the tests and the acceptable error margins for your specific application.
+------------------
+**ChatGPT:**
+
+
+In the assertion messages, please also output the inputs, actual output, and expected output
+------------------
+**ChatGPT:**
+
+
+Certainly! For better clarity in the assertion messages, we'll update them to include inputs, the actual output, and the expected output:
+
+python
+Copy code
+# For VFADD:
+assert abs(read_data - expected_result) <= VFADD_VFSUB_TOLERANCE, f"Error in VFADD. Input1: {inputs[i]}, Input2: {inputs[i + NUM_REGISTERS]}, Output: {read_data}, Expected: {expected_result} at address {register_address}"
+
+# For VFSUB:
+assert abs(read_data - expected_result) <= VFADD_VFSUB_TOLERANCE, f"Error in VFSUB. Input1: {inputs[i]}, Input2: {inputs[i + NUM_REGISTERS]}, Output: {read_data}, Expected: {expected_result} at address {register_address}"
+
+# For VFMUL:
+assert abs(read_data - expected_result) <= VFMUL_TOLERANCE, f"Error in VFMUL. Input1: {inputs[i]}, Input2: {inputs[i + NUM_REGISTERS]}, Output: {read_data}, Expected: {expected_result} at address {register_address}"
+
+
+This will make it easier to troubleshoot any mismatches that arise during testing, as you'll be able to see the inputs that led to the discrepancy, along with the computed and expected results.
+------------------

@@ -28,7 +28,7 @@ module wb_converter (
 
     assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
                        ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
-                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val && store_send_rdy)) ||
+                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val && store_send_rdy && store_transaction_in_progress)) ||
                        ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
     assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000);
     assign wbs_dat_o = store_send_msg;

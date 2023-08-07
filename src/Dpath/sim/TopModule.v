@@ -4,6 +4,7 @@
 `include "../../Dpath/sim/Decoder.v"
 `include "../../RegisterFiles/sim/VectorRegFile.v"
 `include "../../Dpath/sim/ALU.v"
+`include "../../RegisterFiles/sim/Scalar_Register_File.v"
 module TopModule (
     input logic clk,
     input logic reset,
@@ -75,6 +76,38 @@ module TopModule (
     // 2-input muxes for VectorRegFile rAddr1_1 and rAddr2_1
     logic [4:0] rAddr1_1_mux_out;
     logic [4:0] rAddr2_1_mux_out;
+
+    // Internal signals for Scalar_Register_File
+    logic [4:0] scalar_read_address;
+    logic [4:0] scalar_write_address;
+    logic [31:0] scalar_write_data;
+    logic scalar_write_enable;
+    logic [31:0] scalar_read_data;
+
+    // New signal declaration for vector_write_enable
+    logic vector_write_enable;
+
+    // Assign the expression to the new signal
+    assign vector_write_enable = (vector_reg_write_bit & !load_store_bit) | (vector_reg_write_bit & load_store_bit & (wb_addr <= addr_cutoff));
+
+    // New signal declaration for addr_cutoff
+    logic [31:0] addr_cutoff;
+    assign addr_cutoff = 32'h000003FF;  // Updated to 32'h00000400
+
+    // Modified assignment for scalar_write_address
+    assign scalar_write_address = wb_addr[4:0] - addr_cutoff[4:0] - 1;  // Removed -1
+
+    // Modified assignment for scalar_read_address
+    assign scalar_read_address = load_store_bit ? scalar_write_address : reg_file_addr2;
+
+    // Conditional assignment for store_recv_msg
+    assign store_recv_msg = (wb_addr > addr_cutoff) ? scalar_read_data : rData1;
+
+    // Corrected line
+    assign store_recv_val = load_store_bit & !vector_reg_write_bit;
+
+    // Corrected line
+    assign load_send_rdy = load_store_bit;
 
     // Instantiate load_queue
     queue #(.WIDTH(64), .DEPTH(16)) load_queue (
@@ -148,7 +181,7 @@ module TopModule (
     );
 
     // OR the done output with clock_bypass and connect this result to instruction_send_rdy
-    assign instruction_send_rdy = (counter == 5'd0) | clock_bypass;
+    assign instruction_send_rdy = done | clock_bypass;  // Updated to done | clock_bypass
 
     // Create new wires for wb_addr and wb_data
     assign wb_addr = load_send_msg[63:32];
@@ -168,7 +201,7 @@ module TopModule (
     // Instantiate VectorRegFile
     VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
         .clk(clk),
-        .reset(reset), // Changed line
+        .reset(reset),
         .rAddr1_1(rAddr1_1_mux_out),
         .rAddr2_1(rAddr2_1_mux_out),
         .rData1(rData1),
@@ -178,14 +211,14 @@ module TopModule (
         .wAddr1(wAddr1_mux_out),
         .wAddr2(wAddr2_mux_out),
         .wData(wData_mux_out),
-        .wEnable(vector_reg_write_bit)
+        .wEnable(vector_write_enable)  // Updated to use the new signal
     );
 
     // Instantiate ALU
     ALU #(32) alu (
         .A(rData1),
-        .B(rData2),
-        .C(wb_data),
+        .B(rData2),  // Updated input
+        .C(scalar_read_data),  // Updated input
         .AddSub(add_subtract_bit),
         .muxControl(mux_bit),
         .outputControl(functional_unit_mux_bit),
@@ -195,11 +228,23 @@ module TopModule (
         .predicate(predicate_reg_write_bit)
     );
 
-    // Corrected line
-    assign store_recv_msg = rData1;
-    assign store_recv_val = load_store_bit & !vector_reg_write_bit;
+    // Assignments for Scalar_Register_File
+    assign scalar_write_data = wb_data;
+    assign scalar_write_enable = load_store_bit & vector_reg_write_bit & (wb_addr > addr_cutoff);
 
-    // Corrected line
-    assign load_send_rdy = load_store_bit;
+    // Instantiate Scalar_Register_File
+    Scalar_Register_File #(
+        .REG_DEPTH(32),
+        .REG_WIDTH(32),
+        .ADDR_WIDTH(5)
+    ) scalar_reg_file (
+        .clk(clk),
+        .reset(reset),  // Added reset connection
+        .read_address(scalar_read_address),
+        .write_address(scalar_write_address),
+        .write_data(scalar_write_data),
+        .write_enable(scalar_write_enable),
+        .read_data(scalar_read_data)
+    );
 
 endmodule

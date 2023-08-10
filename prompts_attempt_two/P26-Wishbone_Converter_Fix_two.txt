@@ -95,7 +95,7 @@ module wb_converter (
 
     output logic [63:0] load_recv_msg,
     output logic load_recv_val,
-    input load_recv_rdy,
+    input load_recv_rdy, S
 
     output logic [31:0] instruction_recv_msg,
     output logic instruction_recv_val,

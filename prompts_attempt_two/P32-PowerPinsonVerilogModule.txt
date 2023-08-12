@@ -1,0 +1,101 @@
+User
+I have the following verilog module:
+module WrapperBlock_noparam (
+	clk,
+	reset,
+	wb_clk_i,
+	wb_rst_i,
+	wbs_ack_o,
+	wbs_adr_i,
+	wbs_cyc_i,
+	wbs_dat_i,
+	wbs_dat_o,
+	wbs_sel_i,
+	wbs_stb_i,
+	wbs_we_i
+);
+	input wire [0:0] clk;
+	input wire [0:0] reset;
+	input wire [0:0] wb_clk_i;
+	input wire [0:0] wb_rst_i;
+	output wire [0:0] wbs_ack_o;
+	input wire [31:0] wbs_adr_i;
+	input wire [0:0] wbs_cyc_i;
+	input wire [31:0] wbs_dat_i;
+	output wire [31:0] wbs_dat_o;
+	input wire [3:0] wbs_sel_i;
+	input wire [0:0] wbs_stb_i;
+	input wire [0:0] wbs_we_i;
+	WrapperBlock v(
+		.clk(clk),
+		.reset(reset),
+		.wb_clk_i(wb_clk_i),
+		.wb_rst_i(wb_rst_i),
+		.wbs_ack_o(wbs_ack_o),
+		.wbs_adr_i(wbs_adr_i),
+		.wbs_cyc_i(wbs_cyc_i),
+		.wbs_dat_i(wbs_dat_i),
+		.wbs_dat_o(wbs_dat_o),
+		.wbs_sel_i(wbs_sel_i),
+		.wbs_stb_i(wbs_stb_i),
+		.wbs_we_i(wbs_we_i)
+	);
+endmodule
+Please add the following to the interface:
+	`ifdef USE_POWER_PINS
+    inout vccd1,	// User area 1 1.8V supply
+    inout vssd1,	// User area 1 digital ground
+	`endif
+ChatGPT
+
+Certainly! You can add the conditional compilation directive ifdef to include the power pins in the module interface. Here's the modified code:
+
+verilog
+
+module WrapperBlock_noparam (
+	clk,
+	reset,
+	wb_clk_i,
+	wb_rst_i,
+	wbs_ack_o,
+	wbs_adr_i,
+	wbs_cyc_i,
+	wbs_dat_i,
+	wbs_dat_o,
+	wbs_sel_i,
+	wbs_stb_i,
+	wbs_we_i,
+	`ifdef USE_POWER_PINS
+    inout wire vccd1,	// User area 1 1.8V supply
+    inout wire vssd1,	// User area 1 digital ground
+	`endif
+);
+	input wire [0:0] clk;
+	input wire [0:0] reset;
+	input wire [0:0] wb_clk_i;
+	input wire [0:0] wb_rst_i;
+	output wire [0:0] wbs_ack_o;
+	input wire [31:0] wbs_adr_i;
+	input wire [0:0] wbs_cyc_i;
+	input wire [31:0] wbs_dat_i;
+	output wire [31:0] wbs_dat_o;
+	input wire [3:0] wbs_sel_i;
+	input wire [0:0] wbs_stb_i;
+	input wire [0:0] wbs_we_i;
+	WrapperBlock v(
+		.clk(clk),
+		.reset(reset),
+		.wb_clk_i(wb_clk_i),
+		.wb_rst_i(wb_rst_i),
+		.wbs_ack_o(wbs_ack_o),
+		.wbs_adr_i(wbs_adr_i),
+		.wbs_cyc_i(wbs_cyc_i),
+		.wbs_dat_i(wbs_dat_i),
+		.wbs_dat_o(wbs_dat_o),
+		.wbs_sel_i(wbs_sel_i),
+		.wbs_stb_i(wbs_stb_i),
+		.wbs_we_i(wbs_we_i)
+	);
+endmodule
+
+The inout wire declarations for vccd1 and vssd1 are included within the ifdef block, so they will only be included in the module if the USE_POWER_PINS macro is defined.

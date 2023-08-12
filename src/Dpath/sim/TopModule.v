@@ -5,6 +5,7 @@
 `include "../../RegisterFiles/sim/VectorRegFile.v"
 `include "../../Dpath/sim/ALU.v"
 `include "../../RegisterFiles/sim/Scalar_Register_File.v"
+`include "../../RegisterFiles/sim/Predicate_Register_File.v"
 module TopModule (
     input logic clk,
     input logic reset,
@@ -88,7 +89,7 @@ module TopModule (
     logic vector_write_enable;
 
     // Assign the expression to the new signal
-    assign vector_write_enable = (vector_reg_write_bit & !load_store_bit) | (vector_reg_write_bit & load_store_bit & (wb_addr <= addr_cutoff));
+    assign vector_write_enable = (vector_reg_write_bit & !load_store_bit & pred_data_out) | (vector_reg_write_bit & load_store_bit & (wb_addr <= addr_cutoff));
 
     // New signal declaration for addr_cutoff
     logic [31:0] addr_cutoff;
@@ -225,7 +226,7 @@ module TopModule (
         .bitwiseControl(bitwise_op_select),
         .compControl(predicate_op_select),
         .finalResult(functional_unit_output_mux),
-        .predicate(predicate_reg_write_bit)
+        .predicate(pred_data_in) // Updated input
     );
 
     // Assignments for Scalar_Register_File
@@ -245,6 +246,37 @@ module TopModule (
         .write_data(scalar_write_data),
         .write_enable(scalar_write_enable),
         .read_data(scalar_read_data)
+    );
+
+    // Internal signals for Predicate_Register_File
+    logic [4:0] pred_read_addr1, pred_read_addr2;
+    logic [4:0] pred_write_addr1, pred_write_addr2;
+    logic pred_write_enable;
+    logic pred_data_out;
+    logic pred_data_in;
+
+    // Assignments for Predicate_Register_File
+    assign pred_read_addr1 = reg_file_addr1;
+    assign pred_read_addr2 = counter;
+    assign pred_write_addr1 = vector_reg_write_select;
+    assign pred_write_addr2 = counter;
+    assign pred_write_enable = predicate_reg_write_bit;
+
+    // Instantiate Predicate_Register_File
+    Predicate_Register_File #(
+        .ADDR_WIDTH(5),
+        .DATA_WIDTH(1),
+        .NUM_REGISTERS(32)
+    ) predicate_reg_file (
+        .clk(clk),
+        .reset(reset),
+        .read_addr1(pred_read_addr1),
+        .read_addr2(pred_read_addr2),
+        .write_addr1(pred_write_addr1),
+        .write_addr2(pred_write_addr2),
+        .write_enable(pred_write_enable),
+        .data_out(pred_data_out),
+        .data_in(pred_data_in)
     );
 
 endmodule

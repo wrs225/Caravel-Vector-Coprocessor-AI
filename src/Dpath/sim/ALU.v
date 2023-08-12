@@ -14,7 +14,7 @@ module ALU #(parameter WIDTH = 32) (
     input logic muxControl, // 0 for B, 1 for C
     input logic [2:0] outputControl, // Output mux control
     input logic [1:0] bitwiseControl, // Control for BitwiseOperationUnit
-    input logic [1:0] compControl, // Control for comparison_unit
+    input logic [3:0] compControl, // Updated to 4-bit control for comparison_unit
     output logic [WIDTH-1:0] finalResult, // Muxed output
     output logic predicate
 );
@@ -67,11 +67,11 @@ module ALU #(parameter WIDTH = 32) (
         .result(bitwiseResult)
     );
 
-    // Instantiate comparison_unit
+    // Instantiate comparison_unit with new interface
     comparison_unit #(WIDTH) compUnit (
         .in1(A),
         .in2(muxOut),
-        .control(compControl),
+        .control(compControl), // Updated to 4-bit control signal
         .predicate(predicate)
     );
 

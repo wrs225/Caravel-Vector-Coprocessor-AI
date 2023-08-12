@@ -1,0 +1,1753 @@
+User
+For each test in this file, we need to add an instruction that enables the predicate register files so we can actually save the results of our computations. The opcode of this instruction is as follows:
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VADD_OPCODE = 0x02
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_add(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector add operation
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector add operation passed!")
+
+def test_random_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector add operation
+  random_test_vector_add(dut)
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def test_all_registers_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Test all registers
+  all_registers_operation(dut)
+
+def test_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector add operation
+  vector_add_operation(dut)
+
+def test_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector sub operation
+  vector_sub_operation(dut)
+
+def test_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector mul operation
+  vector_mul_operation(dut)
+
+def test_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector and operation
+  vector_and_operation(dut)
+
+def test_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector or operation
+  vector_or_operation(dut)
+
+def test_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector xor operation
+  vector_xor_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+def all_registers_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32 * 32
+
+  # Create a list to store the test data for each register
+  test_data_list = [i for i in range(NUM_REGISTERS)]  # Or any other function of i
+
+  # First, write to all registers
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a write operation (store) to the current register
+    wb_write(dut, register_address, test_data_list[i])
+
+  # Then, read from all registers and verify the data
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a read operation (load) from the current register
+    read_data = wb_read(dut, register_address)
+
+    # Verify that the read data matches the written data
+    assert read_data == test_data_list[i], f"Read data {read_data} does not match written data {test_data_list[i]} at address {register_address}"
+
+  print("All register operation passed!")
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+
+def vector_and_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise AND operation on the two vectors
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector AND operation passed!")
+
+def vector_or_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise OR operation on the two vectors
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector OR operation passed!")
+
+def vector_xor_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise XOR operation on the two vectors
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector XOR operation passed!")
+ChatGPT
+
+It looks like you're working with vector operations and you want to add an instruction to enable the predicate register files. You've provided the opcode for the VPSET instruction, but it's not clear where you want to insert this instruction in your code.
+
+Here's a general example of how you might use the VPSET instruction in your code:
+
+python
+
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+  # Create the VPSET instruction
+  vpset_instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+  wb_write(dut, INSTRUCTION_ADDRESS, vpset_instruction)
+
+  # You can add additional code here to perform any necessary checks or operations
+
+You would then call this function at the appropriate place in your code, passing in the values for Pdest and Ssrc that you want to use.
+
+Without more specific information about how you want to use the VPSET instruction, it's hard to provide more detailed guidance. If you can provide more context or ask a more specific question, I'll be happy to help further!
+User
+6 / 6
+from pymtl3 import *
+from pymtl3.passes.backends.verilog import *
+from pymtl3.stdlib.test_utils import mk_test_case_table, run_sim, config_model_with_cmdline_opts
+from .wishbone_interface_driver import wb_write, wb_read
+from sim.WrapperBlock import WrapperBlock
+import random
+
+# Define some constants for the test
+BASE_ADDRESS = 0x30000004
+NUM_REGISTERS = 32
+INSTRUCTION_ADDRESS = 0x30000000
+
+# Define the opcodes for the instructions
+VADD_OPCODE = 0x02
+VSUB_OPCODE = 0x03
+VMUL_OPCODE = 0x04
+VAND_OPCODE = 0x09
+VOR_OPCODE = 0x0A
+VXOR_OPCODE = 0x0B
+
+def random_test_vector_add(dut):
+  # Generate random inputs
+  inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS * 2)]
+
+  # Store the inputs in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, inputs[i])
+
+  # Perform the vector add operation
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    expected_result = inputs[i] + inputs[i + NUM_REGISTERS]
+    assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+  print("Random test for vector add operation passed!")
+
+def test_random_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the random test for vector add operation
+  random_test_vector_add(dut)
+
+def test_wrapper_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the load-store operation
+  load_store_operation(dut)
+
+def test_all_registers_block( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Test all registers
+  all_registers_operation(dut)
+
+def test_vector_add( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector add operation
+  vector_add_operation(dut)
+
+def test_vector_sub( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector sub operation
+  vector_sub_operation(dut)
+
+def test_vector_mul( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector mul operation
+  vector_mul_operation(dut)
+
+def test_vector_and( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector and operation
+  vector_and_operation(dut)
+
+def test_vector_or( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector or operation
+  vector_or_operation(dut)
+
+def test_vector_xor( cmdline_opts ):
+  # Instantiate the DUT (Device Under Test)
+  dut = WrapperBlock()
+  dut = config_model_with_cmdline_opts( dut, cmdline_opts, duts=[] )
+  dut.apply( DefaultPassGroup( linetrace=False ) )
+
+  # Reset the simulation
+  dut.sim_reset()
+
+  # Perform the vector xor operation
+  vector_xor_operation(dut)
+
+def load_store_operation(dut):
+  # Define some constants for the test
+  TEST_ADDRESS = 0x30000004
+  TEST_DATA = 0xDEADBEEF
+
+  # Perform a write operation (store) to the TEST_ADDRESS
+  wb_write(dut, TEST_ADDRESS, TEST_DATA)
+
+  # Perform a read operation (load) from the TEST_ADDRESS
+  read_data = wb_read(dut, TEST_ADDRESS)
+
+  # Verify that the read data matches the written data
+  assert read_data == TEST_DATA, f"Read data {read_data} does not match written data {TEST_DATA}"
+
+  print("Load-store operation passed!")
+
+def all_registers_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32 * 32
+
+  # Create a list to store the test data for each register
+  test_data_list = [i for i in range(NUM_REGISTERS)]  # Or any other function of i
+
+  # First, write to all registers
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a write operation (store) to the current register
+    wb_write(dut, register_address, test_data_list[i])
+
+  # Then, read from all registers and verify the data
+  for i in range(NUM_REGISTERS):
+    # Calculate the address of the current register
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+
+    # Perform a read operation (load) from the current register
+    read_data = wb_read(dut, register_address)
+
+    # Verify that the read data matches the written data
+    assert read_data == test_data_list[i], f"Read data {read_data} does not match written data {test_data_list[i]} at address {register_address}"
+
+  print("All register operation passed!")
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+
+def vector_and_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise AND operation on the two vectors
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector AND operation passed!")
+
+def vector_or_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise OR operation on the two vectors
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector OR operation passed!")
+
+def vector_xor_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise XOR operation on the two vectors
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector XOR operation passed!")
+Modify this code to include a call to vpset_instruction with the proper register selected for each test contained within this file. Please be aware you must set Pdest and Ssrc to the register that we are going to write to after conducting the operation. 
+ChatGPT
+
+Certainly! You can modify the code to include a call to the vpset_instruction function with the proper register selected for each test. Here's an example of how you can do this:
+
+First, define a function to create the VPSET instruction and write it to the instruction address:
+
+python
+
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
+
+Now, you can call this function before each operation in the test functions. Here's an example of how you can modify the vector_add_operation function:
+
+python
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Add the two vectors together
+  add_instruction = (VADD_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+You can follow the same pattern for the other test functions, making sure to set Pdest and Ssrc to the appropriate values for each operation.
+User
+4 / 4
+Please show me the completed implementation for:
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_add_operation function, including the call to vpset_instruction:
+
+python
+
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
+
+def vector_add_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VADD_OPCODE = 0x02
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Add the two vectors together
+  # The instruction is encoded as follows:
+  # - Bits [31:27]: Opcode
+  # - Bits [25:21]: Destination vector register (2)
+  # - Bits [20:16]: Source vector register 1 (0)
+  # - Bits [15:11]: Source vector register 2 (1)
+  # - Bits [10:0]: Unused
+  add_instruction = (VADD_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 2, f"Read data {read_data} does not match expected result 2 at address {register_address}"
+
+  print("Vector add operation passed!")
+
+This code includes the vpset_instruction function and calls it within the vector_add_operation function to set the predicate register for the destination. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_sub_operation function, including the call to vpset_instruction, similar to the previous modification:
+
+python
+
+def vector_sub_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VSUB_OPCODE = 0x03
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Subtract the two vectors
+  sub_instruction = (VSUB_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector sub operation passed!")
+
+This code includes the call to vpset_instruction within the vector_sub_operation function to set the predicate register for the destination, just like in the previous modification. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix:
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_mul_operation function, including the call to vpset_instruction:
+
+python
+
+def vector_mul_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VMUL_OPCODE = 0x04
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Multiply the two vectors
+  mul_instruction = (VMUL_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector mul operation passed!")
+
+This code includes the call to vpset_instruction within the vector_mul_operation function to set the predicate register for the destination. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix:
+def vector_and_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise AND operation on the two vectors
+  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector AND operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_and_operation function, including the call to vpset_instruction:
+
+python
+
+def vector_and_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VAND_OPCODE = 0x09
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Perform bitwise AND operation on the two vectors
+  and_instruction = (VAND_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector AND operation passed!")
+
+This code includes the call to vpset_instruction within the vector_and_operation function to set the predicate register for the destination. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix this:
+def vector_or_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise OR operation on the two vectors
+  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector OR operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_or_operation function, including the call to vpset_instruction:
+
+python
+
+def vector_or_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VOR_OPCODE = 0x0A
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Perform bitwise OR operation on the two vectors
+  or_instruction = (VOR_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 1, f"Read data {read_data} does not match expected result 1 at address {register_address}"
+
+  print("Vector OR operation passed!")
+
+This code includes the call to vpset_instruction within the vector_or_operation function to set the predicate register for the destination. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix this:
+def vector_xor_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Perform bitwise XOR operation on the two vectors
+  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector XOR operation passed!")
+ChatGPT
+
+Certainly! Here's the modified implementation of the vector_xor_operation function, including the call to vpset_instruction:
+
+python
+
+def vector_xor_operation(dut):
+  # Define some constants for the test
+  BASE_ADDRESS = 0x30000004
+  NUM_REGISTERS = 32
+  INSTRUCTION_ADDRESS = 0x30000000
+  VXOR_OPCODE = 0x0B
+
+  # Store 1 in the first 32 * 2 registers
+  for i in range(NUM_REGISTERS * 2):
+    register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+    wb_write(dut, register_address, 1)
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
+  # Perform bitwise XOR operation on the two vectors
+  xor_instruction = (VXOR_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
+  wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
+
+  # Read and check the results from the third vector register
+  for i in range(NUM_REGISTERS):
+    register_address = BASE_ADDRESS + ((i + NUM_REGISTERS * 2) * 4)  # Assuming each register is 4 bytes
+    read_data = wb_read(dut, register_address)
+    assert read_data == 0, f"Read data {read_data} does not match expected result 0 at address {register_address}"
+
+  print("Vector XOR operation passed!")
+
+This code includes the call to vpset_instruction within the vector_xor_operation function to set the predicate register for the destination. Make sure to adjust the values of Pdest and Ssrc as needed for your specific implementation.
+User
+Please fix this:
+def scalar_add_operation(dut):
+    # Generate random inputs
+    inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
+    scalar = random.randint(0, 100)
+
+    # Store the inputs in the first 32 registers
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+        wb_write(dut, register_address, inputs[i])
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results from the second vector register
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)  # Assuming each register is 4 bytes
+        read_data = wb_read(dut, register_address)
+        expected_result = inputs[i] + scalar
+        assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+    print("Scalar add operation passed!")
+ChatGPT
+
+Certainly! It looks like you want to perform a scalar addition operation on a vector of numbers. Here's the modified code that includes the call to vpset_instruction:
+
+python
+
+def scalar_add_operation(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30000008  # Assuming this is the address for the scalar
+    VSADD_OPCODE = 0x05  # Assuming this is the opcode for scalar add
+
+    # Generate random inputs
+    inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
+    scalar = random.randint(0, 100)
+
+    # Store the inputs in the first 32 registers
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+        wb_write(dut, register_address, inputs[i])
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the predicate register for the destination
+    Pdest = 1
+    Ssrc = 1
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results from the second vector register
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)  # Assuming each register is 4 bytes
+        read_data = wb_read(dut, register_address)
+        expected_result = inputs[i] + scalar
+        assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+    print("Scalar add operation passed!")
+
+Please make sure to define the vpset_instruction function and adjust the constants like DATA_START_ADDRESS, SCALAR_ADDRESS, and VSADD_OPCODE according to your specific implementation.
+User
+Your addresses are incorrect. These are the correct ones:
+DATA_START_ADDRESS = 0x30000004
+SCALAR_ADDRESS = 0x30001004
+ChatGPT
+
+Certainly! Here's the corrected code with the updated addresses:
+
+python
+
+def scalar_add_operation(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30001004
+    VSADD_OPCODE = 0x05  # Assuming this is the opcode for scalar add
+
+    # Generate random inputs
+    inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
+    scalar = random.randint(0, 100)
+
+    # Store the inputs in the first 32 registers
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+        wb_write(dut, register_address, inputs[i])
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the predicate register for the destination
+    Pdest = 1
+    Ssrc = 1
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results from the second vector register
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)  # Assuming each register is 4 bytes
+        read_data = wb_read(dut, register_address)
+        expected_result = inputs[i] + scalar
+        assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+    print("Scalar add operation passed!")
+
+This code now uses the correct addresses for DATA_START_ADDRESS and SCALAR_ADDRESS. Make sure that the vpset_instruction function is defined elsewhere in your code, and adjust the VSADD_OPCODE constant if needed.
+User
+VSADD's opcode is 0x06
+ChatGPT
+
+Got it! Here's the corrected code with the updated opcode for the scalar add operation:
+
+python
+
+def scalar_add_operation(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30001004
+    VSADD_OPCODE = 0x06  # Updated opcode for scalar add
+
+    # Generate random inputs
+    inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
+    scalar = random.randint(0, 100)
+
+    # Store the inputs in the first 32 registers
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+        wb_write(dut, register_address, inputs[i])
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results from the second vector register
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)  # Assuming each register is 4 bytes
+        read_data = wb_read(dut, register_address)
+        expected_result = inputs[i] + scalar
+        assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+    print("Scalar add operation passed!")
+
+This code now uses the correct opcode 0x06 for the scalar add operation. Make sure to adjust other parts of the code if needed, such as the encoding of the instruction or the handling of the predicate registers, based on your specific requirements.
+User
+You forgot the additional register enable instruction
+ChatGPT
+
+Apologies for missing that part. If you need to include a call to a vpset_instruction function to set the proper register for the operation, you'll need to know the exact details of how that function is defined and what parameters it requires.
+
+Assuming you have a function like vpset_instruction(dut, Pdest, Ssrc) that sets the proper register, you can include a call to that function in your code. Here's an example of how you might modify the scalar_add_operation function:
+
+python
+
+def scalar_add_operation(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30001004
+    VSADD_OPCODE = 0x06
+
+    # Generate random inputs
+    inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
+    scalar = random.randint(0, 100)
+
+    # Store the inputs in the first 32 registers
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, inputs[i])
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results from the second vector register
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        expected_result = inputs[i] + scalar
+        assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
+
+    print("Scalar add operation passed!")
+
+Please replace Pdest and Ssrc with the correct values for your specific implementation, and make sure the vpset_instruction function is defined elsewhere in your code with the correct behavior.
+User
+2 / 2
+Can you please fix this function:
+def scalar_add_edge_cases(dut):
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+ChatGPT
+4 / 4
+
+Certainly! It seems like you're testing edge cases for scalar addition, including overflow and underflow. Based on the previous context, I'll include the necessary constants and the call to the vpset_instruction function if needed.
+
+Here's the corrected code:
+
+python
+
+def scalar_add_edge_cases(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30001004
+    VSADD_OPCODE = 0x06
+
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)  # Assuming this function is defined elsewhere
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+
+Make sure that the vpset_instruction function is defined elsewhere in your code with the correct behavior, and replace Pdest and Ssrc with the correct values for your specific implementation.
+User
+2 / 2
+You need not include any undefined capitalized variables
+ChatGPT
+4 / 4
+
+Certainly! Here's the revised code without any undefined capitalized variables:
+
+python
+
+def scalar_add_edge_cases(dut):
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+
+I've removed the capitalized variables that were previously defined in the code snippet. Make sure that the constants DATA_START_ADDRESS, NUM_REGISTERS, INSTRUCTION_ADDRESS, SCALAR_ADDRESS, and VSADD_OPCODE are defined elsewhere in your code with the correct values.
+User
+You are forgetting vpset
+ChatGPT
+
+Apologies for the oversight. If you need to include a call to vpset_instruction with the proper register selected, you can modify the code as follows:
+
+python
+
+def scalar_add_edge_cases(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 4
+
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the Pdest and Ssrc registers
+    vpset_instruction = (1 << 21) | (0 << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, vpset_instruction)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+
+I've added the vpset_instruction line to set the Pdest and Ssrc registers as per your request. Make sure to adjust the values and the encoding of the vpset_instruction as needed for your specific implementation.
+User
+Please use this function:
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
+ChatGPT
+
+Certainly! You can use the provided vpset_instruction function in the scalar_add_edge_cases function as follows:
+
+python
+
+def scalar_add_edge_cases(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 4
+
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+
+I've replaced the manual creation of the vpset_instruction with a call to the provided vpset_instruction function and set the Pdest and Ssrc values to 1 and 0, respectively. You can adjust these values as needed for your specific implementation.
+User
+NUM_REGISTERS = 32, not 4
+ChatGPT
+
+Certainly! Here's the corrected code with NUM_REGISTERS set to 32:
+
+python
+
+def scalar_add_edge_cases(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
+    # Case 1: Overflow and underflow
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001] * (NUM_REGISTERS // 4)
+    scalar = 0x00000001
+
+    # Store the inputs
+    for i, value in enumerate(inputs):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar)
+
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Expected results considering a wrap-around for overflows
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002] * (NUM_REGISTERS // 4)
+
+    # Read and check the results
+    for i, expected in enumerate(expected_results):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
+
+    print("Scalar add edge cases passed!")
+
+I've multiplied the inputs and expected_results lists by (NUM_REGISTERS // 4) to ensure that they contain 32 elements, as per the updated value of NUM_REGISTERS.
+User
+Please fix this test:
+def scalar_add_with_zeros(dut):
+    # Inputs are all zeros and scalar is zero
+    inputs_zero = [0 for _ in range(NUM_REGISTERS)]
+    scalar_zero = 0
+
+    # Store the inputs
+    for i, value in enumerate(inputs_zero):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar_zero)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == 0, f"Read data {read_data} is not zero at address {register_address}"
+
+    print("Scalar add with zeros test passed!")
+ChatGPT
+
+Certainly! It looks like you want to test the scalar addition operation with all zeros. Since you mentioned the need to include the vpset_instruction call, I'll add that to the code as well. Here's the corrected code:
+
+python
+
+def scalar_add_with_zeros(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
+    # Inputs are all zeros and scalar is zero
+    inputs_zero = [0 for _ in range(NUM_REGISTERS)]
+    scalar_zero = 0
+
+    # Store the inputs
+    for i, value in enumerate(inputs_zero):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar_zero)
+
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == 0, f"Read data {read_data} is not zero at address {register_address}"
+
+    print("Scalar add with zeros test passed!")
+
+I've added the call to vpset_instruction with the proper register selected, as you mentioned earlier.
+User
+2 / 2
+Please add the  vpset_instruction function to this one too:
+def complementary_value_test(dut):
+    # Inputs negate the scalar
+    scalar_complement = random.randint(1, 100)
+    inputs_complement = [-scalar_complement for _ in range(NUM_REGISTERS)]
+
+    # Store the inputs
+    for i, value in enumerate(inputs_complement):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar_complement)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == 0, f"Read data {read_data} is not zero at address {register_address}"
+
+    print("Complementary value test passed!")
+ChatGPT
+2 / 2
+
+Certainly! Here's the updated code for the complementary_value_test function, including the call to vpset_instruction:
+
+python
+
+def complementary_value_test(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
+    # Inputs negate the scalar
+    scalar_complement = random.randint(1, 100)
+    inputs_complement = [-scalar_complement for _ in range(NUM_REGISTERS)]
+
+    # Store the inputs
+    for i, value in enumerate(inputs_complement):
+        register_address = DATA_START_ADDRESS + (i * 4)
+        wb_write(dut, register_address, value)
+
+    # Store the scalar
+    wb_write(dut, SCALAR_ADDRESS, scalar_complement)
+
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
+    # Perform the scalar add operation
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
+    wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
+
+    # Read and check the results
+    for i in range(NUM_REGISTERS):
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
+        read_data = wb_read(dut, register_address)
+        assert read_data == 0, f"Read data {read_data} is not zero at address {register_address}"
+
+    print("Complementary value test passed!")
+
+I've added the call to vpset_instruction with the proper register selected, just like in the previous function.

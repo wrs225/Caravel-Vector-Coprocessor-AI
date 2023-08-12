@@ -56,7 +56,7 @@ module TopModule (
     logic add_subtract_bit;
     logic load_store_bit;
     logic [1:0] bitwise_op_select;
-    logic [1:0] predicate_op_select;
+    logic [3:0] predicate_op_select;
 
     // Internal signals for VectorRegFile
     logic [31:0] wb_addr;
@@ -256,7 +256,7 @@ module TopModule (
     logic pred_data_in;
 
     // Assignments for Predicate_Register_File
-    assign pred_read_addr1 = reg_file_addr1;
+    assign pred_read_addr1 = vector_reg_write_select; // Updated line
     assign pred_read_addr2 = counter;
     assign pred_write_addr1 = vector_reg_write_select;
     assign pred_write_addr2 = counter;

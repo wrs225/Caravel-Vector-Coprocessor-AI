@@ -17,6 +17,11 @@ VMUL_OPCODE = 0x04
 VAND_OPCODE = 0x09
 VOR_OPCODE = 0x0A
 VXOR_OPCODE = 0x0B
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
 
 def random_test_vector_add(dut):
   # Generate random inputs
@@ -26,6 +31,11 @@ def random_test_vector_add(dut):
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, inputs[i])
+
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
 
   # Perform the vector add operation
   add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
@@ -193,6 +203,7 @@ def all_registers_operation(dut):
 
   print("All register operation passed!")
 
+
 def vector_add_operation(dut):
   # Define some constants for the test
   BASE_ADDRESS = 0x30000004
@@ -205,6 +216,11 @@ def vector_add_operation(dut):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Add the two vectors together
   # The instruction is encoded as follows:
   # - Bits [31:27]: Opcode
@@ -212,7 +228,7 @@ def vector_add_operation(dut):
   # - Bits [20:16]: Source vector register 1 (0)
   # - Bits [15:11]: Source vector register 2 (1)
   # - Bits [10:0]: Unused
-  add_instruction = (VADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  add_instruction = (VADD_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
 
   # Read and check the results from the third vector register
@@ -228,14 +244,20 @@ def vector_sub_operation(dut):
   BASE_ADDRESS = 0x30000004
   NUM_REGISTERS = 32
   INSTRUCTION_ADDRESS = 0x30000000
+  VSUB_OPCODE = 0x03
 
   # Store 1 in the first 32 * 2 registers
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Subtract the two vectors
-  sub_instruction = (VSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  sub_instruction = (VSUB_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
 
   # Read and check the results from the third vector register
@@ -246,19 +268,26 @@ def vector_sub_operation(dut):
 
   print("Vector sub operation passed!")
 
+
 def vector_mul_operation(dut):
   # Define some constants for the test
   BASE_ADDRESS = 0x30000004
   NUM_REGISTERS = 32
   INSTRUCTION_ADDRESS = 0x30000000
+  VMUL_OPCODE = 0x04
 
   # Store 1 in the first 32 * 2 registers
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Multiply the two vectors
-  mul_instruction = (VMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  mul_instruction = (VMUL_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)
 
   # Read and check the results from the third vector register
@@ -269,19 +298,26 @@ def vector_mul_operation(dut):
 
   print("Vector mul operation passed!")
 
+
 def vector_and_operation(dut):
   # Define some constants for the test
   BASE_ADDRESS = 0x30000004
   NUM_REGISTERS = 32
   INSTRUCTION_ADDRESS = 0x30000000
+  VAND_OPCODE = 0x09
 
   # Store 1 in the first 32 * 2 registers
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Perform bitwise AND operation on the two vectors
-  and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  and_instruction = (VAND_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, and_instruction)
 
   # Read and check the results from the third vector register
@@ -292,19 +328,26 @@ def vector_and_operation(dut):
 
   print("Vector AND operation passed!")
 
+
 def vector_or_operation(dut):
   # Define some constants for the test
   BASE_ADDRESS = 0x30000004
   NUM_REGISTERS = 32
   INSTRUCTION_ADDRESS = 0x30000000
+  VOR_OPCODE = 0x0A
 
   # Store 1 in the first 32 * 2 registers
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Perform bitwise OR operation on the two vectors
-  or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  or_instruction = (VOR_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
 
   # Read and check the results from the third vector register
@@ -315,19 +358,26 @@ def vector_or_operation(dut):
 
   print("Vector OR operation passed!")
 
+
 def vector_xor_operation(dut):
   # Define some constants for the test
   BASE_ADDRESS = 0x30000004
   NUM_REGISTERS = 32
   INSTRUCTION_ADDRESS = 0x30000000
+  VXOR_OPCODE = 0x0B
 
   # Store 1 in the first 32 * 2 registers
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, 1)
 
+  # Set the predicate register for the destination
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Perform bitwise XOR operation on the two vectors
-  xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
+  xor_instruction = (VXOR_OPCODE << 27) | (Pdest << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, xor_instruction)
 
   # Read and check the results from the third vector register

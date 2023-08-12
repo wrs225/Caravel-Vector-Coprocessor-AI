@@ -15,6 +15,11 @@ DATA_START_ADDRESS = 0x30000004
 SCALAR_ADDRESS = 0x30001004
 
 VSADD_OPCODE = 0x06
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
 
 def read_write_operation(dut):
     # Create a list to store the test data for each register
@@ -34,30 +39,44 @@ def read_write_operation(dut):
     print("Read-write operation for the new address range passed!")
 
 def scalar_add_operation(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    NUM_REGISTERS = 32
+    INSTRUCTION_ADDRESS = 0x30000000
+    SCALAR_ADDRESS = 0x30001004
+    VSADD_OPCODE = 0x06
+
     # Generate random inputs
     inputs = [random.randint(0, 100) for _ in range(NUM_REGISTERS)]
     scalar = random.randint(0, 100)
 
     # Store the inputs in the first 32 registers
     for i in range(NUM_REGISTERS):
-        register_address = DATA_START_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
+        register_address = DATA_START_ADDRESS + (i * 4)
         wb_write(dut, register_address, inputs[i])
 
     # Store the scalar
     wb_write(dut, SCALAR_ADDRESS, scalar)
 
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
     # Perform the scalar add operation
-    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
 
     # Read and check the results from the second vector register
     for i in range(NUM_REGISTERS):
-        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)  # Assuming each register is 4 bytes
+        register_address = DATA_START_ADDRESS + ((i + NUM_REGISTERS) * 4)
         read_data = wb_read(dut, register_address)
         expected_result = inputs[i] + scalar
         assert read_data == expected_result, f"Read data {read_data} does not match expected result {expected_result} at address {register_address}"
 
     print("Scalar add operation passed!")
+
+
 
 def test_new_address_range(cmdline_opts):
     # Instantiate the DUT (Device Under Test)
@@ -84,8 +103,15 @@ def test_scalar_add(cmdline_opts):
     scalar_add_operation(dut)
 
 def scalar_add_edge_cases(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
     # Case 1: Overflow and underflow
-    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001]
+    inputs = [0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0x00000001] * (NUM_REGISTERS // 4)
     scalar = 0x00000001
 
     # Store the inputs
@@ -96,12 +122,17 @@ def scalar_add_edge_cases(dut):
     # Store the scalar
     wb_write(dut, SCALAR_ADDRESS, scalar)
 
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
     # Perform the scalar add operation
-    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
 
     # Expected results considering a wrap-around for overflows
-    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002]
+    expected_results = [0x00000000, 0x80000000, 0x80000001, 0x00000002] * (NUM_REGISTERS // 4)
 
     # Read and check the results
     for i, expected in enumerate(expected_results):
@@ -110,6 +141,7 @@ def scalar_add_edge_cases(dut):
         assert read_data == expected, f"Read data {read_data} does not match expected result {expected} at address {register_address}"
 
     print("Scalar add edge cases passed!")
+
 
 def test_scalar_add_edge_cases(cmdline_opts):
     # Instantiate the DUT (Device Under Test)
@@ -124,6 +156,13 @@ def test_scalar_add_edge_cases(cmdline_opts):
     scalar_add_edge_cases(dut)
 
 def scalar_add_with_zeros(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
     # Inputs are all zeros and scalar is zero
     inputs_zero = [0 for _ in range(NUM_REGISTERS)]
     scalar_zero = 0
@@ -136,8 +175,13 @@ def scalar_add_with_zeros(dut):
     # Store the scalar
     wb_write(dut, SCALAR_ADDRESS, scalar_zero)
 
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
     # Perform the scalar add operation
-    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
 
     # Read and check the results
@@ -148,7 +192,15 @@ def scalar_add_with_zeros(dut):
 
     print("Scalar add with zeros test passed!")
 
+
 def complementary_value_test(dut):
+    # Define some constants for the test
+    DATA_START_ADDRESS = 0x30000004
+    SCALAR_ADDRESS = 0x30001004
+    INSTRUCTION_ADDRESS = 0x30000000
+    VSADD_OPCODE = 0x06
+    NUM_REGISTERS = 32
+
     # Inputs negate the scalar
     scalar_complement = random.randint(1, 100)
     inputs_complement = [-scalar_complement for _ in range(NUM_REGISTERS)]
@@ -161,8 +213,13 @@ def complementary_value_test(dut):
     # Store the scalar
     wb_write(dut, SCALAR_ADDRESS, scalar_complement)
 
+    # Set the Pdest and Ssrc registers using the provided function
+    Pdest = 1
+    Ssrc = 0
+    vpset_instruction(dut, Pdest, Ssrc)
+
     # Perform the scalar add operation
-    add_instruction = (VSADD_OPCODE << 27) | (1 << 21) | (0 << 16) | (0 << 11)
+    add_instruction = (VSADD_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16) | (0 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
 
     # Read and check the results
@@ -172,6 +229,7 @@ def complementary_value_test(dut):
         assert read_data == 0, f"Read data {read_data} is not zero at address {register_address}"
 
     print("Complementary value test passed!")
+
 
 def test_scalar_add_with_zeros(cmdline_opts):
     # Instantiate the DUT (Device Under Test)

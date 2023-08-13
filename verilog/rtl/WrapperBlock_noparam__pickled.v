@@ -38,16 +38,20 @@ module wb_converter (
 	input [31:0] store_send_msg;
 	input store_send_val;
 	output wire store_send_rdy;
+	wire [31:0] internal_wbs_dat_i;
+	wire [31:0] internal_wbs_adr_i;
 	reg store_transaction_in_progress;
-	assign wbs_ack_o = (wbs_cyc_i && wbs_stb_i) && ((((wbs_adr_i == 32'h30000000) && instruction_recv_rdy) || ((wbs_adr_i > 32'h30000000) && (((!wbs_we_i && store_send_val) && store_send_rdy) && store_transaction_in_progress))) || ((((wbs_adr_i > 32'h30000000) && wbs_we_i) && load_recv_rdy) && instruction_recv_rdy));
-	assign store_send_rdy = ((!wbs_we_i && wbs_cyc_i) && wbs_stb_i) && (wbs_adr_i > 32'h30000000);
+	assign internal_wbs_dat_i = (wbs_stb_i && wbs_cyc_i ? wbs_dat_i : 32'b00000000000000000000000000000000);
+	assign internal_wbs_adr_i = (wbs_stb_i && wbs_cyc_i ? wbs_adr_i : 32'b00000000000000000000000000000000);
+	assign wbs_ack_o = (wbs_cyc_i && wbs_stb_i) && ((((internal_wbs_adr_i == 32'h30000000) && instruction_recv_rdy) || ((internal_wbs_adr_i > 32'h30000000) && (((!wbs_we_i && store_send_val) && store_send_rdy) && store_transaction_in_progress))) || ((((internal_wbs_adr_i > 32'h30000000) && wbs_we_i) && load_recv_rdy) && instruction_recv_rdy));
+	assign store_send_rdy = ((!wbs_we_i && wbs_cyc_i) && wbs_stb_i) && (internal_wbs_adr_i > 32'h30000000);
 	assign wbs_dat_o = store_send_msg;
 	always @(posedge wb_clk_i or posedge wb_rst_i)
 		if (wb_rst_i)
 			store_transaction_in_progress <= 0;
 		else if (wbs_ack_o)
 			store_transaction_in_progress <= 0;
-		else if (((instruction_recv_val && load_recv_val) && (wbs_adr_i > 32'h30000000)) && !wbs_we_i)
+		else if (((instruction_recv_val && load_recv_val) && (internal_wbs_adr_i > 32'h30000000)) && !wbs_we_i)
 			store_transaction_in_progress <= 1;
 	always @(*) begin
 		load_recv_msg = 64'b0000000000000000000000000000000000000000000000000000000000000000;
@@ -55,12 +59,12 @@ module wb_converter (
 		instruction_recv_msg = 32'b00000000000000000000000000000000;
 		instruction_recv_val = 0;
 		if (!store_transaction_in_progress) begin
-			if (wbs_adr_i == 32'h30000000) begin
-				instruction_recv_msg = wbs_dat_i;
+			if (internal_wbs_adr_i == 32'h30000000) begin
+				instruction_recv_msg = internal_wbs_dat_i;
 				instruction_recv_val = wbs_cyc_i && wbs_stb_i;
 			end
-			else if (wbs_adr_i > 32'h30000000) begin
-				load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};
+			else if (internal_wbs_adr_i > 32'h30000000) begin
+				load_recv_msg = {(internal_wbs_adr_i - 32'h30000004) >> 2, internal_wbs_dat_i};
 				load_recv_val = wbs_cyc_i && wbs_stb_i;
 				if (wbs_we_i)
 					instruction_recv_msg = 32'b00000000000000000000000000000000;
@@ -111,8 +115,13 @@ module queue (
 			full <= next_full;
 			empty <= next_empty;
 		end
-	always @(posedge clk)
-		if ((recv_rdy && recv_val) && !full)
+	always @(posedge clk or posedge reset)
+		if (reset) begin : sv2v_autoblock_1
+			reg signed [31:0] i;
+			for (i = 0; i < DEPTH; i = i + 1)
+				queue[i] <= 1'sb0;
+		end
+		else if ((recv_rdy && recv_val) && !full)
 			queue[tail] <= recv_msg;
 	always @(*) begin
 		next_full = full;
@@ -1213,35 +1222,23 @@ module WrapperBlock (
 	);
 endmodule
 module WrapperBlock_noparam (
-	clk,
-	reset,
-	wb_clk_i,
-	wb_rst_i,
-	wbs_ack_o,
-	wbs_adr_i,
-	wbs_cyc_i,
-	wbs_dat_i,
-	wbs_dat_o,
-	wbs_sel_i,
-	wbs_stb_i,
-	wbs_we_i,
 	`ifdef USE_POWER_PINS
     inout wire vccd1,	// User area 1 1.8V supply
     inout wire vssd1,	// User area 1 digital ground
 	`endif
+	input wire [0:0] clk,
+	input wire [0:0] reset,
+	input wire [0:0] wb_clk_i,
+	input wire [0:0] wb_rst_i,
+	output wire [0:0] wbs_ack_o,
+	input wire [31:0] wbs_adr_i,
+	input wire [0:0] wbs_cyc_i,
+	input wire [31:0] wbs_dat_i,
+	output wire [31:0] wbs_dat_o,
+	input wire [3:0] wbs_sel_i,
+	input wire [0:0] wbs_stb_i,
+	input wire [0:0] wbs_we_i
 );
-	input wire [0:0] clk;
-	input wire [0:0] reset;
-	input wire [0:0] wb_clk_i;
-	input wire [0:0] wb_rst_i;
-	output wire [0:0] wbs_ack_o;
-	input wire [31:0] wbs_adr_i;
-	input wire [0:0] wbs_cyc_i;
-	input wire [31:0] wbs_dat_i;
-	output wire [31:0] wbs_dat_o;
-	input wire [3:0] wbs_sel_i;
-	input wire [0:0] wbs_stb_i;
-	input wire [0:0] wbs_we_i;
 	WrapperBlock v(
 		.clk(clk),
 		.reset(reset),

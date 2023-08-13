@@ -32,8 +32,13 @@ module queue #(parameter WIDTH = 8, DEPTH = 16) (
         end
     end
 
-    always_ff @(posedge clk) begin
-        if (recv_rdy && recv_val && !full) begin
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            // Resetting the contents of the queue
+            for (int i = 0; i < DEPTH; i++) begin
+                queue[i] <= '0;
+            end
+        end else if (recv_rdy && recv_val && !full) begin
             queue[tail] <= recv_msg;
         end
     end

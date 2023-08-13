@@ -24,13 +24,18 @@ module wb_converter (
 );
 
     // Internal signals
+    logic [31:0] internal_wbs_dat_i;
+    logic [31:0] internal_wbs_adr_i;
     logic store_transaction_in_progress;
 
+    assign internal_wbs_dat_i = (wbs_stb_i && wbs_cyc_i) ? wbs_dat_i : 32'b0;
+    assign internal_wbs_adr_i = (wbs_stb_i && wbs_cyc_i) ? wbs_adr_i : 32'b0;
+
     assign wbs_ack_o = wbs_cyc_i && wbs_stb_i && 
-                       ((wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
-                       ((wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val && store_send_rdy && store_transaction_in_progress)) ||
-                       ((wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
-    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (wbs_adr_i > 32'h30000000);
+                       ((internal_wbs_adr_i == 32'h30000000 && instruction_recv_rdy) || 
+                       ((internal_wbs_adr_i > 32'h30000000) && (!wbs_we_i && store_send_val && store_send_rdy && store_transaction_in_progress)) ||
+                       ((internal_wbs_adr_i > 32'h30000000) && wbs_we_i && load_recv_rdy && instruction_recv_rdy));
+    assign store_send_rdy = !wbs_we_i && wbs_cyc_i && wbs_stb_i && (internal_wbs_adr_i > 32'h30000000);
     assign wbs_dat_o = store_send_msg;
 
     always_ff @(posedge wb_clk_i or posedge wb_rst_i) begin
@@ -38,7 +43,7 @@ module wb_converter (
             store_transaction_in_progress <= 0;
         end else if (wbs_ack_o) begin
             store_transaction_in_progress <= 0;
-        end else if (instruction_recv_val && load_recv_val && (wbs_adr_i > 32'h30000000) && (!wbs_we_i)) begin
+        end else if (instruction_recv_val && load_recv_val && (internal_wbs_adr_i > 32'h30000000) && (!wbs_we_i)) begin
             store_transaction_in_progress <= 1;
         end
     end
@@ -51,13 +56,13 @@ module wb_converter (
         instruction_recv_val = 0;
 
         if (!store_transaction_in_progress) begin
-            if (wbs_adr_i == 32'h30000000) begin
+            if (internal_wbs_adr_i == 32'h30000000) begin
                 // Send instruction to processor
-                instruction_recv_msg = wbs_dat_i;
+                instruction_recv_msg = internal_wbs_dat_i;
                 instruction_recv_val = wbs_cyc_i && wbs_stb_i;
-            end else if (wbs_adr_i > 32'h30000000) begin
+            end else if (internal_wbs_adr_i > 32'h30000000) begin
                 // Send load/store instruction and data to processor
-                load_recv_msg = {(wbs_adr_i - 32'h30000004) >> 2, wbs_dat_i};
+                load_recv_msg = {(internal_wbs_adr_i - 32'h30000004) >> 2, internal_wbs_dat_i};
                 load_recv_val = wbs_cyc_i && wbs_stb_i;
                 if (wbs_we_i) begin
                     // Load operation

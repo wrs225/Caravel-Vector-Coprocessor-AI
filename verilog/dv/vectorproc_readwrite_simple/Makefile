@@ -11,10 +11,22 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+#
 # SPDX-License-Identifier: Apache-2.0
 
-# Caravel user project includes
--v $(USER_PROJECT_VERILOG)/rtl/user_project_wrapper.v	     
--v $(USER_PROJECT_VERILOG)/rtl/user_proj_example.v
--v $(USER_PROJECT_VERILOG)/rtl/WrapperBlock_noparam__pickled.v
+
  
+PWDD := $(shell pwd)
+BLOCKS := $(shell basename $(PWDD))
+
+# ---- Include Partitioned Makefiles ----
+
+CONFIG = caravel_user_project
+
+
+include $(MCW_ROOT)/verilog/dv/make/env.makefile
+include $(MCW_ROOT)/verilog/dv/make/var.makefile
+include $(MCW_ROOT)/verilog/dv/make/cpu.makefile
+include $(MCW_ROOT)/verilog/dv/make/sim.makefile
+
+

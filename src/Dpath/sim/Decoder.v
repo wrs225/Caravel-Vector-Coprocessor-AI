@@ -276,6 +276,38 @@ always_comb begin
                 bitwise_op_select = 2'b00;
                 predicate_op_select = 4'b1000;
             end
+            5'b10101: begin // VFSMUL instruction (0x15)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 1; // Using a scalar value
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 3'b011; // Select multiplication
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 4'b00;
+            end
+            
+            5'b10110: begin // VFSADD instruction (0x16)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 1; // Using a scalar value
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 1; // Select addition
+                add_subtract_bit = 0; // Select addition
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 4'b00;
+            end
+
             default: begin // Unrecognized opcode
                 reg_file_addr1 = 5'b0;
                 reg_file_addr2 = 5'b0;

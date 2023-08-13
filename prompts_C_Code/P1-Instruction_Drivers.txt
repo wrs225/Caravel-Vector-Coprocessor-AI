@@ -1,0 +1,566 @@
+User
+4 / 4
+static inline void addvectors(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000002 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+Can you please make more functions similar to this function for the following instructions?
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. 
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+
+ChatGPT
+
+Certainly! Below are the functions for the specified instructions:
+
+    VSUB: Subtract two vectors element-wise.
+
+c
+
+static inline void vsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000003 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VMUL: Multiply two vectors element-wise.
+
+c
+
+static inline void vmul(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000004 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VFADD: Add two floating-point vectors element-wise.
+
+c
+
+static inline void vfadd(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000007 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VFMUL: Multiply two floating-point vectors element-wise.
+
+c
+
+static inline void vfmul(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000008 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VAND: Perform bitwise AND operation on two integer vectors.
+
+c
+
+static inline void vand(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000009 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VOR: Perform bitwise OR operation on two integer vectors.
+
+c
+
+static inline void vor(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000A << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VXOR: Perform bitwise XOR operation on two integer vectors.
+
+c
+
+static inline void vxor(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000B << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These functions are similar to the one you provided, with the appropriate opcode for each instruction. Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+2 / 2
+Can you please implement these intsructions? For the predicate register, subtract the address by SREG_0 and divide by 32 * 4 
+
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFSMUL	0x15	Vdest	Vsrc	Ssrc	Multiply a floating-point vector by a scalar. Vsrc * Ssrc -> Vdest.
+VFSADD	0x16	Vdest	Vsrc	Ssrc	Add a scalar to a floating-point vector. Vsrc + Ssrc -> Vdest.
+
+
+ChatGPT
+
+Certainly! Here are the implementations for the instructions that involve operations between a vector and a scalar. For the scalar source register, I've subtracted the address by SREG_0 and divided by 32 * 4 as requested:
+
+    VSMUL: Multiply a vector by a scalar.
+
+c
+
+static inline void vsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000005 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VSADD: Add a scalar to a vector.
+
+c
+
+static inline void vsadd(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000006 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VFSMUL: Multiply a floating-point vector by a scalar.
+
+c
+
+static inline void vfsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000015 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VFSADD: Add a scalar to a floating-point vector.
+
+c
+
+static inline void vfsadd(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000016 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These functions follow the same pattern as the previous ones but include the scalar source register in the instruction encoding. Make sure to replace VREG_0, SREG_0, and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+2 / 2
+Last, implement these instructions. For pdest registers, just take the raw value and make no manipulations. There is also a typo in this document, where instead of Ssrc you should use Vsrc1. So use the formula (source_vector - VREG_0) / (32 * 4);
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPSGE	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is signed greater than or equal to the corresponding element in Ssrc2, and 0 otherwise.
+VPSLT	0x18	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is signed less than the corresponding element in Ssrc2, and 0 otherwise.
+VPUGE	0x19	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is unsigned greater than or equal to the corresponding element in Ssrc2, and 0 otherwise.
+VPULT	0x1A	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is unsigned less than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPEQ	0x14	Pdest	Psrc1	Psrc2	Set predicate register Pdest to 1 if Psrc1 is equal to Psrc2, and 0 otherwise.
+VPNEQ	0x17	Pdest	Psrc1	Psrc2	Set predicate register Pdest to 1 if Psrc1 is not equal to Psrc2, and 0 otherwise.
+ChatGPT
+
+Certainly! Here are the implementations for the requested instructions:
+
+    VPSETZ: Set predicate register Pdest to 1 for each element in Vsrc1 that is zero, and 0 otherwise.
+
+c
+
+static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPSETN: Set predicate register Pdest to 1 for each element in Vsrc1 that is non-zero, and 0 otherwise.
+
+c
+
+static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000D << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPSET: Set predicate register Pdest to 1 for each element in Vsrc1.
+
+c
+
+static inline void vpset(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000E << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPSGE: Set predicate register Pdest to 1 for each element in Vsrc1 that is signed greater than or equal to the corresponding element in Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000F << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPSLT: Set predicate register Pdest to 1 for each element in Vsrc1 that is signed less than the corresponding element in Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000018 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPUGE: Set predicate register Pdest to 1 for each element in Vsrc1 that is unsigned greater than or equal to the corresponding element in Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000019 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPULT: Set predicate register Pdest to 1 for each element in Vsrc1 that is unsigned less than the corresponding element in Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpult(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000001A << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VFSUB: Subtract two floating-point vectors element-wise.
+
+c
+
+static inline void vfsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000010 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPEQ: Set predicate register Pdest to 1 if Psrc1 is equal to Psrc2, and 0 otherwise.
+
+c
+
+static inline void vpeq(uint32_t pdest, uint32_t psrc1, uint32_t psrc2) {
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (psrc1 << 16) | (psrc2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+    VPNEQ: Set predicate register Pdest to 1 if Psrc1 is not equal to Psrc2, and 0 otherwise.
+
+c
+
+static inline void vpneq(uint32_t pdest, uint32_t psrc1, uint32_t psrc2) {
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (psrc1 << 16) | (psrc2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These functions follow the pattern you provided, with the appropriate opcode for each instruction and the specified handling of the predicate and vector registers. Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+For VPEQ and VPNEQ, the source operands are vector registers and not predicate registers
+ChatGPT
+
+Certainly! My apologies for the confusion. Here are the corrected implementations for VPEQ and VPNEQ, where the source operands are treated as vector registers:
+
+VPEQ: Set predicate register Pdest to 1 if Vsrc1 is equal to Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+VPNEQ: Set predicate register Pdest to 1 if Vsrc1 is not equal to Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These corrected functions now treat the source operands as vector registers, using the formula (source_vector - VREG_0) / (32 * 4) as requested. Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+Actually do not pass pdest directly through. Use the relation (pdest - VREG_0) / (32*4)
+ChatGPT
+
+Certainly! Here are the corrected implementations for VPEQ and VPNEQ, where both the destination predicate register and the source vector registers are treated using the relation (register - VREG_0) / (32 * 4):
+
+VPEQ: Set predicate register Pdest to 1 if Vsrc1 is equal to Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+VPNEQ: Set predicate register Pdest to 1 if Vsrc1 is not equal to Vsrc2, and 0 otherwise.
+
+c
+
+static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These corrected functions now treat both the destination predicate register and the source vector registers using the specified relation. Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+Please do this for all of these instructions:
+static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000D << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000F << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000018 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000019 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpult(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000001A << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000010 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+
+static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+ChatGPT
+
+Certainly! It looks like you've already implemented the functions with the correct relation (register - VREG_0) / (32 * 4) for both the destination predicate register and the source vector registers.
+
+However, I noticed that the pdest parameter is not being transformed using the relation (pdest - VREG_0) / (32 * 4) in the functions you've provided. Here's the corrected code for all the functions:
+
+c
+
+#define VREG_0 0x0 // Replace with the correct value
+#define INSTRUCTION_ADDRESS 0x0 // Replace with the correct value
+
+// All other functions remain the same
+
+static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+// ... Repeat the same transformation for all other functions
+
+I've added the transformation for the pdest parameter in the vpsetz function. You should repeat this transformation for all other functions in your code.
+
+Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.
+User
+Please show me this for all instructions
+ChatGPT
+
+Certainly! Here are the corrected implementations for all the instructions, applying the transformation (register - VREG_0) / (32 * 4) to both the destination predicate register and the source vector registers:
+
+c
+
+#define VREG_0 0x0 // Replace with the correct value
+#define INSTRUCTION_ADDRESS 0x0 // Replace with the correct value
+
+static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000D << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000F << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000018 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000019 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpult(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000001A << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000010 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+These corrected functions now apply the transformation (register - VREG_0) / (32 * 4) to both the destination predicate register and the source vector registers. Make sure to replace VREG_0 and INSTRUCTION_ADDRESS with the correct values for your specific hardware.

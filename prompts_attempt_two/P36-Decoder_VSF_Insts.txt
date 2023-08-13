@@ -1,0 +1,79 @@
+User
+            5'b00111, 5'b10000: begin // Floating point add/sub instructions (VFADD, VFSUB)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 1;
+                add_subtract_bit = (opcode == 5'b10000) ? 1 : 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 4'b00;
+            end
+            5'b01000: begin // Floating point multiplication (VFMUL)
+                clock_enable = 1;
+                vector_reg_write_bit = 1;
+                functional_unit_mux_bit = 3'b011;
+                mux_bit = 0;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                clock_bypass = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 4'b00;
+            end
+Using these two cases in a decoder as an example, implement the following two instructions. Mux bit should be 1 if you are using a scalar value.:
+VFSMUL	0x15	Vdest	Vsrc	Ssrc	Multiply a floating-point vector by a scalar. Vsrc * Ssrc -> Vdest.
+VFSADD	0x16	Vdest	Vsrc	Ssrc	Add a scalar to a floating-point vector. Vsrc + Ssrc -> Vdest.
+ChatGPT
+
+Certainly! You can implement the two instructions VFSMUL and VFSADD by adding cases to your existing decoder. Here's how you might do it:
+
+For VFSMUL, you'll want to multiply a floating-point vector by a scalar, so you'll need to set the mux_bit to 1 to indicate that you're using a scalar value. You'll also need to set the functional_unit_mux_bit to select the multiplication operation.
+
+For VFSADD, you'll want to add a scalar to a floating-point vector, so again, you'll need to set the mux_bit to 1. You'll also need to set the add_subtract_bit to 0 to select the addition operation.
+
+Here's the code for the two instructions:
+
+verilog
+
+5'b10101: begin // VFSMUL instruction (0x15)
+    clock_bypass = 0;
+    clock_enable = 1;
+    mux_bit = 1; // Using a scalar value
+    vector_reg_write_bit = 1;
+    predicate_reg_write_bit = 0;
+    scalar_reg_write_bit = 0;
+    vector_reg_load_mux_bit = 0;
+    scalar_reg_load_mux_bit = 0;
+    functional_unit_mux_bit = 3'b011; // Select multiplication
+    add_subtract_bit = 0;
+    load_store_bit = 0;
+    bitwise_op_select = 2'b00;
+    predicate_op_select = 4'b00;
+end
+
+5'b10110: begin // VFSADD instruction (0x16)
+    clock_bypass = 0;
+    clock_enable = 1;
+    mux_bit = 1; // Using a scalar value
+    vector_reg_write_bit = 1;
+    predicate_reg_write_bit = 0;
+    scalar_reg_write_bit = 0;
+    vector_reg_load_mux_bit = 0;
+    scalar_reg_load_mux_bit = 0;
+    functional_unit_mux_bit = 1; // Select addition
+    add_subtract_bit = 0; // Select addition
+    load_store_bit = 0;
+    bitwise_op_select = 2'b00;
+    predicate_op_select = 4'b00;
+end
+
+Please note that you may need to adjust the values of functional_unit_mux_bit and other control signals based on the specific architecture and design of your processor. Make sure to consult your design documentation to ensure that these values are consistent with your hardware's functionality.

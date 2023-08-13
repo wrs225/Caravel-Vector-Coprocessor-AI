@@ -117,6 +117,176 @@ static inline void vpset(uint32_t pdest) {
     (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
 }
 
+static inline void vsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000003 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vmul(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000004 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfadd(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000007 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfmul(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000008 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vand(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000009 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vor(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000A << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vxor(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000B << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000005 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vsadd(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000006 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000015 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfsadd(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+    scalar_source = (scalar_source - SREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000016 << 27) | (destination_vector << 21) | (source_vector << 16) | (scalar_source << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
+    source_vector = (source_vector - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000D << 27) | (pdest << 21) | (source_vector << 16);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000000F << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000018 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000019 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpult(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x0000001A << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vfsub(uint32_t destination_vector, uint32_t source1, uint32_t source2) {
+    destination_vector = (destination_vector - VREG_0) / (32 * 4);
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000010 << 27) | (destination_vector << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000014 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
+
+
+static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    source1 = (source1 - VREG_0) / (32 * 4);
+    source2 = (source2 - VREG_0) / (32 * 4);
+
+    uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
+    (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
+}
 
 
 #endif

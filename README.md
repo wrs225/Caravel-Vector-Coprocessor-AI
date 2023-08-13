@@ -9,11 +9,12 @@ All Prompts used to generate code are included in this repository. The prompts w
 - [x] Integer Operations
 - [x] (almost*) IEEE-754 compliant floating point adder and multiplier
 - [x] Bitwise logical operations
-- [ ] Scalar instructions
+- [x] Scalar instructions
 - [x] Register files directly accessable through wishbone interface
-- [ ] Predicate Instructions for vectored-conditionals
-- [ ] C-Library for wrapping Wishbone calls
+- [x] Predicate Instructions for vectored-conditionals
+- [x] C-Library for wrapping Wishbone calls
 - [x] Tested using randomized UVM
+- [ ] Basic Machine Learning Library
 
 # Nice to Add in the Future if We Have Time
 - [ ] Support for Chimes 

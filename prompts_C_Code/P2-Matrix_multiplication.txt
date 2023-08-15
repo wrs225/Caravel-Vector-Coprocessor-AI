@@ -1,0 +1,137 @@
+User
+I would like you to write c code to utilize a vector co-processor that I've made. Keep in mind that the vector co-processor has 32 vector register files, each that have 32 registers. For now, do not allow operations to be performed that would exceed this size. Please implement a function that performs matrix multiplication. This function should take in two arrays of floats and output an array of floats of the correct size. You will need to use the existing function static inline void write_to_vreg(uint32_t vreg_address, void *values) to write each array into memory on the co-processor as needed. The options for the vreg_address value are the existing macros VREG_0 to VREG_31 (32 total options, be careful not to overwrite them unless you no longer need the prior values). Then, use the existing functions: static inline void vfadd(uint32_t destination_vector, uint32_t source1, uint32_t source2) and static inline void vfmul(uint32_t destination_vector, uint32_t source1, uint32_t source2) to perform vector addition and multiplication respectively. You can construct the final solution from strategic use of these functions. You can use the function static inline void read_from_vreg(uint32_t vreg_address, void *values) to read from a register file into a given array (second argument). Please ask me if you need anything clarified.
+
+ChatGPT
+To multiply two matrices, A of size [M x K] and B of size [K x N], the resultant matrix C will be of size [M x N]. The entry at C[i][j] is calculated by taking the dot product of row i of matrix A with column j of matrix B.
+
+Let's go step by step:
+
+The dot product for a row and column of size K will involve K multiplications and K-1 additions.
+Since we're using a vector co-processor, and we know each vector register can hold up to 32 values, our first constraint is that K <= 32.
+We will first write the i-th row of matrix A and the j-th column of matrix B to two vector registers.
+Then, we will multiply the elements of these two vector registers.
+We will then sum up the resultant values to obtain the value of C[i][j].
+Here's the code:
+
+c
+Copy code
+#include <stdint.h>
+
+// Define the maximum size for K
+#define MAX_K 32
+
+// Macros for the vector register files
+#define VREG_0 0
+// ... other vreg definitions ...
+
+// Function prototypes for the vector operations
+static inline void write_to_vreg(uint32_t vreg_address, void *values);
+static inline void vfadd(uint32_t destination_vector, uint32_t source1, uint32_t source2);
+static inline void vfmul(uint32_t destination_vector, uint32_t source1, uint32_t source2);
+static inline void read_from_vreg(uint32_t vreg_address, void *values);
+
+void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            // Load i-th row of A into VREG_0
+            write_to_vreg(VREG_0, A[i]);
+
+            // Load j-th column of B into VREG_1
+            float column[MAX_K];
+            for (int k = 0; k < K; k++) {
+                column[k] = B[k][j];
+            }
+            write_to_vreg(VREG_1, column);
+
+            // Multiply the vectors
+            vfmul(VREG_2, VREG_0, VREG_1); // result is in VREG_2
+
+            // Sum the results to get the dot product
+            float sum = 0;
+            float results[MAX_K];
+            read_from_vreg(VREG_2, results);
+
+            for (int k = 0; k < K; k++) {
+                sum += results[k];
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+Note:
+
+This solution assumes that matrix multiplication is possible, i.e., K <= MAX_K.
+We're also making an assumption that reading and writing the full width of the vector (32 floats) is permissible and efficient even if K < 32.
+The solution currently uses only 3 vector registers (VREG_0, VREG_1, and VREG_2), keeping others free. In a more optimized version, multiple rows and columns can be loaded in parallel to speed up the computation.
+
+
+
+User
+I see I was unclear about how to use the register files. The function write_to_vreg takes in an entire 32-element long vector. Similarly, the function read_from_vreg reads back an entire 32-element long vector. Please refactor the matrix_mult function based on this. You can pad the vectors if you don't need all 32 elements
+ChatGPT
+Thank you for the clarification.
+
+Given this information, the approach will be:
+
+We'll split the rows and columns of our matrices into groups of 32. If K < 32, we'll pad the remaining entries with 0s.
+For matrix multiplication, we'll use one vector register for the row, another for the column, and a third for the result.
+The updated function matrix_mult looks like this:
+
+c
+Copy code
+#include <stdint.h>
+
+// Define the maximum size for K
+#define MAX_K 32
+
+// Macros for the vector register files
+#define VREG_0 0
+#define VREG_1 1
+#define VREG_2 2
+// ... other vreg definitions ...
+
+// Function prototypes for the vector operations
+static inline void write_to_vreg(uint32_t vreg_address, void *values);
+static inline void vfadd(uint32_t destination_vector, uint32_t source1, uint32_t source2);
+static inline void vfmul(uint32_t destination_vector, uint32_t source1, uint32_t source2);
+static inline void read_from_vreg(uint32_t vreg_address, void *values);
+
+void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, int K, int N) {
+    float paddedRow[MAX_K] = {0};
+    float paddedColumn[MAX_K] = {0};
+    float results[MAX_K] = {0};
+
+    for (int i = 0; i < M; i++) {
+        // Copy row i of matrix A to paddedRow and write to VREG_0
+        for (int idx = 0; idx < K; idx++) {
+            paddedRow[idx] = A[i][idx];
+        }
+        write_to_vreg(VREG_0, paddedRow);
+
+        for (int j = 0; j < N; j++) {
+            // Extract column j of matrix B to paddedColumn and write to VREG_1
+            for (int idx = 0; idx < K; idx++) {
+                paddedColumn[idx] = B[idx][j];
+            }
+            write_to_vreg(VREG_1, paddedColumn);
+
+            // Multiply the vectors
+            vfmul(VREG_2, VREG_0, VREG_1);
+
+            // Read the results and sum them up to get the dot product
+            float sum = 0;
+            read_from_vreg(VREG_2, results);
+
+            for (int k = 0; k < K; k++) {
+                sum += results[k];
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+In this approach:
+
+The matrices' rows and columns are copied into padded vectors before writing to the vector co-processor.
+If K < 32, the padding will ensure that we're using the vector co-processor efficiently without getting unintended results.

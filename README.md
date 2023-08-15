@@ -27,7 +27,7 @@ All Prompts used to generate code are included in this repository. The prompts w
 # C++ Library
 
 # Microarchitecture
-
+![Block Diagram for Microarchitecture](img/VectorArchv1DiagramPretty.png)
 # Testing Strategy
 
 # Performance

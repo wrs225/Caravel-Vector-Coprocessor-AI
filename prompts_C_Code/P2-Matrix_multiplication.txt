@@ -191,3 +191,117 @@ void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, in
 
 #endif // MATRIX_OPERATIONS_H
 The vplib.h file is assumed to contain the necessary function prototypes and macros for interacting with the vector co-processor.
+
+
+
+
+User
+Great! Now please refactor the code to allow K to be any size, not just up to 32
+ChatGPT
+If K is not restricted to a maximum of 32, it means rows and columns can have more than 32 elements. In such a scenario, we'll have to work with chunks of size 32 or fewer. For example, if K=40, the first chunk has 32 elements, and the second chunk has 8 elements (with 24 zero-padded entries).
+
+Here's how we can refactor the matrix_mult function:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0;
+
+            for (int chunk_start = 0; chunk_start < K; chunk_start += 32) {
+                float paddedRow[32] = {0};
+                float paddedColumn[32] = {0};
+                float results[32] = {0};
+
+                // Copy a chunk of row i of matrix A to paddedRow and write to VREG_0
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedRow[idx - chunk_start] = A[i][idx];
+                }
+                write_to_vreg(VREG_0, paddedRow);
+
+                // Extract a chunk of column j of matrix B to paddedColumn and write to VREG_1
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedColumn[idx - chunk_start] = B[idx][j];
+                }
+                write_to_vreg(VREG_1, paddedColumn);
+
+                // Multiply the vectors
+                vfmul(VREG_2, VREG_0, VREG_1);
+
+                // Read the results and add them to the current sum
+                read_from_vreg(VREG_2, results);
+                for (int idx = 0; idx < 32 && chunk_start + idx < K; idx++) {
+                    sum += results[idx];
+                }
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+This refactoring divides rows and columns into 32-element chunks, and performs matrix multiplication for each chunk, accumulating results into the sum.
+
+
+
+
+User
+Remember that MAX_K does not exist anymore
+ChatGPT
+I apologize for that oversight. Here's the updated matrix_mult function without the use of MAX_K:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0;
+
+            for (int chunk_start = 0; chunk_start < K; chunk_start += 32) {
+                float paddedRow[32] = {0};
+                float paddedColumn[32] = {0};
+                float results[32] = {0};
+
+                // Copy a chunk of row i of matrix A to paddedRow and write to VREG_0
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedRow[idx - chunk_start] = A[i][idx];
+                }
+                write_to_vreg(VREG_0, paddedRow);
+
+                // Extract a chunk of column j of matrix B to paddedColumn and write to VREG_1
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedColumn[idx - chunk_start] = B[idx][j];
+                }
+                write_to_vreg(VREG_1, paddedColumn);
+
+                // Multiply the vectors
+                vfmul(VREG_2, VREG_0, VREG_1);
+
+                // Read the results and add them to the current sum
+                read_from_vreg(VREG_2, results);
+                for (int idx = 0; idx < 32 && chunk_start + idx < K; idx++) {
+                    sum += results[idx];
+                }
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+In this version, the function receives the matrix sizes directly and doesn't rely on any predefined MAX_K.

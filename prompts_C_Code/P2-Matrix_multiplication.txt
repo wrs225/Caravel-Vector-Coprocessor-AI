@@ -135,3 +135,59 @@ In this approach:
 
 The matrices' rows and columns are copied into padded vectors before writing to the vector co-processor.
 If K < 32, the padding will ensure that we're using the vector co-processor efficiently without getting unintended results.
+
+
+
+User
+Please add include guards with an appropriate name (something like matrix operations) and include the file vplib.h which has the existing co-processor functions, so you can remove those and the VREG macros from your file.
+ChatGPT
+Certainly. Incorporating those changes, the header guards will be named MATRIX_OPERATIONS_H and the co-processor functions and macros will be assumed to exist in vplib.h. Here's the updated code:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+// Define the maximum size for K
+#define MAX_K 32
+
+void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, int K, int N) {
+    float paddedRow[MAX_K] = {0};
+    float paddedColumn[MAX_K] = {0};
+    float results[MAX_K] = {0};
+
+    for (int i = 0; i < M; i++) {
+        // Copy row i of matrix A to paddedRow and write to VREG_0
+        for (int idx = 0; idx < K; idx++) {
+            paddedRow[idx] = A[i][idx];
+        }
+        write_to_vreg(VREG_0, paddedRow);
+
+        for (int j = 0; j < N; j++) {
+            // Extract column j of matrix B to paddedColumn and write to VREG_1
+            for (int idx = 0; idx < K; idx++) {
+                paddedColumn[idx] = B[idx][j];
+            }
+            write_to_vreg(VREG_1, paddedColumn);
+
+            // Multiply the vectors
+            vfmul(VREG_2, VREG_0, VREG_1);
+
+            // Read the results and sum them up to get the dot product
+            float sum = 0;
+            read_from_vreg(VREG_2, results);
+
+            for (int k = 0; k < K; k++) {
+                sum += results[k];
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+The vplib.h file is assumed to contain the necessary function prototypes and macros for interacting with the vector co-processor.

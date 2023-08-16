@@ -10,7 +10,6 @@
     "CLOCK_NET": "WrapperBlock_noparam.clk",
     "FP_SIZING": "absolute",
     "DIE_AREA": "0 0 1400 860",
-    "FP_PIN_ORDER_CFG": "dir::pin_order.cfg",
     "NO_SYNTH_CELL_LIST": "dir::no_synth.cells",
     "DRC_EXCLUDE_CELL_LIST": "dir::drc_exclude.cells",
     "PL_TARGET_DENSITY": 0.4,

@@ -191,3 +191,252 @@ void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, in
 
 #endif // MATRIX_OPERATIONS_H
 The vplib.h file is assumed to contain the necessary function prototypes and macros for interacting with the vector co-processor.
+
+
+
+
+User
+Great! Now please refactor the code to allow K to be any size, not just up to 32
+ChatGPT
+If K is not restricted to a maximum of 32, it means rows and columns can have more than 32 elements. In such a scenario, we'll have to work with chunks of size 32 or fewer. For example, if K=40, the first chunk has 32 elements, and the second chunk has 8 elements (with 24 zero-padded entries).
+
+Here's how we can refactor the matrix_mult function:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float A[][MAX_K], float B[][MAX_K], float C[][MAX_K], int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0;
+
+            for (int chunk_start = 0; chunk_start < K; chunk_start += 32) {
+                float paddedRow[32] = {0};
+                float paddedColumn[32] = {0};
+                float results[32] = {0};
+
+                // Copy a chunk of row i of matrix A to paddedRow and write to VREG_0
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedRow[idx - chunk_start] = A[i][idx];
+                }
+                write_to_vreg(VREG_0, paddedRow);
+
+                // Extract a chunk of column j of matrix B to paddedColumn and write to VREG_1
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedColumn[idx - chunk_start] = B[idx][j];
+                }
+                write_to_vreg(VREG_1, paddedColumn);
+
+                // Multiply the vectors
+                vfmul(VREG_2, VREG_0, VREG_1);
+
+                // Read the results and add them to the current sum
+                read_from_vreg(VREG_2, results);
+                for (int idx = 0; idx < 32 && chunk_start + idx < K; idx++) {
+                    sum += results[idx];
+                }
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+This refactoring divides rows and columns into 32-element chunks, and performs matrix multiplication for each chunk, accumulating results into the sum.
+
+
+
+
+User
+Remember that MAX_K does not exist anymore
+ChatGPT
+I apologize for that oversight. Here's the updated matrix_mult function without the use of MAX_K:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            float sum = 0;
+
+            for (int chunk_start = 0; chunk_start < K; chunk_start += 32) {
+                float paddedRow[32] = {0};
+                float paddedColumn[32] = {0};
+                float results[32] = {0};
+
+                // Copy a chunk of row i of matrix A to paddedRow and write to VREG_0
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedRow[idx - chunk_start] = A[i][idx];
+                }
+                write_to_vreg(VREG_0, paddedRow);
+
+                // Extract a chunk of column j of matrix B to paddedColumn and write to VREG_1
+                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
+                    paddedColumn[idx - chunk_start] = B[idx][j];
+                }
+                write_to_vreg(VREG_1, paddedColumn);
+
+                // Multiply the vectors
+                vfmul(VREG_2, VREG_0, VREG_1);
+
+                // Read the results and add them to the current sum
+                read_from_vreg(VREG_2, results);
+                for (int idx = 0; idx < 32 && chunk_start + idx < K; idx++) {
+                    sum += results[idx];
+                }
+            }
+
+            C[i][j] = sum;
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+In this version, the function receives the matrix sizes directly and doesn't rely on any predefined MAX_K.
+
+
+
+
+User
+
+2 / 2
+
+I would like to optimize this code for the vector processor. Here is another function you can use: static inline void static inline void vfsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source). This scalar source argument references a scalar register which is one of the predefined macros SREG_0 to SREG_31. The matrix_mult function should follow these (non-exhaustive) steps:
+for each row of input A (stepped one at a time)
+for each column of input B (stepped 32 at a time)
+store an array of size 32 that tracks the sum so far
+for each column of input A
+store the current element of A in a scalar register
+store the current 32 elements of B (possibly padded) in a vector register
+multiply the vector by the scalar
+element wise add the product to the sum array
+after going through each column of A, store the 32 element sum in the current column of output C
+Please ask me if you have any questions
+ChatGPT
+Thank you for detailing the steps. Given the new vfsmul function, I'll provide an optimized version of the matrix_mult function based on the steps provided:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j += 32) { // Stepping 32 at a time for B columns
+            float sum[32] = {0}; // Initialize sum array
+
+            for (int k = 0; k < K; k++) {
+                float scalarA = A[i][k];
+                float vectorB[32] = {0};
+
+                // Load the current 32 elements of B into vectorB (with padding if needed)
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    vectorB[idx] = B[k][j + idx];
+                }
+
+                // Store scalarA in a scalar register (SREG_0 for simplicity)
+                write_to_sreg(SREG_0, &scalarA); 
+
+                // Store vectorB in a vector register (VREG_0 for simplicity)
+                write_to_vreg(VREG_0, vectorB);
+
+                // Multiply vectorB by scalarA
+                vfsmul(VREG_1, VREG_0, SREG_0); // Results will be stored in VREG_1
+
+                float product[32] = {0};
+                // Read the results of the multiplication
+                read_from_vreg(VREG_1, product);
+
+                // Element-wise addition of the product to sum array
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    sum[idx] += product[idx];
+                }
+            }
+
+            // Store the 32-element sum in the current column of output C
+            for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                C[i][j + idx] = sum[idx];
+            }
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+Note: I've assumed there are functions write_to_sreg and read_from_sreg that write and read from the scalar registers respectively, as they were not provided but seem implied by the usage of the vfsmul function and the scalar register. If these functions don't exist or have different names or signatures, you may need to adjust the code accordingly.
+
+
+
+
+User
+This is great! One thing to change: the scalar registers are directly mapped to a memory address given by the SREG_# macros. You may directly write to and read from this memory address to set the scalar value
+ChatGPT
+Got it! I'll modify the code to directly write to and read from the memory address mapped by the SREG_# macros for the scalar registers.
+
+Here's the updated matrix_mult function:
+
+c
+Copy code
+#ifndef MATRIX_OPERATIONS_H
+#define MATRIX_OPERATIONS_H
+
+#include <stdint.h>
+#include "vplib.h"
+
+void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j += 32) { // Stepping 32 at a time for B columns
+            float sum[32] = {0}; // Initialize sum array
+
+            for (int k = 0; k < K; k++) {
+                float scalarA = A[i][k];
+                float vectorB[32] = {0};
+
+                // Load the current 32 elements of B into vectorB (with padding if needed)
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    vectorB[idx] = B[k][j + idx];
+                }
+
+                // Store scalarA directly to SREG_0
+                *((float*)SREG_0) = scalarA;
+
+                // Store vectorB in a vector register (VREG_0 for simplicity)
+                write_to_vreg(VREG_0, vectorB);
+
+                // Multiply vectorB by scalarA
+                vfsmul(VREG_1, VREG_0, SREG_0); // Results will be stored in VREG_1
+
+                float product[32] = {0};
+                // Read the results of the multiplication
+                read_from_vreg(VREG_1, product);
+
+                // Element-wise addition of the product to sum array
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    sum[idx] += product[idx];
+                }
+            }
+
+            // Store the 32-element sum in the current column of output C
+            for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                C[i][j + idx] = sum[idx];
+            }
+        }
+    }
+}
+
+#endif // MATRIX_OPERATIONS_H
+In this version, the scalar value is directly written to the memory address specified by SREG_0.

@@ -6,37 +6,41 @@
 
 void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
     for (int i = 0; i < M; i++) {
-        for (int j = 0; j < N; j++) {
-            float sum = 0;
+        for (int j = 0; j < N; j += 32) { // Stepping 32 at a time for B columns
+            float sum[32] = {0}; // Initialize sum array
 
-            for (int chunk_start = 0; chunk_start < K; chunk_start += 32) {
-                float paddedRow[32] = {0};
-                float paddedColumn[32] = {0};
-                float results[32] = {0};
+            for (int k = 0; k < K; k++) {
+                float scalarA = A[i][k];
+                float vectorB[32] = {0};
 
-                // Copy a chunk of row i of matrix A to paddedRow and write to VREG_0
-                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
-                    paddedRow[idx - chunk_start] = A[i][idx];
+                // Load the current 32 elements of B into vectorB (with padding if needed)
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    vectorB[idx] = B[k][j + idx];
                 }
-                write_to_vreg(VREG_0, paddedRow);
 
-                // Extract a chunk of column j of matrix B to paddedColumn and write to VREG_1
-                for (int idx = chunk_start; idx < chunk_start + 32 && idx < K; idx++) {
-                    paddedColumn[idx - chunk_start] = B[idx][j];
-                }
-                write_to_vreg(VREG_1, paddedColumn);
+                // Store scalarA directly to SREG_0
+                *((float*)SREG_0) = scalarA;
 
-                // Multiply the vectors
-                vfmul(VREG_2, VREG_0, VREG_1);
+                // Store vectorB in a vector register (VREG_0 for simplicity)
+                write_to_vreg(VREG_0, vectorB);
 
-                // Read the results and add them to the current sum
-                read_from_vreg(VREG_2, results);
-                for (int idx = 0; idx < 32 && chunk_start + idx < K; idx++) {
-                    sum += results[idx];
+                // Multiply vectorB by scalarA
+                vfsmul(VREG_1, VREG_0, SREG_0); // Results will be stored in VREG_1
+
+                float product[32] = {0};
+                // Read the results of the multiplication
+                read_from_vreg(VREG_1, product);
+
+                // Element-wise addition of the product to sum array
+                for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                    sum[idx] += product[idx];
                 }
             }
 
-            C[i][j] = sum;
+            // Store the 32-element sum in the current column of output C
+            for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
+                C[i][j + idx] = sum[idx];
+            }
         }
     }
 }

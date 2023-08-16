@@ -458,6 +458,36 @@ module Decoder (
 					bitwise_op_select = 2'b00;
 					predicate_op_select = 4'b1000;
 				end
+				5'b10101: begin
+					clock_bypass = 0;
+					clock_enable = 1;
+					mux_bit = 1;
+					vector_reg_write_bit = 1;
+					predicate_reg_write_bit = 0;
+					scalar_reg_write_bit = 0;
+					vector_reg_load_mux_bit = 0;
+					scalar_reg_load_mux_bit = 0;
+					functional_unit_mux_bit = 3'b011;
+					add_subtract_bit = 0;
+					load_store_bit = 0;
+					bitwise_op_select = 2'b00;
+					predicate_op_select = 4'b0000;
+				end
+				5'b10110: begin
+					clock_bypass = 0;
+					clock_enable = 1;
+					mux_bit = 1;
+					vector_reg_write_bit = 1;
+					predicate_reg_write_bit = 0;
+					scalar_reg_write_bit = 0;
+					vector_reg_load_mux_bit = 0;
+					scalar_reg_load_mux_bit = 0;
+					functional_unit_mux_bit = 1;
+					add_subtract_bit = 0;
+					load_store_bit = 0;
+					bitwise_op_select = 2'b00;
+					predicate_op_select = 4'b0000;
+				end
 				default: begin
 					reg_file_addr1 = 5'b00000;
 					reg_file_addr2 = 5'b00000;
@@ -1001,7 +1031,7 @@ module TopModule (
 	assign load_send_rdy = load_store_bit;
 	queue #(
 		.WIDTH(64),
-		.DEPTH(16)
+		.DEPTH(4)
 	) load_queue(
 		.clk(clk),
 		.reset(reset),
@@ -1014,7 +1044,7 @@ module TopModule (
 	);
 	queue #(
 		.WIDTH(32),
-		.DEPTH(16)
+		.DEPTH(4)
 	) instruction_queue(
 		.clk(clk),
 		.reset(reset),
@@ -1027,7 +1057,7 @@ module TopModule (
 	);
 	queue #(
 		.WIDTH(32),
-		.DEPTH(16)
+		.DEPTH(4)
 	) store_queue(
 		.clk(clk),
 		.reset(reset),
@@ -1081,7 +1111,7 @@ module TopModule (
 	VectorRegFile #(
 		.ADDR_WIDTH(5),
 		.DATA_WIDTH(32),
-		.NUM_REG(32),
+		.NUM_REG(6),
 		.NUM_ELE(32)
 	) reg_file(
 		.clk(clk),
@@ -1113,7 +1143,7 @@ module TopModule (
 	assign scalar_write_data = wb_data;
 	assign scalar_write_enable = (load_store_bit & vector_reg_write_bit) & (wb_addr > addr_cutoff);
 	Scalar_Register_File #(
-		.REG_DEPTH(32),
+		.REG_DEPTH(6),
 		.REG_WIDTH(32),
 		.ADDR_WIDTH(5)
 	) scalar_reg_file(

@@ -1,11 +1,4 @@
-//Filepaths added by humans
-`include "../../Dpath/sim/queue.v"
-`include "../../Dpath/sim/Counter.v"
-`include "../../Dpath/sim/Decoder.v"
-`include "../../RegisterFiles/sim/VectorRegFile.v"
-`include "../../Dpath/sim/ALU.v"
-`include "../../RegisterFiles/sim/Scalar_Register_File.v"
-`include "../../RegisterFiles/sim/Predicate_Register_File.v"
+User
 module TopModule (
     input logic clk,
     input logic reset,
@@ -111,7 +104,7 @@ module TopModule (
     assign load_send_rdy = load_store_bit;
 
     // Instantiate load_queue
-    queue #(.WIDTH(64), .DEPTH(4)) load_queue (
+    queue #(.WIDTH(64), .DEPTH(16)) load_queue (
         .clk(clk),
         .reset(reset),
         .recv_msg(load_recv_msg),
@@ -123,7 +116,7 @@ module TopModule (
     );
 
     // Instantiate instruction_queue
-    queue #(.WIDTH(32), .DEPTH(4)) instruction_queue (
+    queue #(.WIDTH(32), .DEPTH(16)) instruction_queue (
         .clk(clk),
         .reset(reset),
         .recv_msg(instruction_recv_msg),
@@ -135,7 +128,7 @@ module TopModule (
     );
 
     // Instantiate store_queue
-    queue #(.WIDTH(32), .DEPTH(4)) store_queue (
+    queue #(.WIDTH(32), .DEPTH(16)) store_queue (
         .clk(clk),
         .reset(reset),
         .recv_msg(store_recv_msg),
@@ -200,7 +193,7 @@ module TopModule (
     assign rAddr2_1_mux_out = load_store_bit ? wb_addr[4:0] : counter;
 
     // Instantiate VectorRegFile
-    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(6), .NUM_ELE(32)) reg_file (
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(32), .NUM_ELE(32)) reg_file (
         .clk(clk),
         .reset(reset),
         .rAddr1_1(rAddr1_1_mux_out),
@@ -235,7 +228,7 @@ module TopModule (
 
     // Instantiate Scalar_Register_File
     Scalar_Register_File #(
-        .REG_DEPTH(6),
+        .REG_DEPTH(32),
         .REG_WIDTH(32),
         .ADDR_WIDTH(5)
     ) scalar_reg_file (
@@ -280,3 +273,86 @@ module TopModule (
     );
 
 endmodule
+
+In this file please change
+All queue depths to 4
+VectorRegFile's NUM_REG to 6
+
+Scalar_Register_File's REG_DEPTH to 6
+ChatGPT
+
+Certainly! Below are the changes you requested:
+
+    All queue depths have been changed to 4.
+    VectorRegFile's NUM_REG has been changed to 6.
+    Scalar_Register_File's REG_DEPTH has been changed to 6.
+
+Here's the modified code:
+
+verilog
+
+module TopModule (
+    // ... (same as before)
+);
+
+    // ... (same as before)
+
+    // Instantiate load_queue
+    queue #(.WIDTH(64), .DEPTH(4)) load_queue ( // Depth changed to 4
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(load_recv_msg),
+        .recv_val(load_recv_val),
+        .recv_rdy(load_recv_rdy),
+        .send_msg(load_send_msg),
+        .send_val(load_send_val),
+        .send_rdy(load_send_rdy)
+    );
+
+    // Instantiate instruction_queue
+    queue #(.WIDTH(32), .DEPTH(4)) instruction_queue ( // Depth changed to 4
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(instruction_recv_msg),
+        .recv_val(instruction_recv_val),
+        .recv_rdy(instruction_recv_rdy),
+        .send_msg(instruction_send_msg),
+        .send_val(instruction_send_val),
+        .send_rdy(instruction_send_rdy)
+    );
+
+    // Instantiate store_queue
+    queue #(.WIDTH(32), .DEPTH(4)) store_queue ( // Depth changed to 4
+        .clk(clk),
+        .reset(reset),
+        .recv_msg(store_recv_msg),
+        .recv_val(store_recv_val),
+        .recv_rdy(store_recv_rdy),
+        .send_msg(store_send_msg),
+        .send_val(store_send_val),
+        .send_rdy(store_send_rdy)
+    );
+
+    // ... (same as before)
+
+    // Instantiate VectorRegFile
+    VectorRegFile #(.ADDR_WIDTH(5), .DATA_WIDTH(32), .NUM_REG(6), .NUM_ELE(32)) reg_file ( // NUM_REG changed to 6
+        // ... (same as before)
+    );
+
+    // ... (same as before)
+
+    // Instantiate Scalar_Register_File
+    Scalar_Register_File #(
+        .REG_DEPTH(6), // REG_DEPTH changed to 6
+        .REG_WIDTH(32),
+        .ADDR_WIDTH(5)
+    ) scalar_reg_file (
+        // ... (same as before)
+    );
+
+    // ... (same as before)
+
+endmodule
+
+Please review the changes to ensure they meet your requirements. If you have any further modifications or questions, feel free to ask!

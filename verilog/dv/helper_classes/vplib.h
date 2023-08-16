@@ -216,7 +216,9 @@ static inline void vfsadd(uint32_t destination_vector, uint32_t source_vector, u
     (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
 }
 
+
 static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source_vector = (source_vector - VREG_0) / (32 * 4);
 
     uint32_t instruction = (0x0000000C << 27) | (pdest << 21) | (source_vector << 16);
@@ -224,6 +226,7 @@ static inline void vpsetz(uint32_t pdest, uint32_t source_vector) {
 }
 
 static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source_vector = (source_vector - VREG_0) / (32 * 4);
 
     uint32_t instruction = (0x0000000D << 27) | (pdest << 21) | (source_vector << 16);
@@ -231,6 +234,7 @@ static inline void vpsetn(uint32_t pdest, uint32_t source_vector) {
 }
 
 static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
@@ -239,6 +243,7 @@ static inline void vpsge(uint32_t pdest, uint32_t source1, uint32_t source2) {
 }
 
 static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
@@ -247,6 +252,7 @@ static inline void vpslt(uint32_t pdest, uint32_t source1, uint32_t source2) {
 }
 
 static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
@@ -255,6 +261,7 @@ static inline void vpuge(uint32_t pdest, uint32_t source1, uint32_t source2) {
 }
 
 static inline void vpult(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
@@ -272,6 +279,7 @@ static inline void vfsub(uint32_t destination_vector, uint32_t source1, uint32_t
 }
 
 static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
@@ -279,14 +287,13 @@ static inline void vpeq(uint32_t pdest, uint32_t source1, uint32_t source2) {
     (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
 }
 
-
 static inline void vpneq(uint32_t pdest, uint32_t source1, uint32_t source2) {
+    pdest = (pdest - VREG_0) / (32 * 4);
     source1 = (source1 - VREG_0) / (32 * 4);
     source2 = (source2 - VREG_0) / (32 * 4);
 
     uint32_t instruction = (0x00000017 << 27) | (pdest << 21) | (source1 << 16) | (source2 << 11);
     (*(volatile uint32_t *)INSTRUCTION_ADDRESS) = instruction;
 }
-
 
 #endif

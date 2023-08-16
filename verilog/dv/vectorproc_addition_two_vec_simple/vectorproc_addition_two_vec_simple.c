@@ -83,31 +83,58 @@ void main()
 
     // Flag start of the test
     reg_mprj_datal = 0xAB600000;
-    
+
     // Enable VREG_2
     vpset(VREG_2);
-    
+
     uint32_t source1[32];
     uint32_t source2[32];
     uint32_t expected_result[32];
-    
+
+    for (int i = 0; i < 32; i++) {	reg_mprj_datal = 0xAB600000;
+
+    uint32_t source1[32];
+    uint32_t source2[32];
+    uint32_t expected_result[32];
+
     for (int i = 0; i < 32; i++) {
         source1[i] = i;
         source2[i] = 2 * i;
         expected_result[i] = source1[i] + source2[i];
     }
-    
+
     // Write the source vectors to VREG
     write_to_vreg(VREG_0, source1);
     write_to_vreg(VREG_1, source2);
-    
+
     // Perform the addition between the source vectors and store the result in VREG_2
     addvectors(VREG_2, VREG_0, VREG_1);
-    
+
     // Load the result from VREG_2
     uint32_t result[32];
     read_from_vreg(VREG_2, result);
-    
+
+    // Check if the result is correct
+    if (compare_arrays(result, expected_result, sizeof(result))) {
+        // If the result is correct, set reg_mprj_datal to 0xAB610000
+        reg_mprj_datal = 0xAB610000;
+    }
+        source1[i] = i;
+        source2[i] = 2 * i;
+        expected_result[i] = source1[i] + source2[i];
+    }
+
+    // Write the source vectors to VREG
+    write_to_vreg(VREG_0, source1);
+    write_to_vreg(VREG_1, source2);
+
+    // Perform the addition between the source vectors and store the result in VREG_2
+    addvectors(VREG_2, VREG_0, VREG_1);
+
+    // Load the result from VREG_2
+    uint32_t result[32];
+    read_from_vreg(VREG_2, result);
+
     // Check if the result is correct
     if (compare_arrays(result, expected_result, sizeof(result))) {
         // If the result is correct, set reg_mprj_datal to 0xAB610000

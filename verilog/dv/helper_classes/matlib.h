@@ -2,6 +2,7 @@
 #define MATRIX_OPERATIONS_H
 
 #include <stdint.h>
+#include <string.h> // For memcpy
 #include "vplib.h"
 
 void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
@@ -42,6 +43,42 @@ void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
                 C[i][j + idx] = sum[idx];
             }
         }
+    }
+}
+
+
+void relu(float* input_array, float* output_array, int total_elements) {
+    // Create and set the zero vector outside the loop since it's constant
+    float zero_vector[32] = {0.0f};
+    write_to_vreg(VREG_1, zero_vector);
+
+    for (int i = 0; i < total_elements; i += 32) {
+        // Calculate the number of elements left
+        int elements_left = total_elements - i;
+        int chunk_size = (elements_left > 32) ? 32 : elements_left;
+
+        // Buffer for the current chunk of input data
+        float chunk_data[32] = {0.0f};
+        memcpy(chunk_data, &input_array[i], chunk_size * sizeof(float));
+
+        // Write the current chunk to the co-processor
+        write_to_vreg(VREG_0, chunk_data);
+
+        // Enable predicate register for use in comparisons
+        vpset(VREG_2);
+
+        // Set predicate if VREG_0 < VREG_1
+        vpslt(VREG_2, VREG_0, VREG_1);
+
+        // Multiply the negative elements (identified by VREG_2) of VREG_0 by zero (from VREG_1) 
+        // and store the result in VREG_2
+        vfmul(VREG_2, VREG_0, VREG_1);
+
+        // Read back the results from the co-processor from VREG_2
+        read_from_vreg(VREG_2, chunk_data);
+
+        // Copy the results to the output array
+        memcpy(&output_array[i], chunk_data, chunk_size * sizeof(float));
     }
 }
 

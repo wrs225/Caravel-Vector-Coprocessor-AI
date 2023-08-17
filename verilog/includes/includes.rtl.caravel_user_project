@@ -17,4 +17,5 @@
 -v $(USER_PROJECT_VERILOG)/rtl/user_project_wrapper.v	     
 -v $(USER_PROJECT_VERILOG)/rtl/user_proj_example.v
 -v $(USER_PROJECT_VERILOG)/rtl/WrapperBlock_noparam__pickled.v
+-v $(USER_PROJECT_VERILOG)/rtl/VectorRegFile.v
  

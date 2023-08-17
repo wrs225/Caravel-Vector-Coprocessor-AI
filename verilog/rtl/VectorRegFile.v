@@ -45,42 +45,30 @@ module VectorRegFile_Param (
 		rData1 = reg_file[rAddr1_1][rAddr2_1];
 		rData2 = reg_file[rAddr1_2][rAddr2_2];
 	end
-endmodulemodule VectorRegFile (
+endmodule
+module VectorRegFile (
 	`ifdef USE_POWER_PINS
     inout wire vccd1,	// User area 1 1.8V supply
     inout wire vssd1,	// User area 1 digital ground
 	`endif
-	clk,
-	reset,
-	rAddr1_1,
-	rAddr2_1,
-	rData1,
-	rAddr1_2,
-	rAddr2_2,
-	rData2,
-	wAddr1,
-	wAddr2,
-	wData,
-	wEnable
+	input wire clk,
+	input wire reset,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1,
+	output reg [DATA_WIDTH - 1:0] rData1,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2,
+	output reg [DATA_WIDTH - 1:0] rData2,
+	input wire [ADDR_WIDTH - 1:0] wAddr1,
+	input wire [ADDR_WIDTH - 1:0] wAddr2,
+	input wire [DATA_WIDTH - 1:0] wData,
+	input wire wEnable
 );
 
 	parameter ADDR_WIDTH = 5;
 	parameter DATA_WIDTH = 32;
 	parameter NUM_REG = 6;
 	parameter NUM_ELE = 32;
-
-	input wire clk;
-	input wire reset;
-	input wire [ADDR_WIDTH - 1:0] rAddr1_1;
-	input wire [ADDR_WIDTH - 1:0] rAddr2_1;
-	output reg [DATA_WIDTH - 1:0] rData1;
-	input wire [ADDR_WIDTH - 1:0] rAddr1_2;
-	input wire [ADDR_WIDTH - 1:0] rAddr2_2;
-	output reg [DATA_WIDTH - 1:0] rData2;
-	input wire [ADDR_WIDTH - 1:0] wAddr1;
-	input wire [ADDR_WIDTH - 1:0] wAddr2;
-	input wire [DATA_WIDTH - 1:0] wData;
-	input wire wEnable;
 
 	VectorRegFile_Param #(
 		.ADDR_WIDTH(ADDR_WIDTH),

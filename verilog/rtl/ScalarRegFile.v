@@ -29,24 +29,22 @@ module Scalar_Register_File_Param (
 	assign read_data = register_file[read_address];
 endmodule
 module Scalar_Register_File (
-	clk,
-	reset,
-	read_address,
-	write_address,
-	write_data,
-	write_enable,
-	read_data
+	`ifdef USE_POWER_PINS
+    inout wire vccd1,	// User area 1 1.8V supply
+    inout wire vssd1,	// User area 1 digital ground
+	`endif
+	input wire clk,
+	input wire reset,
+	input wire [ADDR_WIDTH - 1:0] read_address,
+	input wire [ADDR_WIDTH - 1:0] write_address,
+	input wire [REG_WIDTH - 1:0] write_data,
+	input wire write_enable,
+	output wire [REG_WIDTH - 1:0] read_data
 );
+
 	parameter REG_DEPTH = 6;
 	parameter REG_WIDTH = 32;
 	parameter ADDR_WIDTH = 5;
-	input wire clk;
-	input wire reset;
-	input wire [ADDR_WIDTH - 1:0] read_address;
-	input wire [ADDR_WIDTH - 1:0] write_address;
-	input wire [REG_WIDTH - 1:0] write_data;
-	input wire write_enable;
-	output wire [REG_WIDTH - 1:0] read_data;
 
 	Scalar_Register_File_Param #(
 		.REG_DEPTH(REG_DEPTH),

@@ -1032,25 +1032,20 @@ module TopModule (
 	assign wAddr2_mux_out = (load_store_bit ? wb_addr[4:0] : counter);
 	assign rAddr1_1_mux_out = (load_store_bit ? wb_addr[9:5] : reg_file_addr1);
 	assign rAddr2_1_mux_out = (load_store_bit ? wb_addr[4:0] : counter);
-	VectorRegFile #(
-		.ADDR_WIDTH(5),
-		.DATA_WIDTH(32),
-		.NUM_REG(6),
-		.NUM_ELE(32)
-	) reg_file(
-		.clk(clk),
-		.reset(reset),
-		.rAddr1_1(rAddr1_1_mux_out),
-		.rAddr2_1(rAddr2_1_mux_out),
-		.rData1(rData1),
-		.rAddr1_2(reg_file_addr2),
-		.rAddr2_2(counter),
-		.rData2(rData2),
-		.wAddr1(wAddr1_mux_out),
-		.wAddr2(wAddr2_mux_out),
-		.wData(wData_mux_out),
-		.wEnable(vector_write_enable)
-	);
+VectorRegFile reg_file(
+	.clk(clk),
+	.reset(reset),
+	.rAddr1_1(rAddr1_1_mux_out),
+	.rAddr2_1(rAddr2_1_mux_out),
+	.rData1(rData1),
+	.rAddr1_2(reg_file_addr2),
+	.rAddr2_2(counter),
+	.rData2(rData2),
+	.wAddr1(wAddr1_mux_out),
+	.wAddr2(wAddr2_mux_out),
+	.wData(wData_mux_out),
+	.wEnable(vector_write_enable)
+);
 	wire pred_data_in;
 	ALU #(.WIDTH(32)) alu(
 		.A(rData1),
@@ -1066,19 +1061,16 @@ module TopModule (
 	);
 	assign scalar_write_data = wb_data;
 	assign scalar_write_enable = (load_store_bit & vector_reg_write_bit) & (wb_addr > addr_cutoff);
-	Scalar_Register_File #(
-		.REG_DEPTH(6),
-		.REG_WIDTH(32),
-		.ADDR_WIDTH(5)
-	) scalar_reg_file(
-		.clk(clk),
-		.reset(reset),
-		.read_address(scalar_read_address),
-		.write_address(scalar_write_address),
-		.write_data(scalar_write_data),
-		.write_enable(scalar_write_enable),
-		.read_data(scalar_read_data)
-	);
+Scalar_Register_File scalar_reg_file(
+	.clk(clk),
+	.reset(reset),
+	.read_address(scalar_read_address),
+	.write_address(scalar_write_address),
+	.write_data(scalar_write_data),
+	.write_enable(scalar_write_enable),
+	.read_data(scalar_read_data)
+);
+
 	wire [4:0] pred_read_addr1;
 	wire [4:0] pred_read_addr2;
 	wire [4:0] pred_write_addr1;

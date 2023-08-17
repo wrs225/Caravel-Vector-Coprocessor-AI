@@ -1,26 +1,19 @@
 {
-    "DESIGN_NAME": "WrapperBlock_noparam",
+    "DESIGN_NAME": "Scalar_Register_File",
     "DESIGN_IS_CORE": 0,
     "VERILOG_FILES": [
         "dir::../../verilog/rtl/defines.v",
-        "dir::../../verilog/rtl/WrapperBlock_noparam__pickled.v"
-    ],
-    "VERILOG_FILES_BLACKBOX": [
-        "dir::../../verilog/rtl/defines.v",
-        "dir::../../verilog/rtl/VectorRegFile.v",
         "dir::../../verilog/rtl/ScalarRegFile.v"
     ],
+    "ROUTING_CORES":10,
     "CLOCK_PERIOD": 10,
     "CLOCK_PORT": "clk",
-    "CLOCK_NET": "WrapperBlock_noparam.clk",
-    "FP_SIZING": "absolute",
-    "DIE_AREA": "0 0 2700 3000",
-    "MACRO_PLACEMENT_CFG": "dir::macro.cfg",
-    "EXTRA_LEFS": ["dir::../../lef/VectorRegFile.lef", "dir::../../lef/ScalarRegFile.lef"],
-    "EXTRA_GDS_FILES": ["dir::../../gds/VectorRegFile.gds.gz", "dir::../../gds/ScalarRegFile.gds" ],
+    "BASE_SDC_FILE": "dir::ScalarRegFile.sdc",
+    "CLOCK_NET": "Scalar_Register_File.clk",
     "NO_SYNTH_CELL_LIST": "dir::no_synth.cells",
     "DRC_EXCLUDE_CELL_LIST": "dir::drc_exclude.cells",
-    "PL_TARGET_DENSITY": 0.6,
+    "PL_TARGET_DENSITY": 0.76,
+    "FP_ASPECT_RATIO":0.65,
     "PL_RESIZER_SETUP_SLACK_MARGIN": 0.4,
     "PL_RESIZER_MAX_SLEW_MARGIN": 50,
     "GLB_RESIZER_MAX_SLEW_MARGIN": 50,
@@ -36,11 +29,11 @@
         "vssd1"
     ],
     "IO_SYNC": 0,
-    "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",
+    
     "DIODE_INSERTION_STRATEGY": 3,
     "RUN_CVC": 1,
     "pdk::sky130*": {
-        "FP_CORE_UTIL": 45,
+        "FP_CORE_UTIL":40,
         "RT_MAX_LAYER": "met4",
         "scl::sky130_fd_sc_hd": {
             "CLOCK_PERIOD": 25

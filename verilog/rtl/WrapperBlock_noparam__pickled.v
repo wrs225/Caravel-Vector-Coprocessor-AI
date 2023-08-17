@@ -509,7 +509,7 @@ module Decoder (
 			endcase
 		end
 endmodule
-module VectorRegFile (
+module Vector_Register_File_Param (
 	clk,
 	reset,
 	rAddr1_1,
@@ -557,6 +557,46 @@ module VectorRegFile (
 		rData2 = reg_file[rAddr1_2][rAddr2_2];
 	end
 endmodule
+module Vector_Register_File (
+	clk,
+	reset,
+	rAddr1_1,
+	rAddr2_1,
+	rData1,
+	rAddr1_2,
+	rAddr2_2,
+	rData2,
+	wAddr1,
+	wAddr2,
+	wData,
+	wEnable
+);
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 6;
+	parameter NUM_ELE = 32;
+
+	Vector_Register_File_Param #(
+		.ADDR_WIDTH(ADDR_WIDTH),
+		.DATA_WIDTH(DATA_WIDTH),
+		.NUM_REG(NUM_REG),
+		.NUM_ELE(NUM_ELE)
+	) u_Vector_Register_File_Param (
+		.clk(clk),
+		.reset(reset),
+		.rAddr1_1(rAddr1_1),
+		.rAddr2_1(rAddr2_1),
+		.rData1(rData1),
+		.rAddr1_2(rAddr1_2),
+		.rAddr2_2(rAddr2_2),
+		.rData2(rData2),
+		.wAddr1(wAddr1),
+		.wAddr2(wAddr2),
+		.wData(wData),
+		.wEnable(wEnable)
+	);
+endmodule
+
 module Multiplier (
 	A,
 	B,

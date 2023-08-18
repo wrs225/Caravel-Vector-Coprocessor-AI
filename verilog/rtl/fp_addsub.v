@@ -22,34 +22,18 @@ module fp_addsub (
 	reg [7:0] y_exp_intermediate;
 	reg [5:0] shift_amount;
 	assign b_neg = (subtract ? {b[31] ^ 1'b1, b[30:0]} : b);
-	function automatic [5:0] priority_encoder;
-		input [47:0] in;
-		integer i;
-		reg [0:1] _sv2v_jump;
-		begin
-			_sv2v_jump = 2'b00;
-			begin : sv2v_autoblock_1
-				integer _sv2v_value_on_break;
-				for (i = 47; i >= 0; i = i - 1)
-					if (_sv2v_jump < 2'b10) begin
-						_sv2v_jump = 2'b00;
-						if (in[i]) begin
-							priority_encoder = 23 - i;
-							_sv2v_jump = 2'b11;
-						end
-						_sv2v_value_on_break = i;
-					end
-				if (!(_sv2v_jump < 2'b10))
-					i = _sv2v_value_on_break;
-				if (_sv2v_jump != 2'b11)
-					_sv2v_jump = 2'b00;
-			end
-			if (_sv2v_jump == 2'b00) begin
-				priority_encoder = 6'b000000;
-				_sv2v_jump = 2'b11;
-			end
-		end
-	endfunction
+function automatic [5:0] priority_encoder;
+    input [47:0] in;
+    integer i;
+    priority_encoder = 6'b000000; // Default value
+    for (i = 47; i >= 0; i = i - 1) begin
+        if (in[i]) begin
+            priority_encoder = 23 - i;
+            i = -1; // Break the loop by setting i to an invalid value
+        end
+    end
+endfunction
+
 	always @(*) begin
 		a_sign = a[31];
 		b_sign = b_neg[31];

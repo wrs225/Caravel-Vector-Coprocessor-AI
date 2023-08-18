@@ -20,14 +20,16 @@ module fp_addsub (
     assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
 
     // Priority encoder to find the leading one
-    function automatic [5:0] priority_encoder (input [47:0] in);
+    function automatic [5:0] priority_encoder;
+        input [47:0] in;
         integer i;
-        for (i=47; i>=0; i=i-1) begin
+        priority_encoder = 6'b000000; // Default value
+        for (i = 47; i >= 0; i = i - 1) begin
             if (in[i]) begin
-                return 23 - i;
+                priority_encoder = 23 - i;
+                i = -1; // Break the loop by setting i to an invalid value
             end
         end
-        return 6'b000000;  // Return 0 if no one is found
     endfunction
 
     // Add or subtract

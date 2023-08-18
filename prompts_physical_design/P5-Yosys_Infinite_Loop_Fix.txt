@@ -1,0 +1,307 @@
+User
+When I put this file through a synthesis tool it runs forever:
+module fp_addsub (
+	a,
+	b,
+	subtract,
+	y
+);
+	input wire [31:0] a;
+	input wire [31:0] b;
+	input wire subtract;
+	output reg [31:0] y;
+	wire [31:0] b_neg;
+	reg a_sign;
+	reg b_sign;
+	reg [7:0] a_exp;
+	reg [7:0] b_exp;
+	reg [23:0] a_frac;
+	reg [23:0] b_frac;
+	reg y_sign;
+	reg [7:0] y_exp;
+	reg [23:0] y_frac;
+	reg [47:0] y_frac_intermediate;
+	reg [7:0] y_exp_intermediate;
+	reg [5:0] shift_amount;
+	assign b_neg = (subtract ? {b[31] ^ 1'b1, b[30:0]} : b);
+	function automatic [5:0] priority_encoder;
+		input [47:0] in;
+		integer i;
+		reg [0:1] _sv2v_jump;
+		begin
+			_sv2v_jump = 2'b00;
+			begin : sv2v_autoblock_1
+				integer _sv2v_value_on_break;
+				for (i = 47; i >= 0; i = i - 1)
+					if (_sv2v_jump < 2'b10) begin
+						_sv2v_jump = 2'b00;
+						if (in[i]) begin
+							priority_encoder = 23 - i;
+							_sv2v_jump = 2'b11;
+						end
+						_sv2v_value_on_break = i;
+					end
+				if (!(_sv2v_jump < 2'b10))
+					i = _sv2v_value_on_break;
+				if (_sv2v_jump != 2'b11)
+					_sv2v_jump = 2'b00;
+			end
+			if (_sv2v_jump == 2'b00) begin
+				priority_encoder = 6'b000000;
+				_sv2v_jump = 2'b11;
+			end
+		end
+	endfunction
+	always @(*) begin
+		a_sign = a[31];
+		b_sign = b_neg[31];
+		a_exp = a[30:23];
+		b_exp = b_neg[30:23];
+		a_frac = {1'b1, a[22:0]};
+		b_frac = {1'b1, b_neg[22:0]};
+		if (a_exp > b_exp) begin
+			y_exp_intermediate = a_exp;
+			if (b_sign ^ a_sign)
+				y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));
+			else
+				y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));
+			y_sign = a_sign;
+		end
+		else if (a_exp < b_exp) begin
+			y_exp_intermediate = b_exp;
+			if (b_sign ^ a_sign)
+				y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));
+			else
+				y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;
+			y_sign = b_sign;
+		end
+		else begin
+			y_exp_intermediate = a_exp;
+			if (a_frac >= b_frac) begin
+				if (b_sign ^ a_sign)
+					y_frac_intermediate = a_frac - b_frac;
+				else
+					y_frac_intermediate = a_frac + b_frac;
+				y_sign = a_sign;
+			end
+			else begin
+				if (b_sign ^ a_sign)
+					y_frac_intermediate = b_frac - a_frac;
+				else
+					y_frac_intermediate = b_frac + a_frac;
+				y_sign = b_sign;
+			end
+		end
+		if ((a == 32'b00000000000000000000000000000000) && (b == 32'b00000000000000000000000000000000))
+			shift_amount = 6'b000000;
+		else
+			shift_amount = (y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate));
+		if (shift_amount[5])
+			y_frac = y_frac_intermediate >> -shift_amount;
+		else
+			y_frac = y_frac_intermediate << shift_amount;
+		y_exp = y_exp_intermediate - {{2 {shift_amount[5]}}, shift_amount};
+	end
+	always @(*)
+		if (((a[30:23] == 8'hff) && (a[22:0] == 23'b00000000000000000000000)) && ((b_neg[30:23] == 8'hff) && (b_neg[22:0] == 23'b00000000000000000000000))) begin
+			if (subtract && (a_sign ^ b_sign))
+				y = 32'h7fc00000;
+			else if (a_sign ^ b_sign)
+				y = {a_sign, 31'h7f800000};
+			else
+				y = {y_sign, y_exp, y_frac[22:0]};
+		end
+		else if (((a[30:23] == 8'hff) && (a[22:0] == 23'b00000000000000000000000)) || ((b_neg[30:23] == 8'hff) && (b_neg[22:0] == 23'b00000000000000000000000)))
+			y = {a_sign | b_sign, 31'h7f800000};
+		else if (y_frac_intermediate == 48'b000000000000000000000000000000000000000000000000)
+			y = 32'b00000000000000000000000000000000;
+		else
+			y = {y_sign, y_exp, y_frac[22:0]};
+endmodule
+ChatGPT
+
+It seems like you're facing an issue with the synthesis tool running indefinitely on the given Verilog code. This could be due to a variety of reasons, such as an infinite loop, lack of proper termination conditions, or other logical errors.
+
+Here's a quick analysis of the code and some potential issues:
+
+    Infinite Loop: The synthesis tool might be getting stuck in an infinite loop. The code you provided doesn't seem to have an infinite loop, but it's worth checking other parts of your design if this is part of a larger system.
+
+    Lack of Proper Termination Conditions: If there are any missing termination conditions in the logic, it might cause the synthesis tool to run indefinitely. Make sure all the conditions are properly defined.
+
+    Complexity of the Code: The code you provided is quite complex, especially the logic inside the always block. The synthesis tool might be struggling to optimize the logic. You might want to consider breaking down the logic into smaller parts or using simpler constructs.
+
+    Shift Amount Calculation: The calculation of the shift amount using the priority_encoder function and the subsequent shifting of y_frac_intermediate could be problematic. The negative shift (y_frac_intermediate >> -shift_amount) is not a valid operation in Verilog, and this might be causing issues in synthesis.
+
+    Tool-Specific Issues: Sometimes, synthesis tools have specific requirements or limitations that might not be met by the code. Check the documentation of the synthesis tool you are using for any specific guidelines or constraints.
+
+    Simulation Before Synthesis: If you haven't already, consider simulating the code to see if it behaves as expected. This can help you identify any logical errors or unexpected behavior that might be causing the synthesis to hang.
+
+    Check for Warnings and Errors: Look at the synthesis tool's log for any warnings or errors that might give you a clue about what's going wrong.
+
+    Update or Change the Synthesis Tool: If everything else fails, you might want to consider updating the synthesis tool to the latest version or trying a different tool altogether.
+
+Since you're an ASIC Engineer and training for internship recruitment, you likely have a good understanding of these concepts. However, debugging synthesis issues can be complex and time-consuming, so don't hesitate to seek help from colleagues or mentors if needed.
+User
+Can you please fix this
+ChatGPT
+
+Certainly! Here's a revised version of your code with some potential fixes. Please note that without the full context of your design and without the ability to simulate or synthesize the code, I can't guarantee that this will resolve all issues. However, these changes should address some of the apparent problems.
+
+    I've removed the negative shift operation, as it's not valid in Verilog.
+    I've added some missing logic to handle the case when a_exp is equal to b_exp, and both fractions are equal.
+
+verilog
+
+module fp_addsub (
+    a,
+    b,
+    subtract,
+    y
+);
+    input wire [31:0] a;
+    input wire [31:0] b;
+    input wire subtract;
+    output reg [31:0] y;
+    wire [31:0] b_neg;
+    reg a_sign;
+    reg b_sign;
+    reg [7:0] a_exp;
+    reg [7:0] b_exp;
+    reg [23:0] a_frac;
+    reg [23:0] b_frac;
+    reg y_sign;
+    reg [7:0] y_exp;
+    reg [23:0] y_frac;
+    reg [47:0] y_frac_intermediate;
+    reg [7:0] y_exp_intermediate;
+    reg [5:0] shift_amount;
+    assign b_neg = (subtract ? {b[31] ^ 1'b1, b[30:0]} : b);
+
+    function automatic [5:0] priority_encoder;
+        input [47:0] in;
+        integer i;
+        begin
+            for (i = 47; i >= 0; i = i - 1) begin
+                if (in[i]) begin
+                    priority_encoder = 23 - i;
+                    return;
+                end
+            end
+            priority_encoder = 6'b000000;
+        end
+    endfunction
+
+    always @(*) begin
+        // ... (same code as before) ...
+
+        if (a_exp == b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (a_frac == b_frac) begin
+                y_frac_intermediate = 48'b000000000000000000000000000000000000000000000000;
+                y_sign = a_sign; // or b_sign, depending on your requirements
+            end else if (a_frac > b_frac) begin
+                // ... (same code as before) ...
+            end else begin
+                // ... (same code as before) ...
+            end
+        end
+
+        // ... (rest of the code) ...
+
+        if (shift_amount[5])
+            y_frac = y_frac_intermediate << shift_amount;
+        else
+            y_frac = y_frac_intermediate >> shift_amount;
+        y_exp = y_exp_intermediate - {{2 {shift_amount[5]}}, shift_amount};
+    end
+
+    // ... (rest of the code) ...
+endmodule
+
+Please review these changes and test them in your simulation and synthesis environment to ensure that they meet your design requirements. If you encounter further issues, please provide additional details or specific error messages, and I'll do my best to assist you!
+User
+Find the infinite loop in this function:
+	function automatic [5:0] priority_encoder;
+		input [47:0] in;
+		integer i;
+		reg [0:1] _sv2v_jump;
+		begin
+			_sv2v_jump = 2'b00;
+			begin : sv2v_autoblock_1
+				integer _sv2v_value_on_break;
+				for (i = 47; i >= 0; i = i - 1)
+					if (_sv2v_jump < 2'b10) begin
+						_sv2v_jump = 2'b00;
+						if (in[i]) begin
+							priority_encoder = 23 - i;
+							_sv2v_jump = 2'b11;
+						end
+						_sv2v_value_on_break = i;
+					end
+				if (!(_sv2v_jump < 2'b10))
+					i = _sv2v_value_on_break;
+				if (_sv2v_jump != 2'b11)
+					_sv2v_jump = 2'b00;
+			end
+			if (_sv2v_jump == 2'b00) begin
+				priority_encoder = 6'b000000;
+				_sv2v_jump = 2'b11;
+			end
+		end
+	endfunction
+ChatGPT
+
+The code snippet you provided seems to be a part of an automatic conversion from SystemVerilog to Verilog, and it appears to be trying to implement a priority encoder using a loop and some control flags. However, the logic is quite convoluted and can lead to an infinite loop.
+
+Here's the issue that can cause an infinite loop:
+
+    The loop iterates from i = 47 down to 0, decrementing i by 1 in each iteration.
+    Inside the loop, if in[i] is never true, then _sv2v_jump will never be set to 2'b11.
+    After the loop, if _sv2v_jump is not 2'b11, it is reset to 2'b00.
+    Then, the condition if (_sv2v_jump == 2'b00) will always be true, setting priority_encoder to 6'b000000 and _sv2v_jump to 2'b11.
+    However, at this point, the function doesn't exit, and there's no logic to break out of the outer begin-end block, leading to an infinite loop.
+
+The code is quite complex and seems to be generated by a tool, so it might be best to look at the original SystemVerilog code that led to this conversion or to manually write the priority encoder function.
+
+Here's a simplified version of the priority encoder function that should achieve the same result without the risk of an infinite loop:
+
+verilog
+
+function automatic [5:0] priority_encoder;
+    input [47:0] in;
+    integer i;
+    begin
+        for (i = 47; i >= 0; i = i - 1) begin
+            if (in[i]) begin
+                priority_encoder = 23 - i;
+                return;
+            end
+        end
+        priority_encoder = 6'b000000;
+    end
+endfunction
+
+This code iterates through the in bits and returns the index of the first '1' bit encountered, or 6'b000000 if no '1' bits are found.
+User
+I get an error 'cant resolve task name return'
+ChatGPT
+
+Apologies for the confusion. You're right; the return statement is not valid in Verilog functions. My mistake.
+
+Here's a corrected version of the function without the return statement:
+
+verilog
+
+function automatic [5:0] priority_encoder;
+    input [47:0] in;
+    integer i;
+    priority_encoder = 6'b000000; // Default value
+    for (i = 47; i >= 0; i = i - 1) begin
+        if (in[i]) begin
+            priority_encoder = 23 - i;
+            i = -1; // Break the loop by setting i to an invalid value
+        end
+    end
+endfunction
+
+This version sets priority_encoder to 6'b000000 by default and then iterates through the in bits. If a '1' bit is found, priority_encoder is set to the appropriate value, and the loop is terminated by setting i to an invalid value.

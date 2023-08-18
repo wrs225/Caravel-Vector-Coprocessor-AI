@@ -1,0 +1,66 @@
+From these two modules please remove the parameter declarations:
+	VectorRegFile #(
+		.ADDR_WIDTH(5),
+		.DATA_WIDTH(32),
+		.NUM_REG(6),
+		.NUM_ELE(32)
+	) reg_file(
+		.clk(clk),
+		.reset(reset),
+		.rAddr1_1(rAddr1_1_mux_out),
+		.rAddr2_1(rAddr2_1_mux_out),
+		.rData1(rData1),
+		.rAddr1_2(reg_file_addr2),
+		.rAddr2_2(counter),
+		.rData2(rData2),
+		.wAddr1(wAddr1_mux_out),
+		.wAddr2(wAddr2_mux_out),
+		.wData(wData_mux_out),
+		.wEnable(vector_write_enable)
+	);
+	Scalar_Register_File #(
+		.REG_DEPTH(6),
+		.REG_WIDTH(32),
+		.ADDR_WIDTH(5)
+	) scalar_reg_file(
+		.clk(clk),
+		.reset(reset),
+		.read_address(scalar_read_address),
+		.write_address(scalar_write_address),
+		.write_data(scalar_write_data),
+		.write_enable(scalar_write_enable),
+		.read_data(scalar_read_data)
+	);
+2 / 2
+ChatGPT
+
+Certainly! You can remove the parameter declarations from the modules by simply omitting the lines that define the parameters. Here's the code with the parameter declarations removed:
+
+verilog
+
+VectorRegFile reg_file(
+	.clk(clk),
+	.reset(reset),
+	.rAddr1_1(rAddr1_1_mux_out),
+	.rAddr2_1(rAddr2_1_mux_out),
+	.rData1(rData1),
+	.rAddr1_2(reg_file_addr2),
+	.rAddr2_2(counter),
+	.rData2(rData2),
+	.wAddr1(wAddr1_mux_out),
+	.wAddr2(wAddr2_mux_out),
+	.wData(wData_mux_out),
+	.wEnable(vector_write_enable)
+);
+
+Scalar_Register_File scalar_reg_file(
+	.clk(clk),
+	.reset(reset),
+	.read_address(scalar_read_address),
+	.write_address(scalar_write_address),
+	.write_data(scalar_write_data),
+	.write_enable(scalar_write_enable),
+	.read_data(scalar_read_data)
+);
+
+Note that the parameter declarations are usually there for a reason, such as defining the size of registers or the width of addresses. Removing them might cause issues if the modules rely on those parameters. Make sure to understand the implications of this change in the context of your design.

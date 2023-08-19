@@ -16,11 +16,11 @@
     "FP_SIZING": "absolute",
     "DIE_AREA": "0 0 2700 3000",
     "MACRO_PLACEMENT_CFG": "dir::macro.cfg",
-    "EXTRA_LEFS": ["dir::../../lef/VectorRegFile.lef", "dir::../../lef/ScalarRegFile.lef"],
-    "EXTRA_GDS_FILES": ["dir::../../gds/VectorRegFile.gds.gz", "dir::../../gds/ScalarRegFile.gds" ],
+    "EXTRA_LEFS": ["dir::../../lef/VectorRegFile.lef", "dir::../../lef/Scalar_Register_File.lef"],
+    "EXTRA_GDS_FILES": ["dir::../../gds/VectorRegFile.gds.gz", "dir::../../gds/Scalar_Register_File.gds" ],
     "NO_SYNTH_CELL_LIST": "dir::no_synth.cells",
     "DRC_EXCLUDE_CELL_LIST": "dir::drc_exclude.cells",
-    "PL_TARGET_DENSITY": 0.6,
+    "PL_TARGET_DENSITY": 0.50,
     "PL_RESIZER_SETUP_SLACK_MARGIN": 0.4,
     "PL_RESIZER_MAX_SLEW_MARGIN": 50,
     "GLB_RESIZER_MAX_SLEW_MARGIN": 50,
@@ -29,6 +29,7 @@
     "GRT_ANT_ITERS": 5,
     "MAGIC_DEF_LABELS": 0,
     "SYNTH_BUFFERING": 0,
+    "FP_PDN_MACRO_HOOKS": "v.TopModule_inst.scalar_reg_file vccd1 vssd1 vccd1 vssd1, v.TopModule_inst.reg_file vccd1 vssd1 vccd1 vssd1",
     "VDD_NETS": [
         "vccd1"
     ],
@@ -36,11 +37,11 @@
         "vssd1"
     ],
     "IO_SYNC": 0,
-    "BASE_SDC_FILE": "dir::base_user_proj_example.sdc",
+    "BASE_SDC_FILE": "dir::Wrapper_Block.sdc",
     "DIODE_INSERTION_STRATEGY": 3,
     "RUN_CVC": 1,
     "pdk::sky130*": {
-        "FP_CORE_UTIL": 45,
+        "FP_CORE_UTIL": 40,
         "RT_MAX_LAYER": "met4",
         "scl::sky130_fd_sc_hd": {
             "CLOCK_PERIOD": 25

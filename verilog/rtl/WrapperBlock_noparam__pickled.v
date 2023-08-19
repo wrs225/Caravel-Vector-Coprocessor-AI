@@ -1010,8 +1010,10 @@ module TopModule (
 	assign rAddr1_1_mux_out = (load_store_bit ? wb_addr[9:5] : reg_file_addr1);
 	assign rAddr2_1_mux_out = (load_store_bit ? wb_addr[4:0] : counter);
 VectorRegFile reg_file(
-    .vccd1(vccd1), // User area 1 1.8V supply
-    .vssd1(vssd1), // User area 1 digital ground
+    `ifdef USE_POWER_PINS
+        .vccd1(vccd1), // User area 1 1.8V supply
+        .vssd1(vssd1), // User area 1 digital ground
+    `endif
     .clk(clk),
     .reset(reset),
     .rAddr1_1(rAddr1_1_mux_out),
@@ -1041,8 +1043,10 @@ VectorRegFile reg_file(
 	assign scalar_write_data = wb_data;
 	assign scalar_write_enable = (load_store_bit & vector_reg_write_bit) & (wb_addr > addr_cutoff);
 Scalar_Register_File scalar_reg_file(
-    .vccd1(vccd1), // User area 1 1.8V supply
-    .vssd1(vssd1), // User area 1 digital ground
+    `ifdef USE_POWER_PINS
+        .vccd1(vccd1), // User area 1 1.8V supply
+        .vssd1(vssd1), // User area 1 digital ground
+    `endif
     .clk(clk),
     .reset(reset),
     .read_address(scalar_read_address),
@@ -1128,8 +1132,10 @@ module WrapperBlock (
 		.store_send_rdy(store_send_rdy_internal)
 	);
 TopModule TopModule_inst(
-    .vccd1(vccd1), // User area 1 1.8V supply
-    .vssd1(vssd1), // User area 1 digital ground
+    `ifdef USE_POWER_PINS
+        .vccd1(vccd1), // User area 1 1.8V supply
+        .vssd1(vssd1), // User area 1 digital ground
+    `endif
     .clk(clk),
     .reset(reset),
     .load_recv_msg(load_recv_msg_internal),

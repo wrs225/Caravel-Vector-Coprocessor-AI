@@ -863,29 +863,23 @@ module Predicate_Register_File (
 			register_file[write_addr1][write_addr2] <= data_in;
 endmodule
 module TopModule (
-	clk,
-	reset,
-	load_recv_msg,
-	load_recv_val,
-	load_recv_rdy,
-	instruction_recv_msg,
-	instruction_recv_val,
-	instruction_recv_rdy,
-	store_send_msg,
-	store_send_val,
-	store_send_rdy
+    `ifdef USE_POWER_PINS
+        inout wire vccd1, // User area 1 1.8V supply
+        inout wire vssd1, // User area 1 digital ground
+    `endif
+    input wire clk,
+    input wire reset,
+    input wire [63:0] load_recv_msg,
+    input wire load_recv_val,
+    output wire load_recv_rdy,
+    input wire [31:0] instruction_recv_msg,
+    input wire instruction_recv_val,
+    output wire instruction_recv_rdy,
+    output wire [31:0] store_send_msg,
+    output wire store_send_val,
+    input wire store_send_rdy
 );
-	input wire clk;
-	input wire reset;
-	input wire [63:0] load_recv_msg;
-	input wire load_recv_val;
-	output wire load_recv_rdy;
-	input wire [31:0] instruction_recv_msg;
-	input wire instruction_recv_val;
-	output wire instruction_recv_rdy;
-	output wire [31:0] store_send_msg;
-	output wire store_send_val;
-	input wire store_send_rdy;
+
 	wire [63:0] load_send_msg;
 	wire load_send_val;
 	wire load_send_rdy;
@@ -1016,18 +1010,20 @@ module TopModule (
 	assign rAddr1_1_mux_out = (load_store_bit ? wb_addr[9:5] : reg_file_addr1);
 	assign rAddr2_1_mux_out = (load_store_bit ? wb_addr[4:0] : counter);
 VectorRegFile reg_file(
-	.clk(clk),
-	.reset(reset),
-	.rAddr1_1(rAddr1_1_mux_out),
-	.rAddr2_1(rAddr2_1_mux_out),
-	.rData1(rData1),
-	.rAddr1_2(reg_file_addr2),
-	.rAddr2_2(counter),
-	.rData2(rData2),
-	.wAddr1(wAddr1_mux_out),
-	.wAddr2(wAddr2_mux_out),
-	.wData(wData_mux_out),
-	.wEnable(vector_write_enable)
+    .vccd1(vccd1), // User area 1 1.8V supply
+    .vssd1(vssd1), // User area 1 digital ground
+    .clk(clk),
+    .reset(reset),
+    .rAddr1_1(rAddr1_1_mux_out),
+    .rAddr2_1(rAddr2_1_mux_out),
+    .rData1(rData1),
+    .rAddr1_2(reg_file_addr2),
+    .rAddr2_2(counter),
+    .rData2(rData2),
+    .wAddr1(wAddr1_mux_out),
+    .wAddr2(wAddr2_mux_out),
+    .wData(wData_mux_out),
+    .wEnable(vector_write_enable)
 );
 	wire pred_data_in;
 	ALU #(.WIDTH(32)) alu(
@@ -1045,13 +1041,15 @@ VectorRegFile reg_file(
 	assign scalar_write_data = wb_data;
 	assign scalar_write_enable = (load_store_bit & vector_reg_write_bit) & (wb_addr > addr_cutoff);
 Scalar_Register_File scalar_reg_file(
-	.clk(clk),
-	.reset(reset),
-	.read_address(scalar_read_address),
-	.write_address(scalar_write_address),
-	.write_data(scalar_write_data),
-	.write_enable(scalar_write_enable),
-	.read_data(scalar_read_data)
+    .vccd1(vccd1), // User area 1 1.8V supply
+    .vssd1(vssd1), // User area 1 digital ground
+    .clk(clk),
+    .reset(reset),
+    .read_address(scalar_read_address),
+    .write_address(scalar_write_address),
+    .write_data(scalar_write_data),
+    .write_enable(scalar_write_enable),
+    .read_data(scalar_read_data)
 );
 
 	wire [4:0] pred_read_addr1;
@@ -1081,31 +1079,24 @@ Scalar_Register_File scalar_reg_file(
 	);
 endmodule
 module WrapperBlock (
-	wb_clk_i,
-	wb_rst_i,
-	wbs_stb_i,
-	wbs_cyc_i,
-	wbs_we_i,
-	wbs_sel_i,
-	wbs_dat_i,
-	wbs_adr_i,
-	wbs_ack_o,
-	wbs_dat_o,
-	clk,
-	reset
+    `ifdef USE_POWER_PINS
+        inout wire vccd1, // User area 1 1.8V supply
+        inout wire vssd1, // User area 1 digital ground
+    `endif
+    input wb_clk_i,
+    input wb_rst_i,
+    input wbs_stb_i,
+    input wbs_cyc_i,
+    input wbs_we_i,
+    input [3:0] wbs_sel_i,
+    input [31:0] wbs_dat_i,
+    input [31:0] wbs_adr_i,
+    output wire wbs_ack_o,
+    output wire [31:0] wbs_dat_o,
+    input wire clk,
+    input wire reset
 );
-	input wb_clk_i;
-	input wb_rst_i;
-	input wbs_stb_i;
-	input wbs_cyc_i;
-	input wbs_we_i;
-	input [3:0] wbs_sel_i;
-	input [31:0] wbs_dat_i;
-	input [31:0] wbs_adr_i;
-	output wire wbs_ack_o;
-	output wire [31:0] wbs_dat_o;
-	input wire clk;
-	input wire reset;
+
 	wire [63:0] load_recv_msg_internal;
 	wire load_recv_val_internal;
 	wire load_recv_rdy_internal;
@@ -1136,19 +1127,21 @@ module WrapperBlock (
 		.store_send_val(store_send_val_internal),
 		.store_send_rdy(store_send_rdy_internal)
 	);
-	TopModule TopModule_inst(
-		.clk(clk),
-		.reset(reset),
-		.load_recv_msg(load_recv_msg_internal),
-		.load_recv_val(load_recv_val_internal),
-		.load_recv_rdy(load_recv_rdy_internal),
-		.instruction_recv_msg(instruction_recv_msg_internal),
-		.instruction_recv_val(instruction_recv_val_internal),
-		.instruction_recv_rdy(instruction_recv_rdy_internal),
-		.store_send_msg(store_send_msg_internal),
-		.store_send_val(store_send_val_internal),
-		.store_send_rdy(store_send_rdy_internal)
-	);
+TopModule TopModule_inst(
+    .vccd1(vccd1), // User area 1 1.8V supply
+    .vssd1(vssd1), // User area 1 digital ground
+    .clk(clk),
+    .reset(reset),
+    .load_recv_msg(load_recv_msg_internal),
+    .load_recv_val(load_recv_val_internal),
+    .load_recv_rdy(load_recv_rdy_internal),
+    .instruction_recv_msg(instruction_recv_msg_internal),
+    .instruction_recv_val(instruction_recv_val_internal),
+    .instruction_recv_rdy(instruction_recv_rdy_internal),
+    .store_send_msg(store_send_msg_internal),
+    .store_send_val(store_send_val_internal),
+    .store_send_rdy(store_send_rdy_internal)
+);
 endmodule
 module WrapperBlock_noparam (
 	`ifdef USE_POWER_PINS

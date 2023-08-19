@@ -311,7 +311,7 @@ In this version, the function receives the matrix sizes directly and doesn't rel
 
 User
 
-2 / 2
+0 / 2
 
 I would like to optimize this code for the vector processor. Here is another function you can use: static inline void static inline void vfsmul(uint32_t destination_vector, uint32_t source_vector, uint32_t scalar_source). This scalar source argument references a scalar register which is one of the predefined macros SREG_0 to SREG_31. The matrix_mult function should follow these (non-exhaustive) steps:
 for each row of input A (stepped one at a time)
@@ -440,3 +440,289 @@ void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
 
 #endif // MATRIX_OPERATIONS_H
 In this version, the scalar value is directly written to the memory address specified by SREG_0.
+
+
+
+
+User
+Please write a code snippet to test this function
+ChatGPT
+Certainly! Here's a code snippet to test the matrix_mult function. This snippet will:
+
+Define sample matrices A and B.
+Call the matrix_mult function.
+Print the resulting matrix C.
+c
+Copy code
+#include <stdio.h>
+#include "matrix_operations.h"
+
+// Define a utility function to print matrices
+void print_matrix(float **matrix, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%f ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    int M = 3, K = 4, N = 5;
+
+    // Define and allocate memory for matrices A, B, and C
+    float **A = malloc(M * sizeof(float*));
+    float **B = malloc(K * sizeof(float*));
+    float **C = malloc(M * sizeof(float*));
+
+    for (int i = 0; i < M; i++) {
+        A[i] = malloc(K * sizeof(float));
+    }
+    
+    for (int i = 0; i < K; i++) {
+        B[i] = malloc(N * sizeof(float));
+    }
+
+    for (int i = 0; i < M; i++) {
+        C[i] = malloc(N * sizeof(float));
+    }
+
+    // Initialize matrices A and B with some test values
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < K; j++) {
+            A[i][j] = i + j + 1;
+        }
+    }
+
+    for (int i = 0; i < K; i++) {
+        for (int j = 0; j < N; j++) {
+            B[i][j] = (i + 1) * (j + 1);
+        }
+    }
+
+    // Print matrices A and B
+    printf("Matrix A:\n");
+    print_matrix(A, M, K);
+    printf("\n");
+
+    printf("Matrix B:\n");
+    print_matrix(B, K, N);
+    printf("\n");
+
+    // Multiply matrices A and B
+    matrix_mult(A, B, C, M, K, N);
+
+    // Print the result matrix C
+    printf("Matrix C (A x B):\n");
+    print_matrix(C, M, N);
+
+    // Free memory
+    for (int i = 0; i < M; i++) {
+        free(A[i]);
+        free(C[i]);
+    }
+
+    for (int i = 0; i < K; i++) {
+        free(B[i]);
+    }
+
+    free(A);
+    free(B);
+    free(C);
+
+    return 0;
+}
+This test multiplies a 3x4 matrix A by a 4x5 matrix B to get a resulting 3x5 matrix C.
+
+Note: Ensure that the matrix sizes (M, K, N) fit within the sizes of the matrices A and B, and that N is a multiple of 32 (or pad as needed) for the vectorized operations to work correctly.
+
+
+
+
+User
+Please don't use malloc or free, just make varibles
+ChatGPT
+Certainly! Here's a simpler version of the test using arrays:
+
+c
+Copy code
+#include <stdio.h>
+#include "matrix_operations.h"
+
+// Define a utility function to print matrices
+void print_matrix(float matrix[][5], int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%f ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+int main() {
+    int M = 3, K = 4, N = 5;
+
+    // Define matrices A, B, and C using arrays
+    float A[3][4] = {
+        {1, 2, 3, 4},
+        {2, 3, 4, 5},
+        {3, 4, 5, 6}
+    };
+
+    float B[4][5] = {
+        {1, 2, 3, 4, 5},
+        {2, 3, 4, 5, 6},
+        {3, 4, 5, 6, 7},
+        {4, 5, 6, 7, 8}
+    };
+
+    float C[3][5] = {0}; // Initialize to zeros
+
+    // Print matrices A and B
+    printf("Matrix A:\n");
+    print_matrix(A, M, K);
+    printf("\n");
+
+    printf("Matrix B:\n");
+    print_matrix(B, K, N);
+    printf("\n");
+
+    // Convert 2D arrays to array of pointers for matrix_mult function
+    float *A_ptrs[M];
+    float *B_ptrs[K];
+    float *C_ptrs[M];
+    for (int i = 0; i < M; i++) {
+        A_ptrs[i] = A[i];
+        C_ptrs[i] = C[i];
+    }
+    for (int i = 0; i < K; i++) {
+        B_ptrs[i] = B[i];
+    }
+
+    // Multiply matrices A and B
+    matrix_mult(A_ptrs, B_ptrs, C_ptrs, M, K, N);
+
+    // Print the result matrix C
+    printf("Matrix C (A x B):\n");
+    print_matrix(C, M, N);
+
+    return 0;
+}
+Here, we use 2D arrays to directly store the matrices, eliminating the need for dynamic memory allocation.
+
+
+
+
+User
+Please check if the result is within a small tolerance of the expected result
+ChatGPT
+To verify the result, we can compute the expected result of the matrix multiplication without using the vector co-processor and then check if the elements in the computed matrix C are close to the expected values.
+
+I'll add a function to compute the matrix multiplication using standard, non-vectorized operations and then a function to check the result against the expected values within a tolerance.
+
+Here's how you can do it:
+
+c
+Copy code
+#include <stdio.h>
+#include <stdbool.h>
+#include <math.h>
+#include "matrix_operations.h"
+
+// Define a utility function to print matrices
+void print_matrix(float matrix[][5], int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            printf("%f ", matrix[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void matrix_mult_standard(float A[][4], float B[][5], float C[][5], int M, int K, int N) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            C[i][j] = 0;
+            for (int k = 0; k < K; k++) {
+                C[i][j] += A[i][k] * B[k][j];
+            }
+        }
+    }
+}
+
+bool matrices_close(float computed[][5], float expected[][5], int M, int N, float tolerance) {
+    for (int i = 0; i < M; i++) {
+        for (int j = 0; j < N; j++) {
+            if (fabs(computed[i][j] - expected[i][j]) > tolerance) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+int main() {
+    int M = 3, K = 4, N = 5;
+    const float TOLERANCE = 0.001f; // For comparing floating point numbers
+
+    // Define matrices A, B, C, and expected_C
+    float A[3][4] = {
+        {1, 2, 3, 4},
+        {2, 3, 4, 5},
+        {3, 4, 5, 6}
+    };
+
+    float B[4][5] = {
+        {1, 2, 3, 4, 5},
+        {2, 3, 4, 5, 6},
+        {3, 4, 5, 6, 7},
+        {4, 5, 6, 7, 8}
+    };
+
+    float C[3][5] = {0};
+    float expected_C[3][5] = {0};
+
+    // Print matrices A and B
+    printf("Matrix A:\n");
+    print_matrix(A, M, K);
+    printf("\n");
+
+    printf("Matrix B:\n");
+    print_matrix(B, K, N);
+    printf("\n");
+
+    // Convert 2D arrays to array of pointers for matrix_mult function
+    float *A_ptrs[M];
+    float *B_ptrs[K];
+    float *C_ptrs[M];
+    for (int i = 0; i < M; i++) {
+        A_ptrs[i] = A[i];
+        C_ptrs[i] = C[i];
+    }
+    for (int i = 0; i < K; i++) {
+        B_ptrs[i] = B[i];
+    }
+
+    // Multiply matrices A and B using vectorized operation
+    matrix_mult(A_ptrs, B_ptrs, C_ptrs, M, K, N);
+
+    // Multiply matrices A and B using standard operation
+    matrix_mult_standard(A, B, expected_C, M, K, N);
+
+    printf("Matrix C (A x B using vector operations):\n");
+    print_matrix(C, M, N);
+    printf("\n");
+
+    printf("Expected Matrix C (A x B using standard operations):\n");
+    print_matrix(expected_C, M, N);
+    printf("\n");
+
+    if (matrices_close(C, expected_C, M, N, TOLERANCE)) {
+        printf("The results match within the specified tolerance!\n");
+    } else {
+        printf("The results do not match within the specified tolerance!\n");
+    }
+
+    return 0;
+}
+In this code, the matrix_mult_standard function computes the matrix multiplication in a straightforward manner without using vectorized operations. The matrices_close function then checks if each element in the two matrices are close enough (within a given tolerance) to be considered equal.

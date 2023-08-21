@@ -16,6 +16,8 @@ All Prompts used to generate code are included in this repository. The prompts w
 - [x] C-Library for wrapping wishbone loads/stores
 - [x] Basic Machine Learning Library
 
+*Our implementation has slightly different rounding logic, so your results may vary.
+
 # ISA and Register Mapping 
 
 The instructions supported on the processor are included in the table below. We had GPT4 generate an initial draft of the instructions, then we changed them as needed for our implementaton to make sense. Any of these instrucitons can be run by sending the instruciton over the wishbone address 0x30000000. The only exception to these instructions are the load/store instrucitons. Where instead writing to a vector or scalar register via sending a load/store instruciton over 0x30000000, you can just write or read from memory addresses: 
@@ -25,6 +27,8 @@ The instructions supported on the processor are included in the table below. We 
 Additionally, for predicate register instrucitons you do not need to actually set Ssrc to anything meaningful, as each element in the destination predicate register will have values written to it for anything valuable. It is reccomended you use the C library ```vplib``` to interact with the processor, as this abstracts away the low-level register reads and writes you would need to do.
 
 ## ISA
+
+This ISA was written by GPT4. As stated above, VLOAD and VSTORE are memory-mapped using the wishbone bus. Additionally, the ```Ssrc``` register in the ```VPSET``` instruction can be assigned any arbitrary value, as the predicate registers for each index of the vector will always be 1. 
 
 | Instruction	| Opcode	| Operand 1	    | Operand 2	   | Operand 3	| Description |
 | ------------- | --------- | ------------- | ------------ | ---------- | ----------- |                                                                                     
@@ -55,6 +59,32 @@ Additionally, for predicate register instrucitons you do not need to actually se
 
 
 ## Register Mapping
+
+As stated above, the addresses of the memory_mapped registers are as follows:
+```
+#define INSTRUCTION_ADDRESS 0x30000000
+#define VREG_0  0x30000004
+#define VREG_1  0x30000084
+#define VREG_2  0x30000104
+#define VREG_3  0x30000184
+#define VREG_4  0x30000204
+#define VREG_5  0x30000284
+#define VREG_6  0x30000304
+
+
+#define SREG_0  0x30001000
+#define SREG_1  0x30001004
+#define SREG_2  0x30001008
+#define SREG_3  0x3000100C
+#define SREG_4  0x30001010
+#define SREG_5  0x30001014
+#define SREG_6  0x30001018
+```
+The stride between each VREG register is 32 * 4 bytes. The following 32 addresses after a VREG register are individual elements of the vector. This makes the vector register file to appear as memory acessable to the management core. 
+
+Each register is dynamically typed, meaning you can store and conduct operations on signed/unsigned integers, booleans, and 32-bit floating point datatypes. 
+
+Writing an instruction to ```INSTRUCTION_ADDRESS``` will send an instruction to the processor for execution.
 
 # C++ Library
 

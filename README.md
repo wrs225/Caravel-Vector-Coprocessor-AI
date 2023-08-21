@@ -1,7 +1,7 @@
 # Vector Extension to Caravel Management SoC
 Written for the EFabless AI Chip competition, this project adds basic vector instructions to the Caravel Management SoC.
 
-All code, besides file paths are written using ChatGPT. This includes test cases, C libraries, blocks, etc. 
+All code, besides file paths are written using ChatGPT. This includes test cases, C libraries, blocks, etc. In our project, GPT4 served as a pair programmer which followed the instructions of a human that was aware of what the microarchitecture would look like.
 
 All Prompts used to generate code are included in this repository. The prompts within a file may not be in the order we asked ChatGPT. As we would find bugs, we would go back to previous prompts and fix the implementation within those prompts. However, the files are separated by block and topic. We have found it is difficult to do complex things within a single, long prompt, as GPT4 reaches its token limit and forgets how to do things.
 
@@ -89,7 +89,11 @@ Writing an instruction to ```INSTRUCTION_ADDRESS``` will send an instruction to 
 # C++ Library
 
 # Microarchitecture
+## Top
+The block diagram of the processor core is shown below. The microarchitecture was designed by a human and GPT4. GPT4 primarily described the functionality some of the blocks, while a human drew out the block diagram on pencil and paper. The architecture was designed to be as simple as possible, so an AI can feasibly implement it. The Control can be upgraded easily to support more advanced features such as chimes and scheduling. A counter is used to increment the register file addresses so the operations can be done on a vector of registers. Additional logic was added as a kludge to allow for dynamic reading/writing from the wishbone bus. Additionally, each queue can be assumed to be latency insensitive. 
 ![Block Diagram for Microarchitecture](img/VectorArchv1DiagramPretty.png)
+
+##
 # Testing Strategy
 
 # Phyiscal Design 

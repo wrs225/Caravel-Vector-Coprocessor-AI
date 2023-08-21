@@ -90,10 +90,22 @@ Writing an instruction to ```INSTRUCTION_ADDRESS``` will send an instruction to 
 
 # Microarchitecture
 ## Top
-The block diagram of the processor core is shown below. The microarchitecture was designed by a human and GPT4. GPT4 primarily described the functionality some of the blocks, while a human drew out the block diagram on pencil and paper. The architecture was designed to be as simple as possible, so an AI can feasibly implement it. The Control can be upgraded easily to support more advanced features such as chimes and scheduling. A counter is used to increment the register file addresses so the operations can be done on a vector of registers. Additional logic was added as a kludge to allow for dynamic reading/writing from the wishbone bus. Additionally, each queue can be assumed to be latency insensitive. 
+The block diagram of the processor core is shown below. The microarchitecture was designed by a human and GPT4. GPT4 primarily described the functionality some of the blocks, while a human drew out the block diagram on pencil and paper. The architecture was designed to be as simple as possible, so an AI can feasibly implement it. 
+
+The Control can be upgraded easily to support more advanced features such as chimes and scheduling. A counter is used to increment the register file addresses so the operations can be done on a vector of registers. 
+
+Additional logic was added as a kludge to allow for dynamic reading/writing from the wishbone bus. 
+
+Each address line piped into an AND gate is assumed to be an address comparison. Additionally, each queue can be assumed to be latency insensitive. Each blue wire can be assumed to come from the control unit.
+
 ![Block Diagram for Microarchitecture](img/VectorArchv1DiagramPretty.png)
 
-##
+## Wishbone Converter
+Besides top, GPT4 also designed a wishbone to latency insensitive converter. This block is responsible for regulating wishbone transactions between the bus and our latency insensitive interfaces. 
+
+If a valid register address is sent to the converter via wishbone, it will copy the corresponding load or store instruction over to the instruction queue and send the address/data to the load queue. If the instruction is a store, it will wait for the data to come back through the store queue.
+
+If the transaction is sent to the ```INSTRUCTION_ADDRESS```, the transaction will be sent over to the instruction queue. 
 # Testing Strategy
 
 # Phyiscal Design 

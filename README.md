@@ -60,7 +60,7 @@ This ISA was written by GPT4. As stated above, VLOAD and VSTORE are memory-mappe
 
 ## Register Mapping
 
-As stated above, the addresses of the memory_mapped registers are as follows:
+As stated above, the addresses of the memory mapped registers are as follows:
 ```
 #define INSTRUCTION_ADDRESS 0x30000000
 #define VREG_0  0x30000004

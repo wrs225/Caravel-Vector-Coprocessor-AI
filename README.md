@@ -1,5 +1,5 @@
 # Vector Extension to Caravel Management SoC
-Written for the EFabless AI Chip competition, this project adds vector instructions to the Caravel Management SoC.
+Written for the EFabless AI Chip competition, this project adds basic vector instructions to the Caravel Management SoC.
 
 All code, besides file paths are written using ChatGPT. This includes test cases, C libraries, blocks, etc. 
 
@@ -10,10 +10,10 @@ All Prompts used to generate code are included in this repository. The prompts w
 - [x] (almost*) IEEE-754 compliant floating point adder and multiplier
 - [x] Bitwise logical operations
 - [x] Scalar instructions
+- [x] 6 vector registers, each being 32 elements and 32 bits. Directly acessable over wishbone interface.
+- [x] 6 scalar registers, each being 32 bits. Directly acessable over wishbone interface.
 - [x] Predicate Instructions for vectored-conditionals
-- [x] 6, 32 element, 32 bit, vector registers directly accessable through wishbone interface
-- [x] 6, 32 bit scalar registers directly accessable through wishbone interface
-- [x] C-Library for wrapping Wishbone calls
+- [x] C-Library for wrapping wishbone loads/stores
 - [x] Basic Machine Learning Library
 
 # ISA and Register Mapping 

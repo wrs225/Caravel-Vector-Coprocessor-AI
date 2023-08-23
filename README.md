@@ -106,7 +106,9 @@ Besides top, GPT4 also designed a wishbone to latency insensitive converter. Thi
 If a valid register address is sent to the converter via wishbone, it will copy the corresponding load or store instruction over to the instruction queue and send the address/data to the load queue. If the instruction is a store, it will wait for the data to come back through the store queue.
 
 If the transaction is sent to the ```INSTRUCTION_ADDRESS```, the transaction will be sent over to the instruction queue. 
+
 # Testing Strategy
+We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality of our design. To do this, we first must construct a Python wrapper class for each Verilog module. Then, Python unit test functions can be written and run with [pytest](https://docs.pytest.org/en/7.4.x/). We use GPT4 to generate these Python test files, which cover the expected functionality for each operation as well as edge cases. Prompts for each module can be found in the prompts_tests directory.
 
 # Phyiscal Design 
 

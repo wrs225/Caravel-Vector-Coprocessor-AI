@@ -115,3 +115,6 @@ We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality 
 # Performance
 
 # Learnings
+
+
+Copyright 2023 William Salcedo & Courtney McBeth

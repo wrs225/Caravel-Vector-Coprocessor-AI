@@ -10,5 +10,5 @@ class comparison_unit(VerilogPlaceholder, Component):
 
         self.in1 = InPort(mk_bits(WIDTH))
         self.in2 = InPort(mk_bits(WIDTH))
-        self.control = InPort(mk_bits(2))
+        self.control = InPort(mk_bits(4))
         self.predicate = OutPort(mk_bits(1))

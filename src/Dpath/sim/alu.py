@@ -15,7 +15,7 @@ class ALU(VerilogPlaceholder, Component):
         self.muxControl = InPort(1)
         self.outputControl = InPort(mk_bits(3))
         self.bitwiseControl = InPort(mk_bits(2))
-        self.compControl = InPort(mk_bits(2))
+        self.compControl = InPort(mk_bits(4))
         self.finalResult = OutPort(mk_bits(WIDTH))
         self.predicate = OutPort(1)
         

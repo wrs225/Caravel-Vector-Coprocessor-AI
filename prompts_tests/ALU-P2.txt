@@ -1,0 +1,81 @@
+User
+I have implemented an arithmetic logic unit that includes a variety of comparison functionality. I had wrote a python function to test some of the comparison operations, and then I added more operations and changed the control opcodes. Here is the previous function
+def test_comparison_unit(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        # Equals operation
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b00, '?', 1),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b00, '?', 0),
+        # Not Equals operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b01, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b01, '?', 0),
+        # Greater than operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b10, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b10, '?', 0),
+        # Less than operation
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b11, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b11, '?', 0),
+    ], cmdline_opts)
+
+I would like you to update this function to reflect the current functionality of the comparison operations. The comparison unit used in the alu is shown below
+module comparison_unit #(parameter WIDTH = 32)(
+    input logic [WIDTH-1:0] in1,
+    input logic [WIDTH-1:0] in2,
+    input logic [3:0] control,
+    output logic predicate
+);
+
+always_comb begin
+    case (control)
+        4'b0000: predicate = (in1 == 0); // VPSETZ
+        4'b0001: predicate = (in1 != 0); // VPSETN
+        4'b0010: predicate = 1;           // VPSET
+        4'b0011: predicate = ($signed(in1) >= $signed(in2)); // VPSGE, signed comparison
+        4'b0100: predicate = ($signed(in1) < $signed(in2));  // VPSLT, signed comparison
+        4'b0101: predicate = (in1 >= in2); // VPUGE, treating inputs as unsigned
+        4'b0110: predicate = (in1 < in2);  // VPULT, treating inputs as unsigned
+        4'b0111: predicate = (in1 == in2); // VPEQ
+        4'b1000: predicate = (in1 != in2); // VPNEQ
+        default: predicate = 0;            // Default case
+    endcase
+end
+
+endmodule
+Above, the control value corresponds to compControl. Please update the python function and ask me if you have any confusion
+
+ChatGPT
+To update your Python function to reflect the new functionality, we need to use the new control values (compControl) corresponding to each operation provided in the Verilog comparison_unit module.
+
+The new test_comparison_unit function is as follows:
+
+python
+Copy code
+def test_comparison_unit(cmdline_opts):
+    alu = ALU()
+    run_test_vector_sim(alu, [
+        ('A B C AddSub muxControl outputControl bitwiseControl compControl finalResult* predicate*'),
+        # VPSETZ operation
+        (0x0, 0x0, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0000, '?', 1),
+        (0x5, 0x0, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0000, '?', 0),
+        # VPSETN operation
+        (0x5, 0x0, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0001, '?', 1),
+        (0x0, 0x0, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0001, '?', 0),
+        # VPSET operation
+        (0x5, 0x0, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0010, '?', 1),
+        # VPSGE operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0011, '?', 1),
+        # VPSLT operation
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0100, '?', 1),
+        # VPUGE operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0101, '?', 1),
+        # VPULT operation
+        (0x2, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0110, '?', 1),
+        # VPEQ operation
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0111, '?', 1),
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b0111, '?', 0),
+        # VPNEQ operation
+        (0x5, 0x2, 0x0, 0x0, 0x0, 0b111, 0b00, 0b1000, '?', 1),
+        (0x5, 0x5, 0x0, 0x0, 0x0, 0b111, 0b00, 0b1000, '?', 0),
+    ], cmdline_opts)
+I've added new operations based on the new control values and provided suitable test inputs to the function. Some of these operations are signed, and others are unsigned. The test vectors are constructed in such a way that each operation's functionality is tested. If you want to test other specific edge cases, you can further add more test vectors to the function.

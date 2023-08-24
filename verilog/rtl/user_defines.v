@@ -23,9 +23,7 @@
 `define GPIO_MODE_INVALID                  13'hXXXX
 
 // Authoritive source of these MODE def	`ifdef USE_POWER_PINS
-    inout vccd1,	// User area 1 1.8V supply
-    inout vssd1,	// User area 1 digital ground
-	`endif 13'h0403
+`define GPIO_MODE_MGMT_STD_INPUT_NOPULL    13'h0403
 `define GPIO_MODE_MGMT_STD_INPUT_PULLDOWN  13'h0c01
 `define GPIO_MODE_MGMT_STD_INPUT_PULLUP    13'h0801
 `define GPIO_MODE_MGMT_STD_OUTPUT          13'h1809

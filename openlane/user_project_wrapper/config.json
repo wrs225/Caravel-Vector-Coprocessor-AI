@@ -5,7 +5,7 @@
         "dir::../../verilog/rtl/user_project_wrapper.v"
     ],
     "ROUTING_CORES": 1,
-    "CLOCK_PERIOD": 25,
+    "CLOCK_PERIOD": 30,
     "CLOCK_PORT": "wb_clk_i",
     "CLOCK_NET": "mprj.clk",
     "FP_PDN_MACRO_HOOKS": "mprj vccd1 vssd1 vccd1 vssd1",
@@ -13,10 +13,10 @@
     "MAGIC_DEF_LABELS": 0,
     "VERILOG_FILES_BLACKBOX": [
         "dir::../../verilog/rtl/defines.v",
-        "dir::../../verilog/rtl/user_proj_example.v"
+        "dir::../../verilog/rtl/WrapperBlock_noparam__pickled.v"
     ],
-    "EXTRA_LEFS": "dir::../../lef/user_proj_example.lef",
-    "EXTRA_GDS_FILES": "dir::../../gds/user_proj_example.gds",
+    "EXTRA_LEFS": "dir::../../lef/WrapperBlock_noparam.lef",
+    "EXTRA_GDS_FILES": "dir::../../gds/WrapperBlock_noparam.gds",
     "BASE_SDC_FILE": "dir::base_user_project_wrapper.sdc",
     "IO_SYNC": 0,
     "FP_PDN_CHECK_NODES": 0,

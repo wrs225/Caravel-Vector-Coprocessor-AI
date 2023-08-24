@@ -20,10 +20,10 @@ module VectorRegFile_Param (
 	input wire reset;
 	input wire [ADDR_WIDTH - 1:0] rAddr1_1;
 	input wire [ADDR_WIDTH - 1:0] rAddr2_1;
-	output reg [DATA_WIDTH - 1:0] rData1;
+	output wire [DATA_WIDTH - 1:0] rData1;
 	input wire [ADDR_WIDTH - 1:0] rAddr1_2;
 	input wire [ADDR_WIDTH - 1:0] rAddr2_2;
-	output reg [DATA_WIDTH - 1:0] rData2;
+	output wire [DATA_WIDTH - 1:0] rData2;
 	input wire [ADDR_WIDTH - 1:0] wAddr1;
 	input wire [ADDR_WIDTH - 1:0] wAddr2;
 	input wire [DATA_WIDTH - 1:0] wData;
@@ -41,11 +41,11 @@ module VectorRegFile_Param (
 		end
 		else if (wEnable)
 			reg_file[wAddr1][wAddr2] <= wData;
-	always @(*) begin
-		rData1 = reg_file[rAddr1_1][rAddr2_1];
-		rData2 = reg_file[rAddr1_2][rAddr2_2];
-	end
+
+	assign rData1 = reg_file[rAddr1_1][rAddr2_1];
+	assign rData2 = reg_file[rAddr1_2][rAddr2_2];
 endmodule
+
 module VectorRegFile (
 	`ifdef USE_POWER_PINS
     inout wire vccd1,	// User area 1 1.8V supply
@@ -55,10 +55,10 @@ module VectorRegFile (
 	input wire reset,
 	input wire [ADDR_WIDTH - 1:0] rAddr1_1,
 	input wire [ADDR_WIDTH - 1:0] rAddr2_1,
-	output reg [DATA_WIDTH - 1:0] rData1,
+	output wire [DATA_WIDTH - 1:0] rData1,
 	input wire [ADDR_WIDTH - 1:0] rAddr1_2,
 	input wire [ADDR_WIDTH - 1:0] rAddr2_2,
-	output reg [DATA_WIDTH - 1:0] rData2,
+	output wire [DATA_WIDTH - 1:0] rData2,
 	input wire [ADDR_WIDTH - 1:0] wAddr1,
 	input wire [ADDR_WIDTH - 1:0] wAddr2,
 	input wire [DATA_WIDTH - 1:0] wData,

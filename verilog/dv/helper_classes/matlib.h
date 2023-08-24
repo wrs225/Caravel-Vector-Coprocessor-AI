@@ -2,7 +2,6 @@
 #define MATRIX_OPERATIONS_H
 
 #include <stdint.h>
-#include <string.h> // For memcpy
 #include "vplib.h"
 
 void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
@@ -59,7 +58,11 @@ void relu(float* input_array, float* output_array, int total_elements) {
 
         // Buffer for the current chunk of input data
         float chunk_data[32] = {0.0f};
-        memcpy(chunk_data, &input_array[i], chunk_size * sizeof(float));
+
+        // Load the data from input_array into chunk_data without memcpy
+        for (int j = 0; j < chunk_size; j++) {
+            chunk_data[j] = input_array[i + j];
+        }
 
         // Write the current chunk to the co-processor
         write_to_vreg(VREG_0, chunk_data);
@@ -77,8 +80,10 @@ void relu(float* input_array, float* output_array, int total_elements) {
         // Read back the results from the co-processor from VREG_2
         read_from_vreg(VREG_2, chunk_data);
 
-        // Copy the results to the output array
-        memcpy(&output_array[i], chunk_data, chunk_size * sizeof(float));
+        // Store the data from chunk_data into output_array without memcpy
+        for (int j = 0; j < chunk_size; j++) {
+            output_array[i + j] = chunk_data[j];
+        }
     }
 }
 

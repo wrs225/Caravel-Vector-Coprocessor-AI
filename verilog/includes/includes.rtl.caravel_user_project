@@ -18,4 +18,4 @@
 -v $(USER_PROJECT_VERILOG)/rtl/user_proj_example.v
 -v $(USER_PROJECT_VERILOG)/rtl/WrapperBlock_noparam__pickled.v
 -v $(USER_PROJECT_VERILOG)/rtl/VectorRegFile.v
- 
+ -v $(USER_PROJECT_VERILOG)/rtl/ScalarRegFile.v

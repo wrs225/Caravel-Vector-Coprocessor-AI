@@ -15,6 +15,11 @@ INSTRUCTION_ADDRESS = 0x30000000
 VAND_OPCODE = 0x09
 VOR_OPCODE = 0x0A
 VXOR_OPCODE = 0x0B
+VPSET_OPCODE = 0x0E
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
 
 def random_test_vector_and(dut):
   # Generate random inputs
@@ -24,6 +29,11 @@ def random_test_vector_and(dut):
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, inputs[i])
+
+  # Set the proper register (replace with the correct values for Pdest and Ssrc)
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
 
   # Perform the vector bitwise AND operation
   and_instruction = (VAND_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
@@ -47,6 +57,11 @@ def random_test_vector_or(dut):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, inputs[i])
 
+  # Set the proper register (replace with the correct values for Pdest and Ssrc)
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
+
   # Perform the vector bitwise OR operation
   or_instruction = (VOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
   wb_write(dut, INSTRUCTION_ADDRESS, or_instruction)
@@ -68,6 +83,11 @@ def random_test_vector_xor(dut):
   for i in range(NUM_REGISTERS * 2):
     register_address = BASE_ADDRESS + (i * 4)  # Assuming each register is 4 bytes
     wb_write(dut, register_address, inputs[i])
+
+  # Set the proper register (replace with the correct values for Pdest and Ssrc)
+  Pdest = 2
+  Ssrc = 2
+  vpset_instruction(dut, Pdest, Ssrc)
 
   # Perform the vector bitwise XOR operation
   xor_instruction = (VXOR_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)

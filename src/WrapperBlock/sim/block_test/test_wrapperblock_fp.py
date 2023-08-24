@@ -15,10 +15,15 @@ INSTRUCTION_ADDRESS = 0x30000000
 VFADD_OPCODE = 0x07
 VFMUL_OPCODE = 0x08
 VFSUB_OPCODE = 0x10
+VPSET_OPCODE = 0x0E
 
 # Tolerances for floating point comparisons
 VFADD_VFSUB_TOLERANCE = 1e-4
 VFMUL_TOLERANCE = 1e-3
+
+def vpset_instruction(dut, Pdest, Ssrc):
+    instruction = (VPSET_OPCODE << 27) | (Pdest << 21) | (Ssrc << 16)
+    wb_write(dut, INSTRUCTION_ADDRESS, instruction)
 
 def test_vfadd(cmdline_opts):
     # Instantiate and configure the DUT
@@ -37,6 +42,11 @@ def vfadd_operation(dut):
     for i in range(NUM_REGISTERS * 2):
         register_address = BASE_ADDRESS + (i * 4)
         wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 2
+    Ssrc = 2
+    vpset_instruction(dut, Pdest, Ssrc)
 
     add_instruction = (VFADD_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, add_instruction)
@@ -68,6 +78,11 @@ def vfsub_operation(dut):
         register_address = BASE_ADDRESS + (i * 4)
         wb_write(dut, register_address, float_to_hex(inputs[i]))
 
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 2
+    Ssrc = 2
+    vpset_instruction(dut, Pdest, Ssrc)
+
     sub_instruction = (VFSUB_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, sub_instruction)
 
@@ -97,6 +112,11 @@ def vfmul_operation(dut):
     for i in range(NUM_REGISTERS * 2):
         register_address = BASE_ADDRESS + (i * 4)
         wb_write(dut, register_address, float_to_hex(inputs[i]))
+
+    # Set the proper register (replace with the correct values for Pdest and Ssrc)
+    Pdest = 2
+    Ssrc = 2
+    vpset_instruction(dut, Pdest, Ssrc)
 
     mul_instruction = (VFMUL_OPCODE << 27) | (2 << 21) | (0 << 16) | (1 << 11)
     wb_write(dut, INSTRUCTION_ADDRESS, mul_instruction)

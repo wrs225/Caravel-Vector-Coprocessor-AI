@@ -98,6 +98,8 @@ Additional logic was added as a kludge to allow for dynamic reading/writing from
 
 Each address line piped into an AND gate is assumed to be an address comparison. Additionally, each queue can be assumed to be latency insensitive. Each blue wire can be assumed to come from the control unit.
 
+They say pictures are worth 1000 words, so a copy of the block diagram is included below.
+
 ![Block Diagram for Microarchitecture](img/VectorArchv1DiagramPretty.png)
 
 ## Wishbone Converter
@@ -107,14 +109,26 @@ If a valid register address is sent to the converter via wishbone, it will copy 
 
 If the transaction is sent to the ```INSTRUCTION_ADDRESS```, the transaction will be sent over to the instruction queue. 
 
+## Control Unit. 
+Currently, the control unit is based on a decoder which simpy decodes an instruction. In the future, the control's implementation can be changed to support multi-instruction caravans. 
+
 # Testing Strategy
 We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality of our design. To do this, we first must construct a Python wrapper class for each Verilog module. Then, Python unit test functions can be written and run with [pytest](https://docs.pytest.org/en/7.4.x/). We use GPT4 to generate these Python test files, which cover the expected functionality for each operation as well as edge cases. Prompts for each module can be found in the prompts_tests directory.
 
 # Phyiscal Design 
+Before pushing the design through the OpenLane flow, we pushed the SystemVerilog through sv2v. We then used ChatGPT to make any required modifications to the Verilog such as adding power pins.
+
+We originally decided to make our vector register file contain 32 vector and scalar registers. However, after trying to push it through OpenLane we quickly discovered that having 4Kb of registers was far too large for the tools. Thus we scaled our design to only have 6 vector and scalar registers. 
+
+We tried making macros for both the vector and scalar register files, but we encountered issues with the tool when running LVS. There seemed to be an issue with connecting power to macros that are on lower levels on the top layer of the hierarchy. Instead of dealing with the problem further, we just decided to push the design through the flow flat. 
+
+We also encountered an issue with Verilog sv2v generated for the fp_addsub unit which caused Yosys to hang and run forever, eating an infinite amount of memory. ChatGPT was able to fix this and and the resulting logic passed all test cases.
+
+The design also failed to meet timing for a clock period of 25ns, so we ran the tool at a period of 20ns, resulting in a slack of ~-4.5 ns. If we run the desing at the maximum period of the Caravel (25ns), this should result in the design making timing. 
 
 # Performance
 
 # Learnings
-
+When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. One thing we learned 
 
 Copyright 2023 William Salcedo & Courtney McBeth

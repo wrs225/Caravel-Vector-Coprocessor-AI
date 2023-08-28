@@ -236,3 +236,59 @@ void relu(float* input_array, float* output_array, int total_elements) {
     }
 }
 In this modified version, the vfmul instruction stores the result in VREG_2, which is also the register we read the result from. This way, elements identified by the predicate will be multiplied by 0 and the rest remain untouched.
+
+
+
+
+User
+Please retain the same functionality but eliminate the use of memcpy
+ChatGPT
+Sure, if we want to avoid using memcpy, we can manually loop through the array and access each element individually. We'll update the data loading and storing within the loop accordingly:
+
+c
+Copy code
+#include <stdint.h>
+
+// ... [Assumed function declarations] ...
+
+void relu(float* input_array, float* output_array, int total_elements) {
+    // Create and set the zero vector outside the loop since it's constant
+    float zero_vector[32] = {0.0f};
+    write_to_vreg(VREG_1, zero_vector);
+
+    for (int i = 0; i < total_elements; i += 32) {
+        // Calculate the number of elements left
+        int elements_left = total_elements - i;
+        int chunk_size = (elements_left > 32) ? 32 : elements_left;
+
+        // Buffer for the current chunk of input data
+        float chunk_data[32] = {0.0f};
+
+        // Load the data from input_array into chunk_data without memcpy
+        for (int j = 0; j < chunk_size; j++) {
+            chunk_data[j] = input_array[i + j];
+        }
+
+        // Write the current chunk to the co-processor
+        write_to_vreg(VREG_0, chunk_data);
+
+        // Enable predicate register for use in comparisons
+        vpset(VREG_2);
+
+        // Set predicate if VREG_0 < VREG_1
+        vpslt(VREG_2, VREG_0, VREG_1);
+
+        // Multiply the negative elements (identified by VREG_2) of VREG_0 by zero (from VREG_1) 
+        // and store the result in VREG_2
+        vfmul(VREG_2, VREG_0, VREG_1);
+
+        // Read back the results from the co-processor from VREG_2
+        read_from_vreg(VREG_2, chunk_data);
+
+        // Store the data from chunk_data into output_array without memcpy
+        for (int j = 0; j < chunk_size; j++) {
+            output_array[i + j] = chunk_data[j];
+        }
+    }
+}
+Here, the memcpy operations have been replaced with loops to manually copy each element from the input to the buffer and vice versa.

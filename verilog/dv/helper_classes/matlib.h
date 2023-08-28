@@ -2,16 +2,18 @@
 #define MATRIX_OPERATIONS_H
 
 #include <stdint.h>
+#include <math.h>
+#include <string.h>
 #include "vplib.h"
 
 void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N; j += 32) { // Stepping 32 at a time for B columns
-            float sum[32] = {0}; // Initialize sum array
+            float sum[32]; // Initialize sum array
 
             for (int k = 0; k < K; k++) {
                 float scalarA = A[i][k];
-                float vectorB[32] = {0};
+                float vectorB[32];
 
                 // Load the current 32 elements of B into vectorB (with padding if needed)
                 for (int idx = 0; idx < 32 && (j + idx) < N; idx++) {
@@ -27,7 +29,7 @@ void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
                 // Multiply vectorB by scalarA
                 vfsmul(VREG_1, VREG_0, SREG_0); // Results will be stored in VREG_1
 
-                float product[32] = {0};
+                float product[32];
                 // Read the results of the multiplication
                 read_from_vreg(VREG_1, product);
 
@@ -48,7 +50,7 @@ void matrix_mult(float **A, float **B, float **C, int M, int K, int N) {
 
 void relu(float* input_array, float* output_array, int total_elements) {
     // Create and set the zero vector outside the loop since it's constant
-    float zero_vector[32] = {0.0f};
+    float zero_vector[32];
     write_to_vreg(VREG_1, zero_vector);
 
     for (int i = 0; i < total_elements; i += 32) {
@@ -57,7 +59,7 @@ void relu(float* input_array, float* output_array, int total_elements) {
         int chunk_size = (elements_left > 32) ? 32 : elements_left;
 
         // Buffer for the current chunk of input data
-        float chunk_data[32] = {0.0f};
+        float chunk_data[32];
 
         // Load the data from input_array into chunk_data without memcpy
         for (int j = 0; j < chunk_size; j++) {

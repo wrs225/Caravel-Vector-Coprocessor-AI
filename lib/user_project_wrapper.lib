@@ -129,7 +129,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_cyc_i") {
       direction : input;
-      capacitance : 1.2209;
+      capacitance : 1.2211;
     }
     pin("wbs_stb_i") {
       direction : input;
@@ -137,7 +137,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_we_i") {
       direction : input;
-      capacitance : 0.9360;
+      capacitance : 0.9361;
     }
     pin("vssa2") {
       direction : input;
@@ -2337,7 +2337,7 @@ library (user_project_wrapper) {
       capacitance : 0.0000;
     pin("wbs_adr_i[31]") {
       direction : input;
-      capacitance : 0.4232;
+      capacitance : 0.4233;
     }
     pin("wbs_adr_i[30]") {
       direction : input;
@@ -2373,7 +2373,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_adr_i[22]") {
       direction : input;
-      capacitance : 1.2074;
+      capacitance : 1.2075;
     }
     pin("wbs_adr_i[21]") {
       direction : input;
@@ -2385,7 +2385,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_adr_i[19]") {
       direction : input;
-      capacitance : 0.5623;
+      capacitance : 0.5625;
     }
     pin("wbs_adr_i[18]") {
       direction : input;
@@ -2437,7 +2437,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_adr_i[6]") {
       direction : input;
-      capacitance : 1.0031;
+      capacitance : 1.0034;
     }
     pin("wbs_adr_i[5]") {
       direction : input;
@@ -2445,7 +2445,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_adr_i[4]") {
       direction : input;
-      capacitance : 0.7923;
+      capacitance : 0.7924;
     }
     pin("wbs_adr_i[3]") {
       direction : input;
@@ -2457,7 +2457,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_adr_i[1]") {
       direction : input;
-      capacitance : 0.5265;
+      capacitance : 0.5266;
     }
     pin("wbs_adr_i[0]") {
       direction : input;
@@ -2470,7 +2470,7 @@ library (user_project_wrapper) {
       capacitance : 0.0000;
     pin("wbs_dat_i[31]") {
       direction : input;
-      capacitance : 0.6130;
+      capacitance : 0.6131;
     }
     pin("wbs_dat_i[30]") {
       direction : input;
@@ -2486,7 +2486,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_i[27]") {
       direction : input;
-      capacitance : 0.8183;
+      capacitance : 0.8184;
     }
     pin("wbs_dat_i[26]") {
       direction : input;
@@ -2502,7 +2502,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_i[23]") {
       direction : input;
-      capacitance : 0.9040;
+      capacitance : 0.9041;
     }
     pin("wbs_dat_i[22]") {
       direction : input;
@@ -2607,7 +2607,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_o[30]") {
       direction : output;
-      capacitance : 0.7029;
+      capacitance : 0.7030;
     }
     pin("wbs_dat_o[29]") {
       direction : output;
@@ -2619,7 +2619,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_o[27]") {
       direction : output;
-      capacitance : 0.9029;
+      capacitance : 0.9033;
     }
     pin("wbs_dat_o[26]") {
       direction : output;
@@ -2639,7 +2639,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_o[22]") {
       direction : output;
-      capacitance : 0.2310;
+      capacitance : 0.2311;
     }
     pin("wbs_dat_o[21]") {
       direction : output;
@@ -2659,7 +2659,7 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_o[17]") {
       direction : output;
-      capacitance : 0.6532;
+      capacitance : 0.6533;
     }
     pin("wbs_dat_o[16]") {
       direction : output;
@@ -2691,11 +2691,11 @@ library (user_project_wrapper) {
     }
     pin("wbs_dat_o[9]") {
       direction : output;
-      capacitance : 0.9642;
+      capacitance : 0.9643;
     }
     pin("wbs_dat_o[8]") {
       direction : output;
-      capacitance : 0.9773;
+      capacitance : 0.9774;
     }
     pin("wbs_dat_o[7]") {
       direction : output;

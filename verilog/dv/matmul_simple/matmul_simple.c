@@ -109,22 +109,25 @@ void main()
     int M = 3, K = 4, N = 5;
     const float TOLERANCE = 0.001f; // For comparing floating point numbers
 
-    // Define matrices A, B, C, and expected_C
-    float A[3][4] = {
-        {1, 2, 3, 4},
-        {2, 3, 4, 5},
-        {3, 4, 5, 6}
-    };
-
-    float B[4][5] = {
-        {1, 2, 3, 4, 5},
-        {2, 3, 4, 5, 6},
-        {3, 4, 5, 6, 7},
-        {4, 5, 6, 7, 8}
-    };
-
+    // Define and initialize matrices A, B, C, and expected_C using loops
+    float A[3][4];
+    float B[4][5];
     float C[3][5] = {0};
     float expected_C[3][5] = {0};
+    
+    // Initialize A
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 4; j++) {
+            A[i][j] = (float)(i + j + 1);
+        }
+    }
+
+    // Initialize B
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 5; j++) {
+            B[i][j] = (float)(i + j + 1);
+        }
+    }
 
     // Convert 2D arrays to array of pointers for matrix_mult function
     float *A_ptrs[M];

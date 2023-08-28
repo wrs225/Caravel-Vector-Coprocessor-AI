@@ -118,6 +118,14 @@ Currently, the control unit is based on a decoder which simpy decodes an instruc
 # Testing Strategy
 We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality of our design. To do this, we first must construct a Python wrapper class for each Verilog module. Then, Python unit test functions can be written and run with [pytest](https://docs.pytest.org/en/7.4.x/). We use GPT4 to generate these Python test files, which cover the expected functionality for each operation as well as edge cases. Prompts for each module can be found in the prompts_tests directory.
 
+
+## Running PyMTL Test Cases
+To run test cases for an individual component using PyMTL test benches navigate from the top to 
+```cd src/```
+
+From there you can ```cd``` into any of the blocks. We reccommend you make a ```build``` folder, as the PyMTL test benches generate a bunch of extra files. 
+Then you can simply run ```pytest ../``` and the tests will run. For more information you should check out [this link](https://www.csl.cornell.edu/courses/ece5745/handouts/ece4750-tut3-verilog.pdf).
+ 
 # Phyiscal Design 
 Before pushing the design through the OpenLane flow, we pushed the SystemVerilog through sv2v. We then used ChatGPT to make any required modifications to the Verilog such as adding power pins.
 
@@ -136,7 +144,7 @@ Don't expect ChatGPT to do everything for you. You, as the designer, should have
 
 Use a different method for testing your Verilog than iverilog. We decided to use PyMTL3 to test our design and it was very fruitful. Because ChatGPT is better at generating Python than Verilog, it became trivially easy to use GPT4 to generate test cases for our design. This allowed us to have a feedback loop of generating test cases alongside hardware to verify its functionality. This enabled us to generate a larger project in a shorter amount of time.
 
-The management SoC does not support floating point instructions. We thought there was an FPU implemented on the Management Core, but it turns out that was not synthesized. If you want to use the floating-point portions of this project, you will need to add an additional C library to compile floating point instructions in software
+The management SoC does not support floating point instructions. We thought there was an FPU implemented on the Management Core, but it turns out that was not synthesized. If you want to use the floating-point portions of this project, you will need to add an additional C library to compile floating point instructions in software.
 
 
 

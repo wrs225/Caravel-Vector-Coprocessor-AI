@@ -14,7 +14,7 @@ All Prompts used to generate code are included in this repository. The prompts w
 - [x] 6 scalar registers, each being 32 bits. Directly acessable over wishbone interface.
 - [x] Predicate Instructions for vectored-conditionals
 - [x] C-Library for wrapping wishbone loads/stores
-- [x] Basic Machine Learning Library(You need to provide the )
+- [x] Basic Machine Learning Library(You need to provide a software floating point lib)
 
 *Our implementation has slightly different rounding logic, so your results may vary.
 
@@ -24,7 +24,7 @@ The instructions supported on the processor are included in the table below. We 
 0x30000004 -> 0x30000380 for vector registers
 0x30001000 -> 0x30001018 for scalar registers
 
-Additionally, for predicate register instrucitons you do not need to actually set Ssrc to anything meaningful, as each element in the destination predicate register will have values written to it for anything valuable. It is reccomended you use the C library ```vplib``` to interact with the processor, as this abstracts away the low-level register reads and writes you would need to do.
+Additionally, for predicate register instrucitons you do not need to actually set Ssrc to anything meaningful, as each element in the destination predicate register will have values written to it for anything valuable. It is reccomended you use the C library ```vplib``` to interact with the processor, as this abstracts low-level register reads and writes.
 
 ## ISA
 
@@ -80,7 +80,7 @@ As stated above, the addresses of the memory mapped registers are as follows:
 #define SREG_5  0x30001014
 #define SREG_6  0x30001018
 ```
-The stride between each VREG register is 32 * 4 bytes. The following 32 addresses after a VREG register are individual elements of the vector. This makes the vector register file to appear as memory acessable to the management core. 
+The stride between each VREG register is 32 * 4 bytes. The following 32 addresses after a VREG register are individual elements of the vector. This makes the vector register file appear as memory acessable to the management core. 
 
 Each register is dynamically typed, meaning you can store and conduct operations on signed/unsigned integers, booleans, and 32-bit floating point datatypes. 
 
@@ -135,7 +135,7 @@ We tried making macros for both the vector and scalar register files, but we enc
 
 We also encountered an issue with Verilog sv2v generated for the fp_addsub unit which caused Yosys to hang and run forever, eating an infinite amount of memory. ChatGPT was able to fix this and and the resulting logic passed all test cases.
 
-The design also failed to meet timing for a clock period of 25ns with a slack of about -4.1ns. If you run the design at 30ns it should be fine. We tried pushing the design through at 20ns, but for some reason the tool insisted on a 25ns lcock period. 
+The design also failed to meet timing for a clock period of 25ns with a slack of about -4.1ns. If you run the design at 30ns it should be fine. We tried pushing the design through at 20ns, but for some reason the tool insisted on a 25ns clock period. 
 
 # Learnings
 When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. Originally, we tried to create a SHA-256 hardware accelerator with clever prompt engineering, but we quickly found that ChatGPT struggled to create a complex block from scratch. Thus, we demoted it to junior engineer and decided on a more holistic approach to hardware generation. Will read *Computer Architecture: A Quantitative Approach* over the summer to brush up on his comparch skills, and was inspired by the vector processor. He wanted to implement a vector processor for the Caravel that can be used in conjunction with the management SoC. It was from our experience with this project that we learned the following:

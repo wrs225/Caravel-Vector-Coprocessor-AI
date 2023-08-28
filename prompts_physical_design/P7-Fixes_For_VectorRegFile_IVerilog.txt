@@ -1,0 +1,339 @@
+module VectorRegFile_Param (
+	clk,
+	reset,
+	rAddr1_1,
+	rAddr2_1,
+	rData1,
+	rAddr1_2,
+	rAddr2_2,
+	rData2,
+	wAddr1,
+	wAddr2,
+	wData,
+	wEnable
+);
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 32;
+	parameter NUM_ELE = 32;
+	input wire clk;
+	input wire reset;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1;
+	output reg [DATA_WIDTH - 1:0] rData1;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2;
+	output reg [DATA_WIDTH - 1:0] rData2;
+	input wire [ADDR_WIDTH - 1:0] wAddr1;
+	input wire [ADDR_WIDTH - 1:0] wAddr2;
+	input wire [DATA_WIDTH - 1:0] wData;
+	input wire wEnable;
+	reg [DATA_WIDTH - 1:0] reg_file [0:NUM_REG - 1][0:NUM_ELE - 1];
+	always @(posedge clk or posedge reset)
+		if (reset) begin : sv2v_autoblock_1
+			integer i;
+			for (i = 0; i < NUM_REG; i = i + 1)
+				begin : sv2v_autoblock_2
+					integer j;
+					for (j = 0; j < NUM_ELE; j = j + 1)
+						reg_file[i][j] <= 1'sb0;
+				end
+		end
+		else if (wEnable)
+			reg_file[wAddr1][wAddr2] <= wData;
+	always @(*) begin
+		rData1 = reg_file[rAddr1_1][rAddr2_1];
+		rData2 = reg_file[rAddr1_2][rAddr2_2];
+	end
+endmodule
+module VectorRegFile (
+	`ifdef USE_POWER_PINS
+    inout wire vccd1,	// User area 1 1.8V supply
+    inout wire vssd1,	// User area 1 digital ground
+	`endif
+	input wire clk,
+	input wire reset,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1,
+	output reg [DATA_WIDTH - 1:0] rData1,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2,
+	output reg [DATA_WIDTH - 1:0] rData2,
+	input wire [ADDR_WIDTH - 1:0] wAddr1,
+	input wire [ADDR_WIDTH - 1:0] wAddr2,
+	input wire [DATA_WIDTH - 1:0] wData,
+	input wire wEnable
+);
+
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 6;
+	parameter NUM_ELE = 32;
+
+	VectorRegFile_Param #(
+		.ADDR_WIDTH(ADDR_WIDTH),
+		.DATA_WIDTH(DATA_WIDTH),
+		.NUM_REG(NUM_REG),
+		.NUM_ELE(NUM_ELE)
+	) u_VectorRegFile_Param (
+		.clk(clk),
+		.reset(reset),
+		.rAddr1_1(rAddr1_1),
+		.rAddr2_1(rAddr2_1),
+		.rData1(rData1),
+		.rAddr1_2(rAddr1_2),
+		.rAddr2_2(rAddr2_2),
+		.rData2(rData2),
+		.wAddr1(wAddr1),
+		.wAddr2(wAddr2),
+		.wData(wData),
+		.wEnable(wEnable)
+	);
+endmodule
+
+Please fix the following errors in this module:
+module VectorRegFile_Param (
+	clk,
+	reset,
+	rAddr1_1,
+	rAddr2_1,
+	rData1,
+	rAddr1_2,
+	rAddr2_2,
+	rData2,
+	wAddr1,
+	wAddr2,
+	wData,
+	wEnable
+);
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 32;
+	parameter NUM_ELE = 32;
+	input wire clk;
+	input wire reset;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1;
+	output reg [DATA_WIDTH - 1:0] rData1;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2;
+	output reg [DATA_WIDTH - 1:0] rData2;
+	input wire [ADDR_WIDTH - 1:0] wAddr1;
+	input wire [ADDR_WIDTH - 1:0] wAddr2;
+	input wire [DATA_WIDTH - 1:0] wData;
+	input wire wEnable;
+	reg [DATA_WIDTH - 1:0] reg_file [0:NUM_REG - 1][0:NUM_ELE - 1];
+	always @(posedge clk or posedge reset)
+		if (reset) begin : sv2v_autoblock_1
+			integer i;
+			for (i = 0; i < NUM_REG; i = i + 1)
+				begin : sv2v_autoblock_2
+					integer j;
+					for (j = 0; j < NUM_ELE; j = j + 1)
+						reg_file[i][j] <= 1'sb0;
+				end
+		end
+		else if (wEnable)
+			reg_file[wAddr1][wAddr2] <= wData;
+	always @(*) begin
+		rData1 = reg_file[rAddr1_1][rAddr2_1];
+		rData2 = reg_file[rAddr1_2][rAddr2_2];
+	end
+endmodule
+module VectorRegFile (
+	`ifdef USE_POWER_PINS
+    inout wire vccd1,	// User area 1 1.8V supply
+    inout wire vssd1,	// User area 1 digital ground
+	`endif
+	input wire clk,
+	input wire reset,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1,
+	output reg [DATA_WIDTH - 1:0] rData1,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2,
+	output reg [DATA_WIDTH - 1:0] rData2,
+	input wire [ADDR_WIDTH - 1:0] wAddr1,
+	input wire [ADDR_WIDTH - 1:0] wAddr2,
+	input wire [DATA_WIDTH - 1:0] wData,
+	input wire wEnable
+);
+
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 6;
+	parameter NUM_ELE = 32;
+
+	VectorRegFile_Param #(
+		.ADDR_WIDTH(ADDR_WIDTH),
+		.DATA_WIDTH(DATA_WIDTH),
+		.NUM_REG(NUM_REG),
+		.NUM_ELE(NUM_ELE)
+	) u_VectorRegFile_Param (
+		.clk(clk),
+		.reset(reset),
+		.rAddr1_1(rAddr1_1),
+		.rAddr2_1(rAddr2_1),
+		.rData1(rData1),
+		.rAddr1_2(rAddr1_2),
+		.rAddr2_2(rAddr2_2),
+		.rData2(rData2),
+		.wAddr1(wAddr1),
+		.wAddr2(wAddr2),
+		.wData(wData),
+		.wEnable(wEnable)
+	);
+endmodule
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/caravel/verilog/rtl/caravel.v:236: warning: input port clock is coerced to inout.
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:83: error: reg rData1; cannot be driven by primitives or continuous assignment.
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:83: error: Output port expression must support continuous assignment.
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:83:      : Port 5 (rData1) of VectorRegFile_Param is connected to rData1
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:86: error: reg rData2; cannot be driven by primitives or continuous assignment.
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:86: error: Output port expression must support continuous assignment.
+/home/courtney/Desktop/Caravel-Vector-Coprocessor-AI/verilog/rtl/VectorRegFile.v:86:      : Port 8 (rData2) of VectorRegFile_Param is connected to rData2
+4 error(s) during elaboration.
+ChatGPT
+5 / 5
+
+The errors you are encountering are related to the fact that you have declared rData1 and rData2 as reg in the module interface, but you are trying to drive them from within a module instantiation. In Verilog, a reg type cannot be driven by continuous assignment or by primitives, and it must be driven by procedural code (inside an always or initial block).
+
+Here's how you can fix the errors:
+
+    Change the output reg to output wire for rData1 and rData2 in both the VectorRegFile_Param and VectorRegFile modules.
+
+    Remove the always @(*) block that assigns values to rData1 and rData2 in the VectorRegFile_Param module, and instead, directly assign the values to the wires in the module instantiation.
+
+Here's the corrected code:
+
+verilog
+
+module VectorRegFile_Param (
+	// ... same as before ...
+	output wire [DATA_WIDTH - 1:0] rData1,
+	output wire [DATA_WIDTH - 1:0] rData2,
+	// ... same as before ...
+);
+
+// ... same as before ...
+
+assign rData1 = reg_file[rAddr1_1][rAddr2_1];
+assign rData2 = reg_file[rAddr1_2][rAddr2_2];
+
+// ... same as before ...
+
+endmodule
+
+module VectorRegFile (
+	// ... same as before ...
+	output wire [DATA_WIDTH - 1:0] rData1,
+	output wire [DATA_WIDTH - 1:0] rData2,
+	// ... same as before ...
+);
+
+// ... same as before ...
+
+endmodule
+
+These changes should resolve the errors you were encountering. Make sure to update both the VectorRegFile_Param and VectorRegFile modules accordingly.
+User
+Can you please print it all as one file so I can copy and paste?
+ChatGPT
+
+Certainly! Here's the corrected code for both modules in one continuous block:
+
+verilog
+
+module VectorRegFile_Param (
+	clk,
+	reset,
+	rAddr1_1,
+	rAddr2_1,
+	rData1,
+	rAddr1_2,
+	rAddr2_2,
+	rData2,
+	wAddr1,
+	wAddr2,
+	wData,
+	wEnable
+);
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 32;
+	parameter NUM_ELE = 32;
+	input wire clk;
+	input wire reset;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1;
+	output wire [DATA_WIDTH - 1:0] rData1;
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2;
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2;
+	output wire [DATA_WIDTH - 1:0] rData2;
+	input wire [ADDR_WIDTH - 1:0] wAddr1;
+	input wire [ADDR_WIDTH - 1:0] wAddr2;
+	input wire [DATA_WIDTH - 1:0] wData;
+	input wire wEnable;
+	reg [DATA_WIDTH - 1:0] reg_file [0:NUM_REG - 1][0:NUM_ELE - 1];
+	always @(posedge clk or posedge reset)
+		if (reset) begin : sv2v_autoblock_1
+			integer i;
+			for (i = 0; i < NUM_REG; i = i + 1)
+				begin : sv2v_autoblock_2
+					integer j;
+					for (j = 0; j < NUM_ELE; j = j + 1)
+						reg_file[i][j] <= 1'sb0;
+				end
+		end
+		else if (wEnable)
+			reg_file[wAddr1][wAddr2] <= wData;
+
+	assign rData1 = reg_file[rAddr1_1][rAddr2_1];
+	assign rData2 = reg_file[rAddr1_2][rAddr2_2];
+endmodule
+
+module VectorRegFile (
+	`ifdef USE_POWER_PINS
+    inout wire vccd1,	// User area 1 1.8V supply
+    inout wire vssd1,	// User area 1 digital ground
+	`endif
+	input wire clk,
+	input wire reset,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_1,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_1,
+	output wire [DATA_WIDTH - 1:0] rData1,
+	input wire [ADDR_WIDTH - 1:0] rAddr1_2,
+	input wire [ADDR_WIDTH - 1:0] rAddr2_2,
+	output wire [DATA_WIDTH - 1:0] rData2,
+	input wire [ADDR_WIDTH - 1:0] wAddr1,
+	input wire [ADDR_WIDTH - 1:0] wAddr2,
+	input wire [DATA_WIDTH - 1:0] wData,
+	input wire wEnable
+);
+
+	parameter ADDR_WIDTH = 5;
+	parameter DATA_WIDTH = 32;
+	parameter NUM_REG = 6;
+	parameter NUM_ELE = 32;
+
+	VectorRegFile_Param #(
+		.ADDR_WIDTH(ADDR_WIDTH),
+		.DATA_WIDTH(DATA_WIDTH),
+		.NUM_REG(NUM_REG),
+		.NUM_ELE(NUM_ELE)
+	) u_VectorRegFile_Param (
+		.clk(clk),
+		.reset(reset),
+		.rAddr1_1(rAddr1_1),
+		.rAddr2_1(rAddr2_1),
+		.rData1(rData1),
+		.rAddr1_2(rAddr1_2),
+		.rAddr2_2(rAddr2_2),
+		.rData2(rData2),
+		.wAddr1(wAddr1),
+		.wAddr2(wAddr2),
+		.wData(wData),
+		.wEnable(wEnable)
+	);
+endmodule
+
+You can copy and paste this code into your project. Let me know if you need further assistance!

@@ -14,7 +14,7 @@ All Prompts used to generate code are included in this repository. The prompts w
 - [x] 6 scalar registers, each being 32 bits. Directly acessable over wishbone interface.
 - [x] Predicate Instructions for vectored-conditionals
 - [x] C-Library for wrapping wishbone loads/stores
-- [x] Basic Machine Learning Library
+- [x] Basic Machine Learning Library(You need to provide the )
 
 *Our implementation has slightly different rounding logic, so your results may vary.
 
@@ -127,11 +127,17 @@ We tried making macros for both the vector and scalar register files, but we enc
 
 We also encountered an issue with Verilog sv2v generated for the fp_addsub unit which caused Yosys to hang and run forever, eating an infinite amount of memory. ChatGPT was able to fix this and and the resulting logic passed all test cases.
 
-The design also failed to meet timing for a clock period of 25ns, so we ran the tool at a period of 20ns, resulting in a slack of ~-4.5 ns. If we run the desing at the maximum period of the Caravel (25ns), this should result in the design making timing. 
-
-# Performance
+The design also failed to meet timing for a clock period of 25ns with a slack of about -4.1ns. If you run the design at 30ns it should be fine. We tried pushing the design through at 20ns, but for some reason the tool insisted on a 25ns lcock period. 
 
 # Learnings
-When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. One thing we learned 
+When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. Originally, we tried to create a SHA-256 hardware accelerator with clever prompt engineering, but we quickly found that ChatGPT struggled to create a complex block from scratch. Thus, we demoted it to junior engineer and decided on a more holistic approach to hardware generation. Will read *Computer Architecture: A Quantitative Approach* over the summer to brush up on his comparch skills, and was inspired by the vector processor. He wanted to implement a vector processor for the Caravel that can be used in conjunction with the management SoC. It was from our experience with this project that we learned the following:
+
+Don't expect ChatGPT to do everything for you. You, as the designer, should have some idea of the hardware you would like to generate. Otherwise ChatGPT will make a bunch of mistakes and write suboptimal code. We tried having ChatGPT make a SHA-256 accelerator from single prompts, but it ended up being a disaster. For less generic hardware such as the decoder or wishbone converter, we needed to take a more manual approach and prompt chatgpt more precisely. For things like register files, it was easier because ChatGPT may have seen similar source code in its training.
+
+Use a different method for testing your Verilog than iverilog. We decided to use PyMTL3 to test our design and it was very fruitful. Because ChatGPT is better at generating Python than Verilog, it became trivially easy to use GPT4 to generate test cases for our design. This allowed us to have a feedback loop of generating test cases alongside hardware to verify its functionality. This enabled us to generate a larger project in a shorter amount of time.
+
+The management SoC does not support floating point instructions. We thought there was an FPU implemented on the Management Core, but it turns out that was not synthesized. If you want to use the floating-point portions of this project, you will need to add an additional C library to compile floating point instructions in software
+
+
 
 Copyright 2023 William Salcedo & Courtney McBeth

@@ -1,17 +1,17 @@
 # Vector Extension to Caravel Management SoC
 Written for the EFabless AI Chip competition, this project adds basic vector instructions to the Caravel Management SoC.
 
-All code, besides file paths are written using ChatGPT. This includes test cases, C libraries, blocks, etc. In our project, GPT4 served as a pair programmer which followed the instructions of a human that was aware of what the microarchitecture would look like.
+All code, besides file paths, was written using ChatGPT. This includes test cases, C libraries, blocks, etc. In our project, GPT4 served as a pair programmer which followed the instructions of a human that was aware of what the microarchitecture would look like.
 
-All Prompts used to generate code are included in this repository. The prompts within a file may not be in the order we asked ChatGPT. As we would find bugs, we would go back to previous prompts and fix the implementation within those prompts. However, the files are separated by block and topic. We have found it is difficult to do complex things within a single, long prompt, as GPT4 reaches its token limit and forgets how to do things.
+All Prompts used to generate code are included in this repository. The prompts within a file may not be in the order we asked ChatGPT. As we would find bugs, we would go back to previous prompts and fix the implementation within those prompts. However, the files are separated by block and topic. We have found it difficult to do complex things within a single long prompt as GPT4 reaches its token limit and forgets how to do things.
 
 ## Features
 - [x] Integer Operations
 - [x] (almost*) IEEE-754 compliant floating point adder and multiplier
 - [x] Bitwise logical operations
 - [x] Scalar instructions
-- [x] 6 vector registers, each being 32 elements and 32 bits. Directly acessable over wishbone interface.
-- [x] 6 scalar registers, each being 32 bits. Directly acessable over wishbone interface.
+- [x] 6 vector registers, each being 32 elements and 32 bits. Directly accessible over wishbone interface.
+- [x] 6 scalar registers, each being 32 bits. Directly accessible over wishbone interface.
 - [x] Predicate Instructions for vectored-conditionals
 - [x] C-Library for wrapping wishbone loads/stores
 - [x] Basic Machine Learning Library(You need to provide a software floating point lib)
@@ -20,11 +20,11 @@ All Prompts used to generate code are included in this repository. The prompts w
 
 # ISA and Register Mapping 
 
-The instructions supported on the processor are included in the table below. We had GPT4 generate an initial draft of the instructions, then we changed them as needed for our implementaton to make sense. Any of these instrucitons can be run by sending the instruciton over the wishbone address 0x30000000. The only exception to these instructions are the load/store instrucitons. Where instead writing to a vector or scalar register via sending a load/store instruciton over 0x30000000, you can just write or read from memory addresses: 
+The instructions supported on the processor are included in the table below. We had GPT4 generate an initial draft of the instructions, and then we changed them as needed for our implementation to make sense. Any of these instructions can be run by sending the instruction over the wishbone address 0x30000000. The only exception to these instructions is the load/store instructions. Instead writing to a vector or scalar register via sending a load/store instruction over 0x30000000, you can just write or read from memory addresses: 
 0x30000004 -> 0x30000380 for vector registers
 0x30001000 -> 0x30001018 for scalar registers
 
-Additionally, for predicate register instrucitons you do not need to actually set Ssrc to anything meaningful, as each element in the destination predicate register will have values written to it for anything valuable. It is reccomended you use the C library ```vplib``` to interact with the processor, as this abstracts low-level register reads and writes.
+Additionally, for predicate register instructions you do not need to actually set Ssrc to anything meaningful, as each element in the destination predicate register will have values written to it for anything valuable. It is recommended you use the C library ```vplib``` to interact with the processor, as this abstracts low-level register reads and writes.
 
 ## ISA
 
@@ -60,7 +60,7 @@ This ISA was written by GPT4. As stated above, VLOAD and VSTORE are memory-mappe
 
 ## Register Mapping
 
-As stated above, the addresses of the memory mapped registers are as follows:
+As stated above, the addresses of the memory-mapped registers are as follows:
 ```
 #define INSTRUCTION_ADDRESS 0x30000000
 #define VREG_0  0x30000004
@@ -80,7 +80,7 @@ As stated above, the addresses of the memory mapped registers are as follows:
 #define SREG_5  0x30001014
 #define SREG_6  0x30001018
 ```
-The stride between each VREG register is 32 * 4 bytes. The following 32 addresses after a VREG register are individual elements of the vector. This makes the vector register file appear as memory acessable to the management core. 
+The stride between each VREG register is 32 * 4 bytes. The following 32 addresses after a VREG register are individual elements of the vector. This makes the vector register file appear as memory accessible to the management core. 
 
 Each register is dynamically typed, meaning you can store and conduct operations on signed/unsigned integers, booleans, and 32-bit floating point datatypes. 
 
@@ -93,13 +93,13 @@ Header files are provided to interface with the vector operations as well as bas
 
 # Microarchitecture
 ## Top
-The block diagram of the processor core is shown below. The microarchitecture was designed by a human and GPT4. GPT4 primarily described the functionality some of the blocks, while a human drew out the block diagram on pencil and paper. The architecture was designed to be as simple as possible, so an AI can feasibly implement it. 
+The block diagram of the processor core is shown below. The microarchitecture was designed by a human and GPT4. GPT4 primarily described the functionality of some of the blocks, while a human drew out the block diagram on pencil and paper. The architecture was designed to be as simple as possible, so an AI can feasibly implement it. 
 
 The Control can be upgraded easily to support more advanced features such as chimes and scheduling. A counter is used to increment the register file addresses so the operations can be done on a vector of registers. 
 
 Additional logic was added as a kludge to allow for dynamic reading/writing from the wishbone bus. 
 
-Each address line piped into an AND gate is assumed to be an address comparison. Additionally, each queue can be assumed to be latency insensitive. Each blue wire can be assumed to come from the control unit.
+Each address line piped into an AND gate is assumed to be an address comparison. Additionally, each queue can be assumed to be latency-insensitive. Each blue wire can be assumed to come from the control unit.
 
 They say pictures are worth 1000 words, so a copy of the block diagram is included below.
 
@@ -113,7 +113,7 @@ If a valid register address is sent to the converter via wishbone, it will copy 
 If the transaction is sent to the ```INSTRUCTION_ADDRESS```, the transaction will be sent over to the instruction queue. 
 
 ## Control Unit. 
-Currently, the control unit is based on a decoder which simpy decodes an instruction. In the future, the control's implementation can be changed to support multi-instruction caravans. 
+Currently, the control unit is based on a decoder which simply decodes an instruction. In the future, the control's implementation can be changed to support multi-instruction caravans. 
 
 # Testing Strategy
 We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality of our design. To do this, we first must construct a Python wrapper class for each Verilog module. Then, Python unit test functions can be written and run with [pytest](https://docs.pytest.org/en/7.4.x/). We use GPT4 to generate these Python test files, which cover the expected functionality for each operation as well as edge cases. Prompts for each module can be found in the prompts_tests directory.
@@ -123,7 +123,7 @@ We use [Pymtl 3](https://github.com/pymtl/pymtl3) to validate the functionality 
 To run test cases for an individual component using PyMTL test benches navigate from the top to 
 ```cd src/```
 
-From there you can ```cd``` into any of the blocks. We reccommend you make a ```build``` folder, as the PyMTL test benches generate a bunch of extra files. 
+From there you can ```cd``` into any of the blocks. We recommend you make a ```build``` folder, as the PyMTL test benches generate a bunch of extra files. 
 Then you can simply run ```pytest ../``` and the tests will run. For more information you should check out [this link](https://www.csl.cornell.edu/courses/ece5745/handouts/ece4750-tut3-verilog.pdf).
  
 # Phyiscal Design 
@@ -133,18 +133,18 @@ We originally decided to make our vector register file contain 32 vector and sca
 
 We tried making macros for both the vector and scalar register files, but we encountered issues with the tool when running LVS. There seemed to be an issue with connecting power to macros that are on lower levels on the top layer of the hierarchy. Instead of dealing with the problem further, we just decided to push the design through the flow flat. 
 
-We also encountered an issue with Verilog sv2v generated for the fp_addsub unit which caused Yosys to hang and run forever, eating an infinite amount of memory. ChatGPT was able to fix this and and the resulting logic passed all test cases.
+We also encountered an issue with Verilog sv2v generated for the fp_addsub unit which caused Yosys to hang and run forever, eating an infinite amount of memory. ChatGPT was able to fix this and the resulting logic passed all test cases.
 
-The design also failed to meet timing for a clock period of 25ns with a slack of about -4.1ns. If you run the design at 30ns it should be fine. We tried pushing the design through at 20ns, but for some reason the tool insisted on a 25ns clock period. 
+The design also failed to meet timing for a clock period of 25ns with a slack of about -4.1ns. If you run the design at 30ns it should be fine. We tried pushing the design through at 20ns, but for some reason, the tool insisted on a 25ns clock period. 
 
 # Learnings
-When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. Originally, we tried to create a SHA-256 hardware accelerator with clever prompt engineering, but we quickly found that ChatGPT struggled to create a complex block from scratch. Thus, we demoted it to junior engineer and decided on a more holistic approach to hardware generation. Will read *Computer Architecture: A Quantitative Approach* over the summer to brush up on his comparch skills, and was inspired by the vector processor. He wanted to implement a vector processor for the Caravel that can be used in conjunction with the management SoC. It was from our experience with this project that we learned the following:
+When working on this project, we learned a lot about the performance of ChatGPT when generating hardware. Originally, we tried to create a SHA-256 hardware accelerator with clever prompt engineering, but we quickly found that ChatGPT struggled to create a complex block from scratch. Thus, we demoted it to a junior engineer and decided on a more holistic approach to hardware generation. Will read *Computer Architecture: A Quantitative Approach* over the summer to brush up on his comp arch skills, and was inspired by the vector processor. He wanted to implement a vector processor for the Caravel that can be used in conjunction with the management SoC. It was from our experience with this project that we learned the following:
 
-Don't expect ChatGPT to do everything for you. You, as the designer, should have some idea of the hardware you would like to generate. Otherwise ChatGPT will make a bunch of mistakes and write suboptimal code. We tried having ChatGPT make a SHA-256 accelerator from single prompts, but it ended up being a disaster. For less generic hardware such as the decoder or wishbone converter, we needed to take a more manual approach and prompt chatgpt more precisely. For things like register files, it was easier because ChatGPT may have seen similar source code in its training.
+Don't expect ChatGPT to do everything for you. You, as the designer, should have some idea of the hardware you would like to generate. Otherwise, ChatGPT will make a bunch of mistakes and write suboptimal code. We tried having ChatGPT make a SHA-256 accelerator from single prompts, but it ended up being a disaster. For less generic hardware such as the decoder or wishbone converter, we needed to take a more manual approach and prompt ChatGPT more precisely. For things like register files, it was easier because ChatGPT may have seen similar source code in its training.
 
 Use a different method for testing your Verilog than iverilog. We decided to use PyMTL3 to test our design and it was very fruitful. Because ChatGPT is better at generating Python than Verilog, it became trivially easy to use GPT4 to generate test cases for our design. This allowed us to have a feedback loop of generating test cases alongside hardware to verify its functionality. This enabled us to generate a larger project in a shorter amount of time.
 
-The management SoC does not support floating point instructions. We thought there was an FPU implemented on the Management Core, but it turns out that was not synthesized. If you want to use the floating-point portions of this project, you will need to add an additional C library to compile floating point instructions in software.
+The management SoC does not support floating point instructions. We thought there was an FPU implemented on the Management Core, but it turns out that was not synthesized. If you want to use the floating-point portions of this project, you will need to add an additional C library to compile floating-point instructions in software.
 
 
 

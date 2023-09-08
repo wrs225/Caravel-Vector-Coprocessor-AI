@@ -88,9 +88,20 @@ void main()
     vpset(VREG_2);
 
     // Simple case of 1 x 100 = 100
-    uint32_t source1[32] = {0x3f800000};
-    uint32_t source2[32] = {0x42c80000};
-    uint32_t expected_result[32] = {0x42c80000};
+    uint32_t source1[32];
+    for (int i = 0; i < 32; i++) {
+        source1[i] = 0x3f800000;
+    }
+
+    uint32_t source2[32];
+    for (int i = 0; i < 32; i++) {
+        source2[i] = 0x42c80000;
+    }
+
+    uint32_t expected_result[32];
+    for (int i = 0; i < 32; i++) {
+        expected_result[i] = 0x42c80000;
+    }
 
     // Write the source vectors to VREG
     write_to_vreg(VREG_0, source1);
@@ -112,15 +123,23 @@ void main()
     // Case of 1.5 x 3.0 = 4.5
     reg_mprj_datal = 0xAB600000;
 
-    uint32_t source3[32] = {0x3fc00000};
-    uint32_t source4[32] = {0x40400000};
-    uint32_t expected_result2[32] = {0x40900000};
+    for (int i = 0; i < 32; i++) {
+        source1[i] = 0x3fc00000;
+    }
+
+    for (int i = 0; i < 32; i++) {
+        source2[i] = 0x40400000;
+    }
+
+    for (int i = 0; i < 32; i++) {
+        expected_result[i] = 0x40900000;
+    }
 
     vpset(VREG_2);
 
     // Write the source vectors to VREG
-    write_to_vreg(VREG_0, source3);
-    write_to_vreg(VREG_1, source4);
+    write_to_vreg(VREG_0, source1);
+    write_to_vreg(VREG_1, source2);
 
     // Perform the addition between the source vectors and store the result in VREG_2
     vfmul(VREG_2, VREG_0, VREG_1);
@@ -130,7 +149,7 @@ void main()
     read_from_vreg(VREG_2, result2);
 
     // Check if the result is correct
-    if (compare_arrays(result2, expected_result2, sizeof(result2))) {
+    if (compare_arrays(result2, expected_result, sizeof(result2))) {
         // If the result is correct, set reg_mprj_datal to 0xAB610000
         reg_mprj_datal = 0xAB610000;
     }

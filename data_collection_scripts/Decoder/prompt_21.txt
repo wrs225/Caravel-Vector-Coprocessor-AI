@@ -1,0 +1,36 @@
+
+That is incorrect, just assign it using an if statement
+ChatGPT
+
+I apologize for the confusion. You're right, the bitwise operation select bits should be assigned based on the specific opcode. Here's how you can modify the code using an if-else statement:
+
+verilog
+
+5'b01001, 5'b01010, 5'b01011: begin // Bitwise instructions (VAND, VOR, VXOR)
+    clock_bypass = 0;
+    clock_enable = 1;
+    mux_bit = 0;
+    vector_reg_write_bit = 1;
+    predicate_reg_write_bit = 0;
+    scalar_reg_write_bit = 0;
+    vector_reg_load_mux_bit = 0;
+    scalar_reg_load_mux_bit = 0;
+    functional_unit_mux_bit = 4;
+    add_subtract_bit = 0;
+    load_store_bit = 0;
+    if (opcode == 5'b01001) begin
+        bitwise_op_select = 2'b00; // VAND
+    end else if (opcode == 5'b01010) begin
+        bitwise_op_select = 2'b01; // VOR
+    end else if (opcode == 5'b01011) begin
+        bitwise_op_select = 2'b10; // VXOR
+    end
+    predicate_op_select = 2'b00;
+end
+
+This change will correctly map the opcode to the bitwise operation select bits as follows:
+
+    01001 (VAND) -> 00
+    01010 (VOR) -> 01
+    01011 (VXOR) -> 10
+

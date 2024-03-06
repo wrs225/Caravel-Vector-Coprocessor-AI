@@ -1,0 +1,55 @@
+
+Can you please implement Parallel Normalization on this file?
+ChatGPT
+
+Implementing parallel normalization in SystemVerilog requires a significant amount of hardware resources, as it involves the simultaneous shifting of the fraction and incrementing of the exponent. Here's a simplified example of how you might implement parallel normalization in your IEEE754 Adder/Subtractor:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [23:0] y_frac_intermediate;  // Intermediate fraction for normalization
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [23:0] leading_one;  // Position of leading one in fraction
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        // ...
+
+        // Normalize result
+        leading_one = priority_encoder(y_frac_intermediate);
+        y_frac = y_frac_intermediate << leading_one;
+        y_exp = y_exp_intermediate + leading_one;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+Please note that this is a simplified example and may not work as expected in all cases. The priority_encoder function is used to find the position of the leading one in the fraction, and this position is used to shift the fraction and increment the exponent. The actual implementation of the priority_encoder function depends on your specific requirements and constraints.
+
+Also, this example assumes that the addition or subtraction operation produces a result that is not normalized, and that the normalization is performed after the addition or subtraction. If the addition or subtraction operation already produces a normalized result, the normalization step may not be necessary.

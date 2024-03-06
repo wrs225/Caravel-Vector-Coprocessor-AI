@@ -1,0 +1,16 @@
+
+You also need to add an exception to the shift if you are adding zeros. 
+ChatGPT
+
+I see, if the inputs are zero, there's no need for normalization. We can add a condition to check if both inputs are zero, and if so, set the shift amount to zero. Here's how you can modify the shift_amount assignment:
+
+systemverilog
+
+// Normalize result using LUT
+if (a == 32'b0 && b == 32'b0) begin
+    shift_amount = 5'b00000;  // No shift if both inputs are zero
+end else begin
+    shift_amount = y_frac_intermediate[23] ? 5'b00000 : LUT[y_frac_intermediate[22:18]];
+end
+
+This code checks if both inputs a and b are zero. If they are, it sets shift_amount to zero. Otherwise, it checks if the 23rd bit of y_frac_intermediate is 1. If it is, it sets shift_amount to zero. If not, it sets shift_amount to the value from the lookup table.

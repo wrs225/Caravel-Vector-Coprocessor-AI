@@ -1,0 +1,94 @@
+
+Please change this block:
+            5'b01100, 5'b01101, 5'b01110, 5'b01111: begin // Predicate instructions (VSEQ, VSNE, VSGT, VSLT)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 0;
+                predicate_reg_write_bit = 1;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 5;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = opcode[1:0]; // Updated to 4-bit, you may need to adjust this logic
+            end
+To support these instructions:
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPSGE	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is signed greater than or equal to the corresponding element in Ssrc2, and 0 otherwise.
+VPSLT	0x18	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is signed less than the corresponding element in Ssrc2, and 0 otherwise.
+VPUGE	0x19	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is unsigned greater than or equal to the corresponding element in Ssrc2, and 0 otherwise.
+VPULT	0x1A	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is unsigned less than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPEQ	0x14	Pdest	Psrc1	Psrc2	Set predicate register Pdest to 1 if Psrc1 is equal to Psrc2, and 0 otherwise.
+VPNEQ	0x17	Pdest	Psrc1	Psrc2	Set predicate register Pdest to 1 if Psrc1 is not equal to Psrc2, and 0 otherwise.
+Use this relation to determine the value for predicate_op_select:
+        4'b0000: predicate = (in1 == 0); // VPSETZ
+        4'b0001: predicate = (in1 != 0); // VPSETN
+        4'b0010: predicate = 1;           // VPSET
+        4'b0011: predicate = ($signed(in1) >= $signed(in2)); // VPSGE, signed comparison
+        4'b0100: predicate = ($signed(in1) < $signed(in2));  // VPSLT, signed comparison
+        4'b0101: predicate = (in1 >= in2); // VPUGE, treating inputs as unsigned
+        4'b0110: predicate = (in1 < in2);  // VPULT, treating inputs as unsigned
+        4'b0111: predicate = (in1 == in2); // VPEQ
+        4'b1000: predicate = (in1 != in2); // VPNEQ
+        default: predicate = 0;            // Default case
+ChatGPT
+
+Certainly! Based on the instructions you provided, I've updated the block to handle the new instructions and the corresponding values for predicate_op_select. Here's the updated block:
+
+verilog
+
+            5'b01100: begin // VPSETZ
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 0;
+                predicate_reg_write_bit = 1;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 5;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 4'b0000;
+            end
+            5'b01101: begin // VPSETN
+                // Same as above, except:
+                predicate_op_select = 4'b0001;
+            end
+            5'b01110: begin // VPSET
+                // Same as above, except:
+                predicate_op_select = 4'b0010;
+            end
+            5'b01111: begin // VPSGE
+                // Same as above, except:
+                predicate_op_select = 4'b0011;
+            end
+            5'b10000: begin // VPSLT
+                // Same as above, except:
+                predicate_op_select = 4'b0100;
+            end
+            5'b10001: begin // VPUGE
+                // Same as above, except:
+                predicate_op_select = 4'b0101;
+            end
+            5'b10010: begin // VPULT
+                // Same as above, except:
+                predicate_op_select = 4'b0110;
+            end
+            5'b10100: begin // VPEQ
+                // Same as above, except:
+                predicate_op_select = 4'b0111;
+            end
+            5'b10111: begin // VPNEQ
+                // Same as above, except:
+                predicate_op_select = 4'b1000;
+            end
+
+This code now includes the specific handling for each of the new instructions you provided, setting the predicate_op_select signal according to the given relation. Make sure to integrate this block into your existing code, and ensure that the rest of your logic is consistent with these changes.

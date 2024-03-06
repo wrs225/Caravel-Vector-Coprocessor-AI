@@ -1,0 +1,98 @@
+
+Can we please roll the VSADD instruction into the VADD and VSUB case? The signals should be the similar, however, you must set mux_bit to 1 if the instruction is VSADD, and you must set add_subtract_bit to 0 if the instruction is VSADD
+ChatGPT
+
+Of course, here is the updated SystemVerilog code to handle the VSADD instruction along with VADD and VSUB:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+        end
+        5'b00001: begin // VSTORE
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+        end
+        5'b00010, 5'b00011, 5'b00110: begin // VADD, VSUB, and VSADD
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = (opcode == 5'b00110) ? 1 : 0; // 1 for VSADD, 0 for VADD and VSUB
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = (opcode == 5'b00010 || opcode == 5'b00110) ? 0 : 1; // 0 for add and VSADD, 1 for subtract
+            load_store_bit = 0;
+        end
+        5'b00111: begin // VFADD
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 1;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+        end
+        5'b00100, 5'b00101: begin // VMUL and VSMUL
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = (opcode == 5'b00100) ? 0 : 1; // 0 for VMUL, 1 for VSMUL
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 2;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+The mux_bit is now set to 1 if the opcode corresponds to the VSADD instruction, and the add_subtract_bit is set to 0 for both VADD and VSADD, and 1 for VSUB.

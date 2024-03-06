@@ -1,0 +1,24 @@
+
+Can you please also extend the y_frac intermediate to 48 bits, and modify the priority_encoder function to take 48 bits on the input of the function. Change the for loop in the function to start with i=47.
+ChatGPT
+
+Sure, here's how you can modify your code to extend y_frac_intermediate to 48 bits and adjust the priority_encoder function accordingly:
+
+verilog
+
+    logic [47:0] y_frac_intermediate;  // Intermediate fraction for normalization extended to 48 bits
+
+    // Priority encoder to find the leading one
+    function automatic [5:0] priority_encoder (input [47:0] in);  // Input extended to 48 bits
+        integer i;
+        for (i=47; i>=0; i=i-1) begin  // Loop starts with i=47
+            if (in[i]) begin
+                return 47 - i;
+            end
+        end
+        return 6'b000000;  // Return 0 if no one is found
+    endfunction
+
+    // Rest of your code...
+
+Please note that I've also extended the return type of the priority_encoder function to 6 bits to accommodate the larger input size. This change will allow the function to return values up to 47, which is necessary given the increased size of the input.

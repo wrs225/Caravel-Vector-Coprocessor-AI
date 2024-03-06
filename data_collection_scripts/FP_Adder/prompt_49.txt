@@ -1,0 +1,89 @@
+
+You left out the normalization section. Please include the normalization logic
+ChatGPT
+Used Show Me Diagrams
+
+My apologies for the confusion. Here's the updated code with the normalization logic included:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+    logic a_sign, b_sign, y_sign;
+    logic [7:0] a_exp, b_exp, y_exp_intermediate, y_exp;
+    logic [24:0] a_frac, b_frac;
+    logic [48:0] y_frac_intermediate;
+    logic [24:0] y_frac;
+    logic [31:0] b_neg;
+    logic [4:0] shift_amount;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? ~b + 1 : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result
+        if (y_frac_intermediate[48]) begin
+            shift_amount = 1;
+            y_frac = y_frac_intermediate[47:23];
+            y_exp = y_exp_intermediate + 1;
+        end else begin
+            shift_amount = 0;
+            y_frac = y_frac_intermediate[46:22];
+            y_exp = y_exp_intermediate;
+        end
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+In this code, the normalization logic checks if the 48th bit of y_frac_intermediate is '1'. If it is, it shifts y_frac_intermediate right by one bit and increments y_exp_intermediate by one. If not, it doesn't shift y_frac_intermediate and y_exp_intermediate remains the same. The normalized fraction and exponent are then assigned to y_frac and y_exp respectively.

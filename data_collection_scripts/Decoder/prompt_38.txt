@@ -1,0 +1,125 @@
+
+I am now realizing I am forgetting two output ports: a two-bit operation select for a bitwise operation unit and a two-bit operation select for a bitwise operaton unit. Can you please add these two ports and assign them to 0 for every instruction we have implemented so far?
+ChatGPT
+
+Absolutely, let's add the two output ports bitwise_op_select and predicate_op_select for the bitwise operation unit and predicate operation unit respectively. And as per your instructions, we can set these to 0 for all the instruction cases we've implemented so far.
+
+Here's the updated module:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit,
+    output reg [1:0] bitwise_op_select,
+    output reg [1:0] predicate_op_select
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        5'b00001: begin // VSTORE
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        5'b00010, 5'b00011, 5'b00110: begin // VADD, VSUB, and VSADD
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = (opcode == 5'b00110) ? 1 : 0; // 1 for VSADD, 0 for VADD and VSUB
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = (opcode == 5'b00010 || opcode == 5'b00110) ? 0 : 1; // 0 for add and VSADD, 1 for subtract
+            load_store_bit = 0;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        5'b00111: begin // VFADD
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 1;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        5'b00100, 5'b00101: begin // VMUL and VSMUL
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = (opcode == 5'b00100) ? 0 : 1; // 0 for VMUL, 1 for VSMUL
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 2;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        5'b01000: begin // VFMUL
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 3;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = 2'b00;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+For all current instructions, the two additional output ports bitwise_op_select and predicate_op_select are set to 0.

@@ -1,0 +1,266 @@
+
+Your predicate operation codes are incorrect: remember predicate unit codes!
+            2'b00: predicate = (in1 == in2); // Set if equal
+            2'b01: predicate = (in1 != in2); // Set if not equal
+            2'b10: predicate = (in1 > in2);  // Set if greater than
+            2'b11: predicate = (in1 < in2);  // Set if less than
+ChatGPT
+
+I apologize for the error. Based on your provided information, the predicate operation codes should be adjusted as follows:
+
+systemverilog
+
+5'b01100, 5'b01101, 5'b01110, 5'b01111: begin // Predicate instructions (VPSEQ, VPSNE, VPSGT, VPSLT)
+    clock_bypass = 0;
+    clock_enable = 1;
+    mux_bit = 0;
+    vector_reg_write_bit = 0;
+    predicate_reg_write_bit = 1;
+    scalar_reg_write_bit = 0;
+    vector_reg_load_mux_bit = 0;
+    scalar_reg_load_mux_bit = 0;
+    functional_unit_mux_bit = 5;
+    add_subtract_bit = 0;
+    load_store_bit = 0;
+    bitwise_op_select = 2'b00;
+    predicate_op_select = (opcode == 5'b01100) ? 2'b00 :  // Set if equal
+                          (opcode == 5'b01101) ? 2'b01 :  // Set if not equal
+                          (opcode == 5'b01110) ? 2'b10 :  // Set if greater than
+                          (opcode == 5'b01111) ? 2'b11 :  // Set if less than
+                          2'b00;
+end
+
+This section properly maps the opcode to the corresponding predicate operations based on your instructions. I hope this helps and I'm sorry for any confusion caused earlier.
+
+USER:
+Okay one last thing. I need an additional input but which is instruction_valid, this is high when there is a valid instruction. If valid is zero, every output port should be zero besides clock_bypass.
+
+GPT4:
+Sure, I understand. You want to set all the output ports to zero when instruction_valid signal is low. This can be done by adding an additional condition check at the beginning of the always_comb block. Here is the complete code with your requested modification:
+
+systemverilog
+
+module Decoder (
+    input logic [31:0] instruction,
+    input logic instruction_valid,
+    output logic [4:0] reg_file_addr1,
+    output logic [4:0] reg_file_addr2,
+    output logic mux_bit,
+    output logic vector_reg_write_bit,
+    output logic predicate_reg_write_bit,
+    output logic scalar_reg_write_bit,
+    output logic vector_reg_load_mux_bit,
+    output logic scalar_reg_load_mux_bit,
+    output logic [2:0] functional_unit_mux_bit,
+    output logic add_subtract_bit,
+    output logic load_store_bit,
+    output logic clock_enable,
+    output logic clock_bypass,
+    output logic [1:0] bitwise_op_select,
+    output logic [1:0] predicate_op_select
+);
+
+always_comb begin
+    if (instruction_valid == 1'b0) begin
+        reg_file_addr1 = 5'b0;
+        reg_file_addr2 = 5'b0;
+        mux_bit = 1'b0;
+        vector_reg_write_bit = 1'b0;
+        predicate_reg_write_bit = 1'b0;
+        scalar_reg_write_bit = 1'b0;
+        vector_reg_load_mux_bit = 1'b0;
+        scalar_reg_load_mux_bit = 1'b0;
+        functional_unit_mux_bit = 3'b0;
+        add_subtract_bit = 1'b0;
+        load_store_bit = 1'b0;
+        clock_enable = 1'b0;
+        clock_bypass = 1'b1;  // Only this signal should be 1 when instruction_valid is low
+        bitwise_op_select = 2'b0;
+        predicate_op_select = 2'b0;
+    end else begin
+        // The remaining code follows from the previous case definitions
+        // Please copy the respective case definitions from previous responses here
+    end
+end
+
+endmodule
+
+In this new implementation, when instruction_valid is low, all outputs are set to zero, except for clock_bypass which is set to 1, as per your specification. Please let me know if this is what you need.
+
+USER:
+Can you please print out the entire file line-by-line so I can copy and paste it to another file?
+
+GPT4:
+Absolutely! Here is the updated SystemVerilog code:
+
+systemverilog
+
+module Decoder (
+    input logic [31:0] instruction,
+    input logic instruction_valid,
+    output logic [4:0] reg_file_addr1,
+    output logic [4:0] reg_file_addr2,
+    output logic mux_bit,
+    output logic vector_reg_write_bit,
+    output logic predicate_reg_write_bit,
+    output logic scalar_reg_write_bit,
+    output logic vector_reg_load_mux_bit,
+    output logic scalar_reg_load_mux_bit,
+    output logic [2:0] functional_unit_mux_bit,
+    output logic add_subtract_bit,
+    output logic load_store_bit,
+    output logic clock_enable,
+    output logic clock_bypass,
+    output logic [1:0] bitwise_op_select,
+    output logic [1:0] predicate_op_select
+);
+
+always_comb begin
+    if (instruction_valid == 1'b0) begin
+        reg_file_addr1 = 5'b0;
+        reg_file_addr2 = 5'b0;
+        mux_bit = 1'b0;
+        vector_reg_write_bit = 1'b0;
+        predicate_reg_write_bit = 1'b0;
+        scalar_reg_write_bit = 1'b0;
+        vector_reg_load_mux_bit = 1'b0;
+        scalar_reg_load_mux_bit = 1'b0;
+        functional_unit_mux_bit = 3'b0;
+        add_subtract_bit = 1'b0;
+        load_store_bit = 1'b0;
+        clock_enable = 1'b0;
+        clock_bypass = 1'b1;
+        bitwise_op_select = 2'b0;
+        predicate_op_select = 2'b0;
+    end else begin
+        reg_file_addr1 = instruction[20:16];
+        reg_file_addr2 = instruction[15:11];
+        logic [4:0] opcode = instruction[31:27];
+        case(opcode)
+            5'b00000, 5'b00001: begin // Load/Store instructions (VLOAD, VSTORE)
+                clock_bypass = 1;
+                clock_enable = 0;
+                mux_bit = 0;
+                vector_reg_write_bit = 0;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 0;
+                add_subtract_bit = 0;
+                load_store_bit = 1;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            5'b00010, 5'b00011, 5'b00110: begin // Vector/Scalar add/sub instructions (VADD, VSUB, VSADD)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = (opcode == 5'b00110) ? 1 : 0;
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 0;
+                add_subtract_bit = (opcode == 5'b00011) ? 1 : 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            5'b00100, 5'b00101: begin // Vector/Scalar mul instructions (VMUL, VSMUL)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = (opcode == 5'b00101) ? 1 : 0;
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 2;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            5'b00111, 5'b01000: begin // Floating point add/sub instructions (VFADD, VFSUB)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 1;
+                add_subtract_bit = (opcode == 5'b01000) ? 1 : 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            5'b01001, 5'b01010, 5'b01011: begin // Bitwise instructions (VAND, VOR, VXOR)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 1;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 4;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = opcode[1:0];
+                predicate_op_select = 2'b00;
+            end
+            5'b01100, 5'b01101, 5'b01110, 5'b01111: begin // Predicate instructions (VSEQ, VSNE, VSGT, VSLT)
+                clock_bypass = 0;
+                clock_enable = 1;
+                mux_bit = 0;
+                vector_reg_write_bit = 0;
+                predicate_reg_write_bit = 1;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                functional_unit_mux_bit = 5;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = opcode[1:0];
+            end
+            default: begin // Unrecognized opcode
+                // Here, you may want to specify some default behavior for when an unrecognized opcode is encountered
+            end
+        endcase
+    end
+end
+
+endmodule
+
+Please note that this code assumes you have a logic block that maps opcode to the specific operation to be performed. It also assumes all unrecognized opcodes will be handled elsewhere.
+
+USER:
+Change the Load/store case to set vector_reg_write_bit to 1 if it is a load, please.
+
+GPT4:
+Of course, here's the updated segment of the code:
+
+systemverilog
+
+    5'b00000, 5'b00001: begin // Load/Store instructions (VLOAD, VSTORE)
+        clock_bypass = 1;
+        clock_enable = 0;
+        mux_bit = 0;
+        vector_reg_write_bit = (opcode == 5'b00000) ? 1 : 0;
+        predicate_reg_write_bit = 0;
+        scalar_reg_write_bit = 0;
+        vector_reg_load_mux_bit = 0;
+        scalar_reg_load_mux_bit = 0;
+        functional_unit_mux_bit = 0;
+        add_subtract_bit = 0;
+        load_store_bit = 1;
+        bitwise_op_select = 2'b00;
+        predicate_op_select = 2'b00;
+    end
+
+This version of the case will set vector_reg_write_bit to 1 if the opcode corresponds to a load instruction, and 0 otherwise. Let me know if you need further modifications.
+

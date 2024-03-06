@@ -1,0 +1,60 @@
+
+It still is a circular assignment
+ChatGPT
+
+I apologize for the confusion. You're right, the previous code still had circular assignments. Here's the updated SystemVerilog code with normalization using combinational logic and without circular assignments:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [22:0] a_frac, b_frac;
+    logic y_sign;
+    logic [7:0] y_exp_unnormalized, y_exp;
+    logic [22:0] y_frac_unnormalized, y_frac;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = a[22:0];
+        b_frac = b_neg[22:0];
+
+        if (a_exp > b_exp) begin
+            y_exp_unnormalized = a_exp;
+            y_frac_unnormalized = a_frac + (b_frac >> (a_exp - b_exp));
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_unnormalized = b_exp;
+            y_frac_unnormalized = (a_frac >> (b_exp - a_exp)) + b_frac;
+            y_sign = b_sign;
+        end else begin
+            y_exp_unnormalized = a_exp;
+            y_frac_unnormalized = a_sign ? b_frac - a_frac : a_frac - b_frac;
+            y_sign = a_sign;
+        end
+    end
+
+    // Normalize result
+    assign y_frac = (y_frac_unnormalized[22] == 1'b0) ? y_frac_unnormalized << 1 : y_frac_unnormalized;
+    assign y_exp = (y_frac_unnormalized[22] == 1'b0) ? y_exp_unnormalized - 1 : y_exp_unnormalized;
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac};
+endmodule
+
+In this version, the normalization step is implemented using combinational logic and without circular assignments. The always_comb block computes unnormalized values y_frac_unnormalized and y_exp_unnormalized. The assign statements for y_frac and y_exp then use these unnormalized values to perform the normalization. If the most significant bit of y_frac_unnormalized is 0, y_frac is set to y_frac_unnormalized shifted left by one bit and y_exp is set to y_exp_unnormalized decremented by one. Otherwise, y_frac and y_exp are set to the unnormalized values. This effectively normalizes the result without using circular assignments.

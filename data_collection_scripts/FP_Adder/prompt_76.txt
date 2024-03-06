@@ -1,0 +1,16 @@
+
+How do we handle rounding with this module?
+ChatGPT
+
+In the current implementation of the module, rounding is not explicitly handled. The fraction part of the result (y_frac) is simply truncated to the lower 23 bits without any rounding.
+
+If you want to implement rounding, you could consider several methods, such as truncation (which is currently used), rounding to the nearest value, or rounding towards zero, among others. The choice of method depends on the specific requirements of your application.
+
+For example, if you want to implement rounding to the nearest value (also known as round half up), you could add a bit to the fraction part of the result if the bit being truncated is 1. Here's how you could modify the assignment of y_frac to implement this:
+
+verilog
+
+    // Pack fields into output with rounding
+    assign y = {y_sign, y_exp, y_frac[23] ? y_frac[22:0] + 1 : y_frac[22:0]};  // Only take the lower 23 bits of the fraction, add 1 if the bit being truncated is 1
+
+This is a simple form of rounding and may not be suitable for all applications, especially those that require more precise or specific rounding behavior. For more complex rounding methods, you may need to implement additional logic.

@@ -1,0 +1,52 @@
+
+Having 
+        if (y_frac_intermediate == 48'b0) begin
+            y = 32'b0;
+        end
+in the spot it is in now causes an inferred latch. Please add it to these if statements:
+        if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) && (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If both inputs are infinity and the operation is subtraction, the output is NaN
+            if (subtract && (a_sign ^ b_sign)) begin
+                y = {1'b0, 8'hFF, 23'h400000};
+            end else if (a_sign ^ b_sign) begin
+                y = {a_sign, 8'hFF, 23'b0};
+            end else begin
+                y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+            end
+        end else if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) || (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If either input is infinity (but not both), set the output to infinity as well
+            y = {a_sign | b_sign, 8'hFF, 23'b0};
+        end else begin
+            // If neither input is infinity, perform regular assignment
+            y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+        end
+    end
+ChatGPT
+
+Adding the check for y_frac_intermediate == 48'b0 in your current if-else structure would look like this:
+
+systemverilog
+
+    always_comb begin
+        // Check if either input is infinity
+        if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) && (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If both inputs are infinity and the operation is subtraction, the output is NaN
+            if (subtract && (a_sign ^ b_sign)) begin
+                y = {1'b0, 8'hFF, 23'h400000};
+            end else if (a_sign ^ b_sign) begin
+                y = {a_sign, 8'hFF, 23'b0};
+            end else begin
+                y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+            end
+        end else if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) || (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+            // If either input is infinity (but not both), set the output to infinity as well
+            y = {a_sign | b_sign, 8'hFF, 23'b0};
+        end else if (y_frac_intermediate == 48'b0) begin
+            y = 32'b0;
+        end else begin
+            // If neither input is infinity and the output is not zero, perform regular assignment
+            y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+        end
+    end
+
+This checks if y_frac_intermediate is zero after checking if either input is infinity. If y_frac_intermediate is zero, it assigns y to zero, and otherwise, it performs the regular assignment. This modification should avoid the creation of a latch.

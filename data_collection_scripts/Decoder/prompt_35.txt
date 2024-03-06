@@ -1,0 +1,106 @@
+
+Next, we can group VMUL and VSMUL into the same case statement. Assign the following signals in the case statement:
+clock_bypass = 0
+clock_enable = 1
+mux_bit = 0 if instruction is VMUL and 1 if the instruction is VSMUL
+vector_reg_write_Bit = 1
+predicate_reg_write_Bit = 0
+scalar_reg_write_bit = 0
+functional_unit_mux_bit = 2
+load_store_bit = 0
+ChatGPT
+
+Certainly, here is the updated SystemVerilog code to handle the VMUL and VSMUL instructions:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+        end
+        5'b00001: begin // VSTORE
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+        end
+        5'b00010, 5'b00011: begin // VADD and VSUB
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = (opcode == 5'b00010) ? 0 : 1; // 0 for add, 1 for subtract
+            load_store_bit = 0;
+        end
+        5'b00111: begin // VFADD
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 1;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+        end
+        5'b00100, 5'b00101: begin // VMUL and VSMUL
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = (opcode == 5'b00100) ? 0 : 1; // 0 for VMUL, 1 for VSMUL
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 2;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+Now the module can handle the VMUL and VSMUL instructions, with mux_bit set depending on the specific opcode. In the case of VMUL, mux_bit is set to 0, and for VSMUL, it's set to 1.

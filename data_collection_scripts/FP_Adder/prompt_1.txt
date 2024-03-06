@@ -1,0 +1,69 @@
+
+Generate me an IEEE754 Adder/Subtractor called fp_addsub with input ports named a, b, and subtract, and an output port named y. Write it in SystemVerilog.
+ChatGPT
+
+Sure, here is a simple IEEE754 single-precision floating point adder/subtractor module in SystemVerilog. Please note that this is a simplified version and does not handle special cases like NaN, infinity, denormalized numbers, etc.
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+
+    // IEEE754 single-precision floating point format
+    // sign     : 1 bit  (31)
+    // exponent : 8 bits (30-23)
+    // fraction : 23 bits (22-0)
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        logic a_sign     = a[31];
+        logic b_sign     = b_neg[31];
+        logic [7:0] a_exp = a[30:23];
+        logic [7:0] b_exp = b_neg[30:23];
+        logic [22:0] a_frac = a[22:0];
+        logic [22:0] b_frac = b_neg[22:0];
+
+        // Perform addition or subtraction
+        logic y_sign;
+        logic [7:0] y_exp;
+        logic [22:0] y_frac;
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            y_frac = a_frac + (b_frac >> (a_exp - b_exp));
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            y_frac = (a_frac >> (b_exp - a_exp)) + b_frac;
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            y_frac = a_sign ? b_frac - a_frac : a_frac - b_frac;
+            y_sign = a_sign;
+        end
+
+        // Normalize result
+        while (y_frac[22] == 0 && y_exp > 0) begin
+            y_frac = y_frac << 1;
+            y_exp = y_exp - 1;
+        end
+
+        // Pack fields into output
+        y = {y_sign, y_exp, y_frac};
+    end
+
+endmodule
+
+This module takes two 32-bit inputs a and b, and a subtract signal. If the subtract signal is high, it negates b and then adds a and b. The result is placed on the output y. The addition/subtraction is performed on the fraction part of the floating point numbers, and the result is normalized before being output. The sign of the result is the sign of the input with the larger exponent.
+
+Please note that this is a simplified version and does not handle special cases like NaN, infinity, denormalized numbers, etc. For a complete IEEE754 compliant floating point adder/subtractor, you would need to handle these cases as well.

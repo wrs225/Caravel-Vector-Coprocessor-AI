@@ -1,0 +1,11 @@
+
+Keep the shift part for a_frac, please
+ChatGPT
+
+Sure, if you want to keep the shift for a_frac but still subtract a_frac from b_frac, you can modify the line as follows:
+
+verilog
+
+y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));
+
+This line of code will right-shift a_frac based on the difference in exponents, and then subtract the result from b_frac.

@@ -1,0 +1,97 @@
+
+You also need to change LUT [0:31] to [31:0]
+ChatGPT
+
+I apologize for the oversight. You're correct, the lookup table (LUT) should be declared with indices in reverse order. Here's the corrected code:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [23:0] y_frac_intermediate;  // Intermediate fraction for normalization
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [4:0] shift_amount;  // Shift amount from LUT
+
+    // Lookup table for normalization
+    logic [4:0] LUT [31:0];
+
+    // Initialize LUT in an initial block
+    initial begin
+        LUT = '{5'b11111, 5'b11110, 5'b11101, 5'b11100, 5'b11011, 5'b11010, 5'b11001, 5'b11000,
+               5'b10111, 5'b10110, 5'b10101, 5'b10100, 5'b10011, 5'b10010, 5'b10001, 5'b10000,
+               5'b01111, 5'b01110, 5'b01101, 5'b01100, 5'b01011, 5'b01010, 5'b01001, 5'b01000,
+               5'b00111, 5'b00110, 5'b00101, 5'b00100, 5'b00011, 5'b00010, 5'b00001, 5'b00000};
+    end
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp_intermediate = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp_intermediate = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp_intermediate = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Normalize result using LUT
+        shift_amount = LUT[y_frac_intermediate[22:18]];
+        y_frac = y_frac_intermediate << shift_amount;
+        y_exp = y_exp_intermediate + shift_amount;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+Now, the lookup table LUT is declared with indices in reverse order from 31 to 0, which should be compatible with SystemVerilog syntax.

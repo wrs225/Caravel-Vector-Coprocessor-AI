@@ -1,0 +1,81 @@
+
+Next we need to implement the bitwise opration instructions, you can roll them into one case statement. It is similar to the multiplier assignments except that:
+-bitwise_op_select can be the following
+            2'b00: result = operandA & operandB; // AND operation
+            2'b01: result = operandA | operandB; // OR operation
+            2'b10: result = operandA ^ operandB; // XOR operation
+-functional_unit_mux_bit is 4
+ChatGPT
+
+Alright, let's add a case for the bitwise operation instructions VAND, VOR, and VXOR.
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit,
+    output reg [1:0] bitwise_op_select,
+    output reg [1:0] predicate_op_select
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            // Assignments for VLOAD omitted for brevity
+        end
+        5'b00001: begin // VSTORE
+            // Assignments for VSTORE omitted for brevity
+        end
+        5'b00010, 5'b00011, 5'b00110: begin // VADD, VSUB, and VSADD
+            // Assignments for VADD, VSUB, and VSADD omitted for brevity
+        end
+        5'b00111: begin // VFADD
+            // Assignments for VFADD omitted for brevity
+        end
+        5'b00100, 5'b00101: begin // VMUL and VSMUL
+            // Assignments for VMUL and VSMUL omitted for brevity
+        end
+        5'b01000: begin // VFMUL
+            // Assignments for VFMUL omitted for brevity
+        end
+        5'b01001, 5'b01010, 5'b01011: begin // VAND, VOR, VXOR
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 1;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 4;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+            bitwise_op_select = (opcode == 5'b01001) ? 2'b00 : (opcode == 5'b01010) ? 2'b01 : 2'b10; // AND, OR, XOR
+            predicate_op_select = 2'b00;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+In this new case statement, I've set the bitwise_op_select signal according to the instruction type: AND, OR, XOR. The functional_unit_mux_bit is set to 4.

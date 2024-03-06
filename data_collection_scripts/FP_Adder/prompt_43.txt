@@ -1,0 +1,27 @@
+
+Can you generalize the LUT to logic that looks at the amount of zeros in y_frac intermediate and shifts accordingly?
+ChatGPT
+
+Sure, instead of using a lookup table, we can use a priority encoder to find the leading one in y_frac_intermediate and calculate the shift amount accordingly. Here's how you can do it:
+
+systemverilog
+
+// Priority encoder to find the leading one
+function automatic [4:0] priority_encoder (input [23:0] in);
+    integer i;
+    for (i=23; i>=0; i=i-1) begin
+        if (in[i]) begin
+            return 23 - i;
+        end
+    end
+    return 5'b00000;  // Return 0 if no one is found
+endfunction
+
+// Normalize result using priority encoder
+if (a == 32'b0 && b == 32'b0) begin
+    shift_amount = 5'b00000;  // No shift if both inputs are zero
+end else begin
+    shift_amount = y_frac_intermediate[23] ? 5'b00000 : priority_encoder(y_frac_intermediate);
+end
+
+This code defines a function priority_encoder that takes a 24-bit input and returns the distance of the leading one from the MSB. If no one is found, it returns 0. The shift_amount is then calculated using this function. If the 23rd bit of y_frac_intermediate is 1, no shift is needed, so shift_amount is set to zero. Otherwise, shift_amount is set to the value returned by the priority_encoder function.

@@ -1,0 +1,72 @@
+
+You did not change anything here
+ChatGPT
+
+I apologize for the confusion. You're right, the code was not updated correctly. Here's the corrected version:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic [22:0] leading_one;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        logic a_sign     = a[31];
+        logic b_sign     = b_neg[31];
+        logic [7:0] a_exp = a[30:23];
+        logic [7:0] b_exp = b_neg[30:23];
+        logic [22:0] a_frac = a[22:0];
+        logic [22:0] b_frac = b_neg[22:0];
+
+        // Perform addition or subtraction
+        logic y_sign;
+        logic [7:0] y_exp;
+        logic [22:0] y_frac;
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            y_frac = a_frac + (b_frac >> (a_exp - b_exp));
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            y_frac = (a_frac >> (b_exp - a_exp)) + b_frac;
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            y_frac = a_sign ? b_frac - a_frac : a_frac - b_frac;
+            y_sign = a_sign;
+        end
+
+        // Normalize result
+        leading_one = priority_encoder(y_frac);
+        y_frac = y_frac << leading_one;
+        y_exp = y_exp - leading_one;
+
+        // Pack fields into output
+        y = {y_sign, y_exp, y_frac};
+    end
+
+    // Priority encoder to find the leading one
+    function automatic [22:0] priority_encoder(input [22:0] in);
+        for (int i = 22; i >= 0; i = i - 1) begin
+            if (in[i]) begin
+                return 22 - i;
+            end
+        end
+        return 23; // All zeros
+    endfunction
+
+endmodule
+
+In this corrected version, the leading_one variable is declared outside the always_comb block. The function priority_encoder(y_frac) is called inside the always_comb block to assign a value to leading_one. The assignment to y_frac and y_exp is done separately.

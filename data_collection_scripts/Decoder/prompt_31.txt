@@ -1,0 +1,68 @@
+
+during a load instruction add the following assignments:
+bypass clock = 1
+clock_enable = 0
+mux_bit = 0
+vector_reg_write_bit = 0
+predicate_reg_write_bit = 0
+scalar_reg_write_bit = 0
+functional_unit_mux_bit = 0
+add_Subtract_bit = 0
+load_store_bit = 1
+ChatGPT
+
+Sure, based on your instructions, I've updated the VLOAD case statement in the code:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            clock_bypass = 1;
+            clock_enable = 0;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 0;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 0;
+            add_subtract_bit = 0;
+            load_store_bit = 1;
+        end
+        5'b00001: begin // VSTORE
+            vector_reg_load_mux_bit = 1;
+            scalar_reg_load_mux_bit = 1;
+            load_store_bit = 1;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+In the case for the VLOAD operation, I've set the specific bits to the required values. Please note that you would need to ensure that these signals are assigned in every other instruction's case statement. If these signals are not assigned in all other instruction cases, they might retain their old values which might lead to unintended behavior.

@@ -1,0 +1,49 @@
+Prompt #,Category,Issue
+0,8,skip
+1,1,Bug / Testbench
+2,7,GPT Wrangling
+3,1,Bug / Testbench
+4,6,Design Modification
+5,8,skip
+6,6,Design Modification
+7,8,skip
+8,1,Bug / Testbench
+9,7,GPT Wrangling
+10,6,Design Modification
+11,7,GPT Wrangling
+12,7,GPT Wrangling
+13,7,GPT Wrangling
+14,1,Bug / Testbench
+15,8,skip
+16,3,Bug / Verilator
+17,7,GPT Wrangling
+18,7,GPT Wrangling
+19,8,skip
+20,1,Bug / Testbench
+21,1,Bug / Testbench
+22,7,GPT Wrangling
+23,6,Design Modification
+24,7,GPT Wrangling
+25,8,skip
+26,0,Initial
+27,0,Initial
+28,6,Design Modification
+29,5,Design Violation
+30,6,Design Modification
+31,6,Design Modification
+32,6,Design Modification
+33,6,Design Modification
+34,6,Design Modification
+35,6,Design Modification
+36,6,Design Modification
+37,6,Design Modification
+38,6,Design Modification
+39,6,Design Modification
+40,6,Design Modification
+41,7,GPT Wrangling
+42,7,GPT Wrangling
+43,1,Bug / Testbench
+44,6,Design Modification
+45,7,GPT Wrangling
+46,6,Design Modification
+47,0,Initial

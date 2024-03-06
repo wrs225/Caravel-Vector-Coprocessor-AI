@@ -1,0 +1,61 @@
+USER:
+Write an implementation the following module using SystemVerilog: 
+
+    Floating Point Adder/Subtractor: This unit takes two floating-point inputs and produces a floating-point output. It should have two modes of operation: addition and subtraction, selectable by a control signal.
+
+My synthesis tool cannot synthesize the $bitstoreal  or any kind of system function. Include functionality that handles if the exponents are not the same, NaNs, infinites, and over/underflows
+
+GPT4:
+Here is a simple implementation of a floating point adder/subtractor in SystemVerilog. This implementation assumes IEEE 754 single-precision floating point format for the inputs and output.
+
+Please note that this is a simplified version and does not include all the edge cases that you might encounter in a real-world scenario. It's recommended to use a well-tested library for floating point operations if you're working on a critical application.
+
+systemverilog
+
+module fp_addsub #(parameter WIDTH = 32)
+(
+    input logic [WIDTH-1:0] a, b,
+    input logic subtract,
+    output logic [WIDTH-1:0] y
+);
+
+    // Extract fields
+    logic [WIDTH-2:WIDTH-9] a_exp, b_exp;
+    logic [WIDTH-10:0] a_mant, b_mant;
+    logic a_sign, b_sign;
+    assign a_sign = a[WIDTH-1];
+    assign a_exp = a[WIDTH-2:WIDTH-9];
+    assign a_mant = {1'b1, a[WIDTH-10:0]};
+    assign b_sign = b[WIDTH-1];
+    assign b_exp = b[WIDTH-2:WIDTH-9];
+    assign b_mant = {1'b1, b[WIDTH-10:0]};
+
+    // Align mantissas
+    logic [WIDTH-1:0] a_mant_align, b_mant_align;
+    logic [WIDTH-2:WIDTH-9] exp_diff;
+    assign exp_diff = a_exp - b_exp;
+    assign a_mant_align = a_mant << exp_diff;
+    assign b_mant_align = b_mant;
+
+    // Perform addition or subtraction
+    logic [WIDTH-1:0] sum;
+    assign sum = subtract ? a_mant_align - b_mant_align : a_mant_align + b_mant_align;
+
+    // Normalize result
+    logic [WIDTH-2:WIDTH-9] y_exp;
+    logic [WIDTH-10:0] y_mant;
+    assign y_exp = a_exp + ($clog2(sum[WIDTH-1:WIDTH-10]) - WIDTH + 10);
+    assign y_mant = sum[WIDTH-10:0];
+
+    // Handle overflow and underflow
+    assign y_exp = (y_exp > 255) ? 255 : (y_exp < 0) ? 0 : y_exp;
+    assign y_mant = (y_exp == 255 || y_exp == 0) ? 0 : y_mant;
+
+    // Handle NaN and infinity
+    assign y = (a_exp == 255 && a_mant != 0) || (b_exp == 255 && b_mant != 0) ? {1'b1, 8'b11111111, 23'b1} :
+               (a_exp == 255 && a_mant == 0 && a_sign != subtract) || (b_exp == 255 && b_mant == 0 && b_sign == subtract) ? {1'b0, 8'b11111111, 23'b0} :
+               {a_sign ^ subtract, y_exp, y_mant[WIDTH-11:0]};
+
+endmodule
+
+This module first extracts the sign, exponent, and mantissa fields from the inputs. It then aligns the mantissas by shifting the mantissa of the input with the smaller exponent. The aligned mantissas are then added or subtracted based on the subtract signal. The result is normalized by shifting the mantissa and adjusting the exponent. Overflow and underflow are handled by saturating the exponent to its maximum or minimum value, and setting the mantissa to zero. NaN and infinity are handled by checking the exponent and mantissa of the inputs. The output is then constructed from the sign, exponent, and mantissa of the result.

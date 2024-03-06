@@ -1,0 +1,87 @@
+USER:
+Write an implementation the following module using SystemVerilog: 
+
+    Floating Point Multiplier: This unit takes two floating-point inputs and produces a floating-point output.
+    
+My synthesis tool cannot synthesize the $bitstoreal  or any kind of system function. Include functionality that handles if the exponents are not the same, NaNs, infinites, and over/underflows
+
+GPT4:
+Sure, I can provide a basic example of a floating point multiplier in SystemVerilog. However, please note that this is a simplified version and doesn't cover all the edge cases such as denormalized numbers, rounding, etc. It does handle different exponents, NaNs, Infinites, and over/underflows.
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+
+    logic [7:0] a_exp, b_exp, y_exp;
+    logic [22:0] a_mant, b_mant, y_mant;
+    logic a_sign, b_sign, y_sign;
+    logic [47:0] mult_result;
+    logic overflow, underflow;
+
+    // Extract sign, exponent, and mantissa
+    assign a_sign = a[31];
+    assign a_exp = a[30:23];
+    assign a_mant = a[22:0];
+
+    assign b_sign = b[31];
+    assign b_exp = b[30:23];
+    assign b_mant = b[22:0];
+
+    // Multiply mantissas
+    assign mult_result = (a_mant | 24'b1 << 23) * (b_mant | 24'b1 << 23);
+
+    // Normalize result
+    always_comb begin
+        if (mult_result[47]) begin
+            y_mant = mult_result[46:24];
+            overflow = 1'b1;
+        end else begin
+            y_mant = mult_result[45:23];
+            overflow = 1'b0;
+        end
+    end
+
+    // Add exponents
+    assign y_exp = a_exp + b_exp - 127;
+
+    // Determine sign of result
+    assign y_sign = a_sign ^ b_sign;
+
+    // Check for overflow and underflow
+    always_comb begin
+        if (y_exp[7]) begin
+            y_exp = 255;
+            y_mant = 0;
+            if (overflow) begin
+                y_sign = 1'b1;
+            end
+        end else if (!y_exp) begin
+            y_exp = 0;
+            y_mant = 0;
+            y_sign = 1'b0;
+        end
+    end
+
+    // Check for NaN and Inf
+    always_comb begin
+        if (a_exp == 255 && a_mant != 0 || b_exp == 255 && b_mant != 0) begin
+            // NaN
+            y_exp = 255;
+            y_mant = 1;
+        end else if (a_exp == 255 && a_mant == 0 || b_exp == 255 && b_mant == 0) begin
+            // Inf
+            y_exp = 255;
+            y_mant = 0;
+        end
+    end
+
+    // Combine sign, exponent, and mantissa into final result
+    assign y = {y_sign, y_exp, y_mant};
+
+endmodule
+
+This module takes two 32-bit IEEE 754 floating point numbers as inputs, extracts the sign, exponent, and mantissa from each, multiplies the mantissas and adds the exponents, then reassembles the result into a 32-bit IEEE 754 floating point number. It checks for overflow and underflow, as well as NaN and Inf inputs.

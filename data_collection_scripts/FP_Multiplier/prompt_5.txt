@@ -1,0 +1,39 @@
+
+REmove the comb block with the result normalization, please
+ChatGPT
+
+Sure, here is the revised version of the floating-point multiplier. I've removed the always_comb block and added logic to normalize the result directly in the assignments.
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa;
+    logic a_sign, b_sign, y_sign;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = {y_sign, y_exponent, y_mantissa};
+endmodule
+
+Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as NaNs, infinities, and denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.

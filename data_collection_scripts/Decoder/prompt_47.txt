@@ -1,0 +1,62 @@
+
+the correct instantiation is [4:0], not 5:0
+ChatGPT
+
+My apologies for the oversight. You're correct that Verilog indices are zero-based. The correct declaration should be [4:0], not [5:0]. Here is the corrected module:
+
+verilog
+
+module Decoder (
+    input logic [31:0] instruction,
+    input logic instruction_valid,
+    output logic [4:0] reg_file_addr1,
+    output logic [4:0] reg_file_addr2,
+    output logic mux_bit,
+    output logic vector_reg_write_bit,
+    output logic predicate_reg_write_bit,
+    output logic scalar_reg_write_bit,
+    output logic vector_reg_load_mux_bit,
+    output logic scalar_reg_load_mux_bit,
+    output logic [2:0] functional_unit_mux_bit,
+    output logic add_subtract_bit,
+    output logic load_store_bit,
+    output logic clock_enable,
+    output logic clock_bypass,
+    output logic [1:0] bitwise_op_select,
+    output logic [1:0] predicate_op_select,
+    output logic [4:0] vector_reg_write_select
+);
+
+always_comb begin
+    if (instruction_valid == 1'b0) begin
+        reg_file_addr1 = 5'b0;
+        reg_file_addr2 = 5'b0;
+        mux_bit = 1'b0;
+        vector_reg_write_bit = 1'b0;
+        predicate_reg_write_bit = 1'b0;
+        scalar_reg_write_bit = 1'b0;
+        vector_reg_load_mux_bit = 1'b0;
+        scalar_reg_load_mux_bit = 1'b0;
+        functional_unit_mux_bit = 3'b0;
+        add_subtract_bit = 1'b0;
+        load_store_bit = 1'b0;
+        clock_enable = 1'b0;
+        clock_bypass = 1'b1;
+        bitwise_op_select = 2'b0;
+        predicate_op_select = 2'b0;
+        vector_reg_write_select = 5'b0;
+    end else begin
+        reg_file_addr1 = instruction[20:16];
+        reg_file_addr2 = instruction[15:11];
+        vector_reg_write_select = instruction[25:21];
+        logic [4:0] opcode = instruction[31:27];
+        case(opcode)
+            // The rest of your case branches go here, with no changes.
+            // ...
+        endcase
+    end
+end
+
+endmodule
+
+This module now adds a new output port vector_reg_write_select with 5 bits and assigns it to the 21-25 bits of the instruction inside the else branch of the always_comb block. If the instruction_valid input is 0, vector_reg_write_select will be set to 0.

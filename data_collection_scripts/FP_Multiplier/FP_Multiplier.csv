@@ -1,0 +1,28 @@
+Prompt #,Category,Issue
+0,0,Initial
+1,8,skip
+2,0,Initial
+3,2,Bug / Non-Synth
+4,5,Design Violation
+5,7,GPT Wrangling
+6,1,Bug / Testbench
+7,6,Design Modification
+8,1,Bug / Testbench
+9,6,Design Modification
+10,1,Bug / Testbench
+11,1,Bug / Testbench
+12,5,Design Violation
+13,5,Design Violation
+14,1,Bug / Testbench
+15,4,Noop
+16,4,Noop
+17,1,Bug / Testbench
+18,6,Design Modification
+19,6,Design Modification
+20,6,Design Modification
+21,6,Design Modification
+22,6,Design Modification
+23,6,Design Modification
+24,6,Design Modification
+25,1,Bug / Testbench
+26,1,Bug / Testbench

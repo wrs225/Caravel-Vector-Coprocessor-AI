@@ -1,0 +1,27 @@
+
+We need to add normalization on the output. What are three ways we could do this?
+ChatGPT
+Used Show Me Diagrams
+
+Sure, here are three ways to normalize the result in the IEEE754 Adder/Subtractor:
+
+    Shift and Increment Method: This method involves shifting the fraction to the right until the leading 1 is in the correct position (the most significant bit of the fraction). For each shift, the exponent is incremented by 1. This method is straightforward and easy to implement, but it may require multiple clock cycles if implemented in a sequential manner.
+
+    Shift and Increment Method
+    You can view this diagram in a new tab.
+
+    Parallel Normalization: This method uses a parallel structure to determine the position of the leading 1 in the fraction and the amount to increment the exponent in a single operation. This method is faster than the shift and increment method, but it requires more hardware resources.
+
+    Parallel Normalization
+    You can view this diagram in a new tab.
+
+    Look-Up Table (LUT) Method: This method uses a look-up table to determine the shift amount and the increment to the exponent based on the input fraction. This method can be very fast, especially for small fractions, but the size of the look-up table increases exponentially with the size of the fraction.
+
+    Look-Up Table (LUT) Method
+    You can view this diagram in a new tab.
+
+Please note that these diagrams are illustrative and do not represent actual hardware implementations. The actual implementation may vary based on the specific requirements and constraints of your design.
+
+To view ideas for improving the diagram, use the key phrase "show ideas"
+
+To view other types of diagram and languages, use the key phrase "explore diagrams"

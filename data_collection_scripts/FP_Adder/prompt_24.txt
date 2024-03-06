@@ -1,0 +1,73 @@
+
+This gives positive 3, there is something wrong with your approach here. 
+ChatGPT
+
+I apologize for the confusion. The issue arises from the way the subtraction operation is being handled. When subtracting, the sign of the result should be determined by the relative magnitudes of the operands, not by the sign of the first operand.
+
+Here's the corrected SystemVerilog code:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            if (subtract) begin
+                y_frac = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+                y_sign = a_sign;
+            end else begin
+                y_frac = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+                y_sign = a_sign;
+            end
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            if (subtract) begin
+                y_frac = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+                y_sign = b_sign;
+            end else begin
+                y_frac = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+                y_sign = b_sign;
+            end
+        end else begin
+            y_exp = a_exp;
+            if (a_frac >= b_frac) begin
+                y_frac = a_frac - b_frac;  // No shift when exponents are equal
+                y_sign = subtract ? b_sign : a_sign;
+            end else begin
+                y_frac = b_frac - a_frac;  // No shift when exponents are equal
+                y_sign = subtract ? a_sign : b_sign;
+            end
+        end
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+In this version, when the exponents are equal, the fractions are subtracted directly without any shift. The sign of the result is determined by the relative magnitudes of the fractions. This should give the correct result when subtracting 1.0 from 2.0.

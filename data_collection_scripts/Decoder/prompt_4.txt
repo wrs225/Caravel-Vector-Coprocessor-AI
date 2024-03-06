@@ -1,0 +1,84 @@
+
+Please now add a case for VFMUL (opcode 0x08). It should set the variables as follows:
+clock_enable = 1
+vector_reg_write_bit = 1
+functional_unit_mux_bit = 3'b011
+Every other variable that is in all of the cases should be set to zero
+ChatGPT
+Alright, I'll add the case for VFMUL with the opcode 5'b01000 based on your list. Here's your updated module with the VFMUL instruction:
+
+verilog
+Copy code
+module Decoder (
+    input logic [31:0] instruction,
+    input logic instruction_valid,
+    output logic [4:0] reg_file_addr1,
+    output logic [4:0] reg_file_addr2,
+    output logic mux_bit,
+    output logic vector_reg_write_bit,
+    output logic predicate_reg_write_bit,
+    output logic scalar_reg_write_bit,
+    output logic vector_reg_load_mux_bit,
+    output logic scalar_reg_load_mux_bit,
+    output logic [2:0] functional_unit_mux_bit,
+    output logic add_subtract_bit,
+    output logic load_store_bit,
+    output logic clock_enable,
+    output logic clock_bypass,
+    output logic [1:0] bitwise_op_select,
+    output logic [1:0] predicate_op_select,
+    output logic [4:0] vector_reg_write_select
+);
+
+logic [4:0] opcode;
+
+always_comb begin
+    if (instruction_valid == 1'b0) begin
+        // Reset all signals...
+    end else {
+        reg_file_addr1 = instruction[20:16];
+        reg_file_addr2 = instruction[15:11];
+        vector_reg_write_select = instruction[25:21];
+        opcode = instruction[31:27];
+        case(opcode)
+            5'b00000, 5'b00001: begin // Load/Store instructions (VLOAD, VSTORE)
+                // your statements...
+            end
+            5'b00010, 5'b00011, 5'b00110: begin // Vector/Scalar add/sub instructions (VADD, VSUB, VSADD)
+                // your statements...
+            end
+            5'b00100, 5'b00101: begin // Vector/Scalar mul instructions (VMUL, VSMUL)
+                // your statements...
+            end
+            5'b00111, 5'b10000: begin // Floating point add/sub instructions (VFADD, VFSUB)
+                // your statements...
+            end
+            5'b01001, 5'b01010, 5'b01011: begin // Bitwise instructions (VAND, VOR, VXOR)
+                // your statements...
+            end
+            5'b01000: begin // Floating point multiplication (VFMUL)
+                clock_enable = 1;
+                vector_reg_write_bit = 1;
+                functional_unit_mux_bit = 3'b011;
+                mux_bit = 0;
+                predicate_reg_write_bit = 0;
+                scalar_reg_write_bit = 0;
+                vector_reg_load_mux_bit = 0;
+                scalar_reg_load_mux_bit = 0;
+                add_subtract_bit = 0;
+                load_store_bit = 0;
+                clock_bypass = 0;
+                bitwise_op_select = 2'b00;
+                predicate_op_select = 2'b00;
+            end
+            // You might want to add more cases for the other instructions.
+
+            default: begin // Unrecognized opcode
+                // Reset all signals...
+            end
+        endcase
+    end
+end
+
+endmodule
+The case for the VFMUL instruction has been added.

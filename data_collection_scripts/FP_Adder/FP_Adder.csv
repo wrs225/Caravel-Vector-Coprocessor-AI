@@ -1,0 +1,78 @@
+Prompt #,Category,Issue
+0,8,skip
+1,0,Initial
+2,2,Bug / Non-Synth
+3,3,Bug / Verilator
+4,3,Bug / Verilator
+5,4,Noop
+6,4,Noop
+7,6,Design Modification
+8,5,Design Violation
+9,4,Noop
+10,6,Design Modification
+11,7,GPT Wrangling
+12,7,GPT Wrangling
+13,5,Design Violation
+14,4,Noop
+15,7,GPT Wrangling
+16,1,Bug / Testbench
+17,8,skip
+18,1,Bug / Testbench
+19,1,Bug / Testbench
+20,1,Bug / Testbench
+21,1,Bug / Testbench
+22,1,Bug / Testbench
+23,1,Bug / Testbench
+24,1,Bug / Testbench
+25,1,Bug / Testbench
+26,1,Bug / Testbench
+27,1,Bug / Testbench
+28,6,Design Modification
+29,6,Design Modification
+30,6,Design Modification
+31,7,GPT Wrangling
+32,7,GPT Wrangling
+33,7,GPT Wrangling
+34,1,Bug / Testbench
+35,3,Bug / Verilator
+36,3,Bug / Verilator
+37,1,Bug / Testbench
+38,1,Bug / Testbench
+39,1,Bug / Testbench
+40,7,GPT Wrangling
+41,1,Bug / Testbench
+42,1,Bug / Testbench
+43,6,Design Modification
+44,1,Bug / Testbench
+45,6,Design Modification
+46,6,Design Modification
+47,1,Bug / Testbench
+48,6,Design Modification
+49,7,GPT Wrangling
+50,1,Bug / Testbench
+51,1,Bug / Testbench
+52,0,Initial
+53,8,skip
+54,6,Design Modification
+55,6,Design Modification
+56,7,GPT Wrangling
+57,6,Design Modification
+58,6,Design Modification
+59,1,Bug / Testbench
+60,1,Bug / Testbench
+61,5,Design Violation
+62,5,Design Violation
+63,7,GPT Wrangling
+64,1,Bug / Testbench
+65,8,skip
+66,1,Bug / Testbench
+67,1,Bug / Testbench
+68,1,Bug / Testbench
+69,7,GPT Wrangling
+70,1,Bug / Testbench
+71,1,Bug / Testbench
+72,1,Bug / Testbench
+73,1,Bug / Testbench
+74,1,Bug / Testbench
+75,3,Bug / Verilator
+76,6,Design Modification

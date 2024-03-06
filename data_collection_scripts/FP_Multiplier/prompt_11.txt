@@ -1,0 +1,13 @@
+
+Your implementation breaks my multiplier.
+ChatGPT
+
+I apologize for any confusion. The implementation I provided is a simplified version of a floating-point multiplier and may not be suitable for all use cases. It's also important to note that floating-point multiplication is a complex operation that involves many edge cases, such as handling of special values (NaNs, infinities, zeros), denormalized numbers, and rounding.
+
+If you could provide more details about the specific issues you're encountering with the implementation, I would be happy to help troubleshoot and provide a more tailored solution. For example, it would be helpful to know:
+
+    What specific behavior or output is incorrect?
+    Are there specific inputs that cause the problem?
+    Are there any constraints or requirements that the current implementation doesn't meet?
+
+With more information, I can provide a more accurate and useful response.

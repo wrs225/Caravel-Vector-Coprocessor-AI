@@ -1,0 +1,117 @@
+
+Implement a decoder for each of the instructions. This block should not be clocked. Restart with just the interface. Here is the ISA: Instruction	Opcode	Operand 1	Operand 2	Operand 3	Description
+VLOAD	0x00	Vdest	Saddr	Slen	Load a vector from memory into Vdest. The base address is in Saddr, and the length is in Slen.
+VSTORE	0x01	Vsrc	Saddr	Slen	Store a vector from Vsrc to memory. The base address is in Saddr, and the length is in Slen.
+VADD	0x02	Vdest	Vsrc1	Vsrc2	Add two vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VSUB	0x03	Vdest	Vsrc1	Vsrc2	Subtract two vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VMUL	0x04	Vdest	Vsrc1	Vsrc2	Multiply two vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VSMUL	0x05	Vdest	Vsrc	Ssrc	Multiply a vector by a scalar. Vsrc * Ssrc -> Vdest.
+VSADD	0x06	Vdest	Vsrc	Ssrc	Add a scalar to a vector. Vsrc + Ssrc -> Vdest.
+VFADD	0x07	Vdest	Vsrc1	Vsrc2	Add two floating-point vectors element-wise. Vsrc1 + Vsrc2 -> Vdest.
+VFMUL	0x08	Vdest	Vsrc1	Vsrc2	Multiply two floating-point vectors element-wise. Vsrc1 * Vsrc2 -> Vdest.
+VAND	0x09	Vdest	Vsrc1	Vsrc2	Perform bitwise AND operation on two integer vectors. Vsrc1 AND Vsrc2 -> Vdest.
+VOR	0x0A	Vdest	Vsrc1	Vsrc2	Perform bitwise OR operation on two integer vectors. Vsrc1 OR Vsrc2 -> Vdest.
+VXOR	0x0B	Vdest	Vsrc1	Vsrc2	Perform bitwise XOR operation on two integer vectors. Vsrc1 XOR Vsrc2 -> Vdest.
+VPSETZ	0x0C	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is zero, and 0 otherwise.
+VPSETN	0x0D	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc that is non-zero, and 0 otherwise.
+VPSET	0x0E	Pdest	Ssrc	-	Set predicate register Pdest to 1 for each element in Ssrc.
+VPGT	0x0F	Pdest	Ssrc1	Ssrc2	Set predicate register Pdest to 1 for each element in Ssrc1 that is greater than the corresponding element in Ssrc2, and 0 otherwise.
+VFSUB	0x10	Vdest	Vsrc1	Vsrc2	Subtract two floating-point vectors element-wise. Vsrc1 - Vsrc2 -> Vdest.
+VPXOR	0x11	Pdest	Psrc1	Psrc2	Perform bitwise XOR operation on two predicate registers. Psrc1 XOR Psrc2 -> Pdest.
+VPOR	0x12	Pdest	Psrc1	Psrc2	Perform bitwise OR operation on two predicate registers. Psrc1 OR Psrc2 -> Pdest.
+VPAND	0x13	Pdest	Psrc1	Psrc2	Perform bitwise AND operation on two predicate registers. Psrc1 AND Psrc2 -> Pdest.
+ChatGPT
+
+Thank you for providing the detailed information about your instruction set architecture. Here's the SystemVerilog module that represents an instruction decoder for the ISA you have provided:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+// Initialize control signals to default values
+assign mux_bit = 0;
+assign vector_reg_write_bit = 0;
+assign predicate_reg_write_bit = 0;
+assign scalar_reg_write_bit = 0;
+assign vector_reg_load_mux_bit = 0;
+assign scalar_reg_load_mux_bit = 0;
+assign functional_unit_mux_bit = 3'b000;
+assign add_subtract_bit = 0;
+assign clock_enable = 0;
+assign clock_bypass = 0;
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            vector_reg_write_bit = 1;
+            scalar_reg_load_mux_bit = 1;
+        end
+        5'b00001: begin // VSTORE
+            vector_reg_load_mux_bit = 1;
+            scalar_reg_load_mux_bit = 1;
+        end
+        5'b00010, // VADD
+        5'b00011, // VSUB
+        5'b00100, // VMUL
+        5'b00111, // VFADD
+        5'b01000, // VFMUL
+        5'b01001, // VAND
+        5'b01010, // VOR
+        5'b01011: begin // VXOR
+            vector_reg_write_bit = 1;
+            vector_reg_load_mux_bit = 1;
+        end
+        5'b00101, // VSMUL
+        5'b00110: begin // VSADD
+            vector_reg_write_bit = 1;
+            scalar_reg_load_mux_bit = 1;
+            mux_bit = 1;
+        end
+        5'b01100, // VPSETZ
+        5'b01101, // VPSETN
+        5'b01110, // VPSET
+        5'b01111, // VPGT
+        5'b10001, // VPXOR
+        5'b10010, // VPOR
+        5'b10011: begin // VPAND
+            predicate_reg_write_bit = 1;
+            scalar_reg_load_mux_bit = 1;
+        end
+        5'b10000: begin // VFSUB
+            vector_reg_write_bit = 1;
+            vector_reg_load_mux_bit = 1;
+            add_subtract_bit = 1;
+        end
+        default: ;
+    endcase
+end
+
+endmodule
+
+The module takes a 32-bit instruction as input and generates the appropriate control signals according to the opcode. The opcode is decoded in a combinational always block, which allows for instant updates of the control signals whenever the input instruction changes.
+
+Please note that the specific control signal mapping, for instance to the functional_unit_mux_bit output, will depend on the internal design of your processor and has not been implemented in this code. This is only a basic decoder that interprets the instruction and sets flags for vector/scalar register write, load, mux control, and addition/subtraction operations.
+
+If you have specific logic for the functional_unit_mux_bit, clock_enable or clock_bypass, you can incorporate them into the opcode decoding logic accordingly.

@@ -1,0 +1,80 @@
+
+Take out the cases for VPXOR, VPOR, and VPAND, please
+ChatGPT
+
+Sure, let's remove the cases for VPXOR, VPOR, and VPAND. The modified block of code is as follows:
+
+systemverilog
+
+module InstructionDecoder (
+    input wire [31:0] instruction,
+    output reg [4:0] dest_reg,
+    output reg [4:0] src_reg1,
+    output reg [4:0] src_reg2,
+    output reg mux_bit,
+    output reg vector_reg_write_bit,
+    output reg predicate_reg_write_bit,
+    output reg scalar_reg_write_bit,
+    output reg vector_reg_load_mux_bit,
+    output reg scalar_reg_load_mux_bit,
+    output reg [2:0] functional_unit_mux_bit,
+    output reg add_subtract_bit,
+    output reg clock_enable,
+    output reg clock_bypass,
+    output reg load_store_bit,
+    output reg [1:0] bitwise_op_select,
+    output reg [1:0] predicate_op_select
+);
+
+// Extract fields from instruction
+wire [4:0] opcode = instruction[31:27];
+assign dest_reg = instruction[26:22];
+assign src_reg1 = instruction[21:17];
+assign src_reg2 = instruction[16:12];
+
+always_comb begin
+    // Decode opcode and set control bits
+    case (opcode)
+        5'b00000: begin // VLOAD
+            // Assignments for VLOAD omitted for brevity
+        end
+        5'b00001: begin // VSTORE
+            // Assignments for VSTORE omitted for brevity
+        end
+        5'b00010, 5'b00011, 5'b00110: begin // VADD, VSUB, and VSADD
+            // Assignments for VADD, VSUB, and VSADD omitted for brevity
+        end
+        5'b00111, 5'b10000: begin // VFADD and VFSUB
+            // Assignments for VFADD and VFSUB omitted for brevity
+        end
+        5'b00100, 5'b00101: begin // VMUL and VSMUL
+            // Assignments for VMUL and VSMUL omitted for brevity
+        end
+        5'b01000: begin // VFMUL
+            // Assignments for VFMUL omitted for brevity
+        end
+        5'b01001, 5'b01010, 5'b01011: begin // VAND, VOR, VXOR
+            // Assignments for VAND, VOR, and VXOR omitted for brevity
+        end
+        5'b01100, 5'b01101, 5'b01110, 5'b01111: begin // Predicate instructions (VPSETZ, VPSETN, VPSET, VPGT)
+            clock_bypass = 0;
+            clock_enable = 1;
+            mux_bit = 0;
+            vector_reg_write_bit = 0;
+            predicate_reg_write_bit = 1;
+            scalar_reg_write_bit = 0;
+            functional_unit_mux_bit = 5;
+            add_subtract_bit = 0;
+            load_store_bit = 0;
+            bitwise_op_select = 2'b00;
+            predicate_op_select = (opcode == 5'b01100 || opcode == 5'b01101 || opcode == 5'b01110) ? 2'b00 :
+                                  (opcode == 5'b01111) ? 2'b10 : 2'b00;
+        end
+        // Other opcode cases omitted for brevity
+        default: ;
+    endcase
+end
+
+endmodule
+
+The cases for VPXOR, VPOR, and VPAND have been removed from the always_comb block, which now only handles the predicate instructions VPSETZ, VPSETN, VPSET, and VPGT.

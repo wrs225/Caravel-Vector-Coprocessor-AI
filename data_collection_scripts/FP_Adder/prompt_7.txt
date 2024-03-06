@@ -1,0 +1,62 @@
+
+Take out the priority encoder, please
+ChatGPT
+
+I apologize for misunderstanding your request earlier. If you want to normalize the result without using a priority encoder or a loop, it becomes a bit more complex because you need to handle each bit individually. Here's a simplified version of the code that normalizes the result by checking each bit of the fraction from MSB to LSB:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [22:0] a_frac, b_frac;
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [22:0] y_frac;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = a[22:0];
+        b_frac = b_neg[22:0];
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            y_frac = a_frac + (b_frac >> (a_exp - b_exp));
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            y_frac = (a_frac >> (b_exp - a_exp)) + b_frac;
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            y_frac = a_sign ? b_frac - a_frac : a_frac - b_frac;
+            y_sign = a_sign;
+        end
+
+        // Normalize result
+        if (y_frac[22] == 1'b0) begin
+            y_frac = y_frac << 1;
+            y_exp = y_exp - 1;
+        end
+
+        // Pack fields into output
+        y = {y_sign, y_exp, y_frac};
+    end
+endmodule
+
+In this version, the result is normalized by checking the MSB of the fraction. If the MSB is 0, the fraction is shifted left by one bit and the exponent is decremented by one. This effectively normalizes the result without using a priority encoder or a loop. However, this version only handles the case where the MSB is 0 after the addition or subtraction. If the result needs to be shifted by more than one bit, this version will not work correctly.

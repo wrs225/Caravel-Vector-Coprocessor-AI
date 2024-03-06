@@ -1,0 +1,22 @@
+
+If you normalize and shift left, shouldnt you make y_exp = y_exp_intermediate - shift_amount?
+ChatGPT
+
+Yes, you're correct. When you normalize the fraction by shifting left, you're effectively increasing the value of the fraction. To keep the overall value the same, you need to decrease the exponent by the same amount you shifted. So, the assignment should indeed be y_exp = y_exp_intermediate - shift_amount;.
+
+Here's the corrected code:
+
+systemverilog
+
+// Normalize result using priority encoder
+if (a == 32'b0 && b == 32'b0) begin
+    shift_amount = 5'b00000;  // No shift if both inputs are zero
+end else begin
+    shift_amount = y_frac_intermediate[23] ? 5'b00000 : priority_encoder(y_frac_intermediate);
+end
+
+// Shift fraction and adjust exponent
+y_frac = y_frac_intermediate << shift_amount;
+y_exp = y_exp_intermediate - shift_amount;
+
+Now, the fraction is shifted left by shift_amount, and the exponent is decreased by shift_amount to compensate. This keeps the overall value the same while ensuring the fraction is normalized.

@@ -1,0 +1,43 @@
+
+If the high-order bit of mult_result is one, then the sticky bit is | 22:0, otherwise it is 21:0/. If the high_order bit of mult_result is one, then r becomes 23, otherwise r is 22 
+ChatGPT
+
+Sure, I understand your request. Here is the revised version of the floating-point multiplier with the sticky bit logic updated according to your specifications.
+
+systemverilog
+
+module fp_multiplier(
+    input logic [31:0] a, // input a
+    input logic [31:0] b, // input b
+    output logic [31:0] y // output y
+);
+    logic [7:0] a_exponent, b_exponent, y_exponent;
+    logic [23:0] a_mantissa, b_mantissa;
+    logic [47:0] mult_result;
+    logic [22:0] y_mantissa;
+    logic a_sign, b_sign, y_sign;
+    logic sticky_bit;
+
+    // Extract the sign, exponent, and mantissa from the inputs
+    assign a_sign = a[31];
+    assign a_exponent = a[30:23];
+    assign a_mantissa = {1'b1, a[22:0]};
+
+    assign b_sign = b[31];
+    assign b_exponent = b[30:23];
+    assign b_mantissa = {1'b1, b[22:0]};
+
+    // Perform the multiplication
+    assign y_sign = a_sign ^ b_sign;
+    assign mult_result = a_mantissa * b_mantissa;
+    assign y_exponent = a_exponent + b_exponent - 127 + mult_result[47];
+    assign y_mantissa = mult_result[47] ? mult_result[46:24] : mult_result[45:23];
+    assign sticky_bit = mult_result[47] ? |mult_result[22:0] : |mult_result[21:0];
+
+    // Combine the sign, exponent, and mantissa into the output
+    assign y = (a == 32'b0 || b == 32'b0) ? 32'b0 : {y_sign, y_exponent, y_mantissa};
+
+    // Note: The sticky bit is not used in this simplified example, but it would be used in a full implementation to perform rounding.
+endmodule
+
+Please note that this is a very simplified version of a floating-point multiplier and is not suitable for most practical applications. A real floating-point multiplier would need to handle special cases such as NaNs, infinities, and denormals, and would need to perform rounding according to the IEEE 754 standard. Implementing these features using low-level logic is quite complex and beyond the scope of this response.

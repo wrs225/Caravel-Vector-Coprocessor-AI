@@ -1,0 +1,22 @@
+
+Add an if statement in that always comb block which checks for infinity as one of the inputs. 
+ChatGPT
+
+Sure, you can add an if statement that checks if either a or b represents infinity, according to the IEEE 754 floating point standard. Infinity is represented when all exponent bits are 1 and all fraction bits are 0. For a 32-bit single-precision float, the representation for positive infinity is 01111111100000000000000000000000 (in binary), and for negative infinity it is 11111111100000000000000000000000.
+
+The code with the added check would look something like this:
+
+verilog
+
+always_comb begin
+    // Check if either input is infinity
+    if ((a[30:23] == 8'hFF && a[22:0] == 23'b0) || (b_neg[30:23] == 8'hFF && b_neg[22:0] == 23'b0)) begin
+        // If either input is infinity, set the output to infinity as well
+        y = {a[31] | b_neg[31], 8'hFF, 23'b0};
+    end else begin
+        // If neither input is infinity, perform regular assignment
+        y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+    end
+end
+
+In the if statement above, a[30:23] == 8'hFF checks if all exponent bits of a are 1, and a[22:0] == 23'b0 checks if all fraction bits of a are 0. The same checks are performed for b_neg. If either of these conditions is true, the output y is set to infinity, with the sign bit set to the logical OR of the sign bits of a and b_neg. This assumes that if either input is infinity, the output should also be infinity.

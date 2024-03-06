@@ -1,0 +1,76 @@
+
+I don't think you could do it this way. When doing addition you need, to check if y_frac_intermediate is greater than the maximum value that could be represented in 24 bits. 
+ChatGPT
+
+You're correct. My apologies for the confusion. When performing the addition, we should indeed check if the result exceeds the maximum value that can be represented in 24 bits. If it does, we need to shift the fraction right by one bit and increment the exponent. Here's how you can modify the code to handle this:
+
+systemverilog
+
+// Add or subtract
+always_comb begin
+    // Extract fields
+    a_sign     = a[31];
+    b_sign     = b_neg[31];
+    a_exp = a[30:23];
+    b_exp = b_neg[30:23];
+    a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+    b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+    // Perform addition or subtraction
+    if (a_exp > b_exp) begin
+        y_exp_intermediate = a_exp;
+        if (b_sign) begin
+            y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+        end else begin
+            y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+        end
+        y_sign = a_sign;
+    end else if (a_exp < b_exp) begin
+        y_exp_intermediate = b_exp;
+        if (b_sign) begin
+            y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+        end else begin
+            y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+        end
+        y_sign = b_sign;
+    end else begin
+        y_exp_intermediate = a_exp;
+        if (a_frac >= b_frac) begin
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+            end else begin
+                y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+            end
+            y_sign = a_sign;
+        end else begin
+            if (b_sign) begin
+                y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+            end else begin
+                y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+            end
+            y_sign = b_sign;
+        end
+    end
+
+    // Normalize result using priority encoder
+    if (a == 32'b0 && b == 32'b0) begin
+        shift_amount = 5'b00000;  // No shift if both inputs are zero
+    end else begin
+        shift_amount = y_frac_intermediate[23] ? 5'b00000 : priority_encoder(y_frac_intermediate);
+    end
+
+    // Shift fraction and adjust exponent
+    y_frac = y_frac_intermediate << shift_amount;
+    y_exp = y_exp_intermediate - shift_amount;
+
+    // Handle addition overflow
+    if (y_frac_intermediate > 24'hFFFFFF) begin
+        y_frac = y_frac >> 1;
+        y_exp = y_exp + 1;
+    end
+end
+
+// Pack fields into output
+assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+
+This code adds a check after the shift and exponent adjustment. If y_frac_intermediate is greater than 24'hFFFFFF, indicating an overflow, it shifts y_frac right by one bit and increments y_exp.

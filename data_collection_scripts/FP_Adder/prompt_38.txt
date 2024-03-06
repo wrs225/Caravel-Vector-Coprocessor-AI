@@ -1,0 +1,20 @@
+
+Hmm. For some reason the 0th index is 1F. Why is this?
+ChatGPT
+
+I apologize for the confusion. The issue is due to the way the lookup table (LUT) is initialized. The values in the LUT are in reverse order. The LUT is meant to provide the shift amount for normalization based on the leading 1 in the fraction. The leading 1 could be anywhere from the 0th to the 31st position in the fraction.
+
+However, in the current initialization, the LUT is providing the maximum shift amount (31) for the 0th index and the minimum shift amount (0) for the 31st index. This is the opposite of what we want.
+
+Here's the corrected LUT initialization:
+
+systemverilog
+
+initial begin
+    LUT = '{5'b11111, 5'b11110, 5'b11101, 5'b11100, 5'b11011, 5'b11010, 5'b11001, 5'b11000,
+           5'b10111, 5'b10110, 5'b10101, 5'b10100, 5'b10011, 5'b10010, 5'b10001, 5'b10000,
+           5'b01111, 5'b01110, 5'b01101, 5'b01100, 5'b01011, 5'b01010, 5'b01001, 5'b01000,
+           5'b00111, 5'b00110, 5'b00101, 5'b00100, 5'b00011, 5'b00010, 5'b00001, 5'b00000};
+end
+
+Now, the LUT provides the correct shift amount for each index. For the 0th index, it provides the minimum shift amount (0), and for the 31st index, it provides the maximum shift amount (31). This should correct the issue you were seeing.

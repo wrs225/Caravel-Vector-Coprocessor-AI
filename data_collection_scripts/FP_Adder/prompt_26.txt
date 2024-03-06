@@ -1,0 +1,61 @@
+
+Change it such that if b_sign is positive, then you subtract, but if b_sign is negative, then you add
+ChatGPT
+
+I apologize for the confusion. You're correct. In floating-point addition/subtraction, we should always perform addition after aligning the operands. The subtraction operation is handled by negating the second operand before the addition. Here's the corrected SystemVerilog code:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            y_frac = a_frac + ((b_sign ? b_frac : -b_frac) >> (a_exp - b_exp));  // Corrected shift amount
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            y_frac = ((a_sign ? a_frac : -a_frac) >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            if (a_frac >= b_frac) begin
+                y_frac = a_frac + (b_sign ? b_frac : -b_frac);  // No shift when exponents are equal
+                y_sign = a_sign;
+            end else begin
+                y_frac = b_frac + (a_sign ? a_frac : -a_frac);  // No shift when exponents are equal
+                y_sign = b_sign;
+            end
+        end
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+In this version, the subtraction operation is handled by negating the fraction of the second operand before the addition. This should give the correct result when subtracting 1.0 from 2.0.

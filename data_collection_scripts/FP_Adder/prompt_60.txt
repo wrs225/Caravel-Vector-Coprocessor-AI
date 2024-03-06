@@ -1,0 +1,74 @@
+
+If y_frac_intermediate is zero, then the result is zero
+ChatGPT
+
+Sure, you can add a condition in the always_comb block to check for y_frac_intermediate being zero and assign output y as zero in such a case. Here's the updated always_comb block:
+
+verilog
+
+always_comb begin
+    // Extract fields
+    a_sign = a[31];
+    b_sign = b_neg[31];
+    a_exp = a[30:23];
+    b_exp = b_neg[30:23];
+    a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+    b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+    // Perform addition or subtraction
+    if (a_exp > b_exp) begin
+        y_exp_intermediate = a_exp;
+        if (a_sign ^ b_sign) begin
+            y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+        end else begin
+            y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+        end
+        y_sign = a_sign;
+    end else if (a_exp < b_exp) begin
+        y_exp_intermediate = b_exp;
+        if (a_sign ^ b_sign) begin
+            y_frac_intermediate = b_frac - (a_frac >> (b_exp - a_exp));  // Corrected shift amount
+        end else begin
+            y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+        end
+        y_sign = b_sign;
+    end else begin
+        y_exp_intermediate = a_exp;
+        if (a_frac >= b_frac) begin
+            if (a_sign ^ b_sign) begin
+                y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+            end else begin
+                y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+            end
+            y_sign = a_sign;
+        end else begin
+            if (a_sign ^ b_sign) begin
+                y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+            end else begin
+                y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+            end
+            y_sign = b_sign;
+        end
+    end
+
+    // Normalize result using priority encoder
+    if (a == 32'b0 && b == 32'b0) begin
+        shift_amount = 6'b000000;  // No shift if both inputs are zero
+    end else begin
+        shift_amount = y_frac_intermediate[47] ? 6'b000000 : priority_encoder(y_frac_intermediate);
+    end
+
+    // Shift fraction and adjust exponent
+    if (shift_amount[5]) begin  // If the most significant bit is 1, shift_amount is negative
+        y_frac = y_frac_intermediate >> -shift_amount;  // Right shift
+    end else begin
+        y_frac = y_frac_intermediate << shift_amount;  // Left shift
+    end
+    y_exp = y_exp_intermediate - {{2{shift_amount[5]}}, shift_amount};  // Sign extend shift_amount and subtract from y_exp_intermediate
+    
+    if (y_frac_intermediate == 48'b0) begin
+        y = 32'b0;
+    end
+end
+
+This new if statement will check if the y_frac_intermediate is zero, and if so, assign the output y as zero directly. Note that you may want to include this condition as part of your NaN and infinity checks, as you may want different behavior depending on the context.

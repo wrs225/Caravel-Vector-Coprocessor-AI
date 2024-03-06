@@ -1,0 +1,89 @@
+
+Let's expand the size of y_frac_intermediate so it does not overflow. Make the overflow logic behave like the priority_encoder, but instead it figures out how much to right shift the result for overflows.
+ChatGPT
+Used Show Me Diagrams
+
+Expanding the size of y_frac_intermediate to prevent overflow and creating a logic to handle the overflow similar to the priority encoder would involve the following steps:
+
+    Expand y_frac_intermediate to a larger bit width to prevent overflow during addition. This can be done by declaring y_frac_intermediate as logic [48:0] y_frac_intermediate; instead of logic [23:0] y_frac_intermediate;.
+
+    Create a logic to handle the overflow. This logic will find the position of the leftmost '1' in y_frac_intermediate and shift the fraction right by the necessary amount to normalize it, while incrementing the exponent accordingly.
+
+Here's how you can modify the code to handle this:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+    logic a_sign, b_sign, y_sign;
+    logic [7:0] a_exp, b_exp, y_exp;
+    logic [23:0] a_frac, b_frac;
+    logic [48:0] y_frac_intermediate;  // Expanded to prevent overflow
+    logic [23:0] y_frac;
+    logic [31:0] b_neg;
+    logic [4:0] shift_amount;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? ~b + 1 : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            if (b_sign) begin
+                y_frac_intermediate = a_frac - (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));  // Corrected shift amount
+            end
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            if (b_sign) begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) - b_frac;  // Corrected shift amount
+            end else begin
+                y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;  // Corrected shift amount
+            end
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            if (a_frac >= b_frac) begin
+                if (b_sign) begin
+                    y_frac_intermediate = a_frac - b_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = a_frac + b_frac;  // No shift when exponents are equal
+                end
+                y_sign = a_sign;
+            end else begin
+                if (b_sign) begin
+                    y_frac_intermediate = b_frac - a_frac;  // No shift when exponents are equal
+                end else begin
+                    y_frac_intermediate = b_frac + a_frac;  // No shift when exponents are equal
+                end
+                y_sign = b_sign;
+            end
+        end
+
+        // Handle overflow
+        shift_amount = priority_encoder(y_frac_intermediate[48:24]);
+        y_frac = y_frac_intermediate >> shift_amount;
+        y_exp = y_exp + shift_amount;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+In this code, priority_encoder(y_frac_intermediate[48:24]) finds the position of the leftmost '1' in the upper 25 bits of y_frac_intermediate. The fraction is then shifted right by this amount to normalize it, and the exponent is incremented by the same amount. This ensures that the fraction is less than 2 and the overall value of the floating-point number remains the same.

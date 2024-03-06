@@ -1,0 +1,65 @@
+
+assigning y_frac creates an inferred latch, please add an intermediate wire for this
+ChatGPT
+
+I apologize for the confusion earlier. You're right, the assignment to y_frac inside the always_comb block can infer a latch, which is generally not desirable in digital design. To avoid this, we can use an intermediate wire to hold the result of the addition or subtraction, and then assign this to y_frac outside the always_comb block. Here's the corrected version of the code:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [22:0] a_frac, b_frac;
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [22:0] y_frac_intermediate, y_frac;
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = a[22:0];
+        b_frac = b_neg[22:0];
+
+        if (a_exp > b_exp) begin
+            y_exp = a_exp;
+            y_frac_intermediate = a_frac + (b_frac >> (a_exp - b_exp));
+            y_sign = a_sign;
+        end else if (a_exp < b_exp) begin
+            y_exp = b_exp;
+            y_frac_intermediate = (a_frac >> (b_exp - a_exp)) + b_frac;
+            y_sign = b_sign;
+        end else begin
+            y_exp = a_exp;
+            y_frac_intermediate = a_sign ? b_frac - a_frac : a_frac - b_frac;
+            y_sign = a_sign;
+        end
+
+        // Normalize result
+        if (y_frac_intermediate[22] == 1'b0) begin
+            y_frac_intermediate = y_frac_intermediate << 1;
+            y_exp = y_exp - 1;
+        end
+    end
+
+    // Assign intermediate result to output
+    assign y_frac = y_frac_intermediate;
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac};
+endmodule
+
+In this version, an intermediate wire y_frac_intermediate is used to hold the result of the addition or subtraction. This is then assigned to y_frac outside the always_comb block, which avoids the inference of a latch.

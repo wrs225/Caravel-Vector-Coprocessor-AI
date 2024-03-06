@@ -1,0 +1,28 @@
+
+When the opcode is unrecognized just assign everything to zero, but make clock_bypass = 1
+ChatGPT
+
+Sure, you can modify the default case in the switch statement to assign everything to zero and set clock_bypass to 1 when an unrecognized opcode is encountered. Here's how you can do it:
+
+verilog
+
+default: begin // Unrecognized opcode
+    reg_file_addr1 = 5'b0;
+    reg_file_addr2 = 5'b0;
+    mux_bit = 1'b0;
+    vector_reg_write_bit = 1'b0;
+    predicate_reg_write_bit = 1'b0;
+    scalar_reg_write_bit = 1'b0;
+    vector_reg_load_mux_bit = 1'b0;
+    scalar_reg_load_mux_bit = 1'b0;
+    functional_unit_mux_bit = 3'b0;
+    add_subtract_bit = 1'b0;
+    load_store_bit = 1'b0;
+    clock_enable = 1'b0;
+    clock_bypass = 1'b1;
+    bitwise_op_select = 2'b0;
+    predicate_op_select = 2'b0;
+    vector_reg_write_select = 5'b0;
+end
+
+This will ensure that the system remains in a safe state when an unrecognized opcode is encountered.

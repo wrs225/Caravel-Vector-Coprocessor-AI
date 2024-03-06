@@ -1,0 +1,63 @@
+
+Can you please create this lookup table?
+ChatGPT
+
+Creating a lookup table for normalization in SystemVerilog involves defining an array with predefined values. The index of the array would be the leading bits of the unnormalized fraction, and the value at that index would be the amount to shift to normalize the fraction.
+
+Here's an example of how you might create a lookup table for a 5-bit leading fraction:
+
+systemverilog
+
+module fp_addsub (
+    input logic [31:0] a,
+    input logic [31:0] b,
+    input logic subtract,
+    output logic [31:0] y
+);
+
+    logic [31:0] b_neg;
+    logic a_sign, b_sign;
+    logic [7:0] a_exp, b_exp;
+    logic [23:0] a_frac, b_frac;  // Increase fraction size to 24 bits
+    logic y_sign;
+    logic [7:0] y_exp;
+    logic [23:0] y_frac;  // Increase fraction size to 24 bits
+    logic [23:0] y_frac_intermediate;  // Intermediate fraction for normalization
+    logic [7:0] y_exp_intermediate;  // Intermediate exponent for normalization
+    logic [4:0] shift_amount;  // Shift amount from LUT
+
+    // Lookup table for normalization
+    logic [4:0] LUT [32] = {5'b00000, 5'b00001, 5'b00010, 5'b00011, 5'b00100, 5'b00101, 5'b00110, 5'b00111,
+                            5'b01000, 5'b01001, 5'b01010, 5'b01011, 5'b01100, 5'b01101, 5'b01110, 5'b01111,
+                            5'b10000, 5'b10001, 5'b10010, 5'b10011, 5'b10100, 5'b10101, 5'b10110, 5'b10111,
+                            5'b11000, 5'b11001, 5'b11010, 5'b11011, 5'b11100, 5'b11101, 5'b11110, 5'b11111};
+
+    // Negate b if subtract is high
+    assign b_neg = subtract ? {b[31]^1'b1, b[30:0]} : b;
+
+    // Add or subtract
+    always_comb begin
+        // Extract fields
+        a_sign     = a[31];
+        b_sign     = b_neg[31];
+        a_exp = a[30:23];
+        b_exp = b_neg[30:23];
+        a_frac = {1'b1, a[22:0]};  // Add implicit leading 1
+        b_frac = {1'b1, b_neg[22:0]};  // Add implicit leading 1
+
+        // Perform addition or subtraction
+        // ...
+
+        // Normalize result using LUT
+        shift_amount = LUT[y_frac_intermediate[27:23]];
+        y_frac = y_frac_intermediate << shift_amount;
+        y_exp = y_exp_intermediate + shift_amount;
+    end
+
+    // Pack fields into output
+    assign y = {y_sign, y_exp, y_frac[22:0]};  // Only take the lower 23 bits of the fraction
+endmodule
+
+In this example, the lookup table LUT is defined as a 32-element array, where each element is a 5-bit value. The index into the lookup table is the 5 most significant bits of the unnormalized fraction y_frac_intermediate[27:23]. The value at that index is the amount to shift the fraction to normalize it. The exponent is then incremented by the same amount.
+
+Please note that this is a simplified example and may not work as expected in all cases. The actual contents of the lookup table would depend on your specific requirements and constraints.

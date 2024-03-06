@@ -1,5 +1,7 @@
 # Vector Extension to Caravel Management SoC
-Written for the EFabless AI Chip competition, this project adds basic vector instructions to the Caravel Management SoC.
+*3rd place winner of the 2nd EFabless AI-Generated Design Competition!*
+
+Taped-out September 2023, this project adds basic vector instructions to the Caravel Management SoC.
 
 All code, besides file paths, was written using ChatGPT. This includes test cases, C libraries, blocks, etc. In our project, GPT4 served as a pair programmer which followed the instructions of a human that was aware of what the microarchitecture would look like.
 

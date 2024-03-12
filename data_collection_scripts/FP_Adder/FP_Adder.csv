@@ -1,78 +1,78 @@
-Prompt #,Category,Issue
-0,8,skip
-1,0,Initial
-2,2,Bug / Non-Synth
-3,3,Bug / Verilator
-4,3,Bug / Verilator
-5,4,Noop
-6,4,Noop
-7,6,Design Modification
-8,5,Design Violation
-9,4,Noop
-10,6,Design Modification
-11,7,GPT Wrangling
-12,7,GPT Wrangling
-13,5,Design Violation
-14,4,Noop
-15,7,GPT Wrangling
-16,1,Bug / Testbench
-17,8,skip
-18,1,Bug / Testbench
-19,1,Bug / Testbench
-20,1,Bug / Testbench
-21,1,Bug / Testbench
-22,1,Bug / Testbench
-23,1,Bug / Testbench
-24,1,Bug / Testbench
-25,1,Bug / Testbench
-26,1,Bug / Testbench
-27,1,Bug / Testbench
-28,6,Design Modification
-29,6,Design Modification
-30,6,Design Modification
-31,7,GPT Wrangling
-32,7,GPT Wrangling
-33,7,GPT Wrangling
-34,1,Bug / Testbench
-35,3,Bug / Verilator
-36,3,Bug / Verilator
-37,1,Bug / Testbench
-38,1,Bug / Testbench
-39,1,Bug / Testbench
-40,7,GPT Wrangling
-41,1,Bug / Testbench
-42,1,Bug / Testbench
-43,6,Design Modification
-44,1,Bug / Testbench
-45,6,Design Modification
-46,6,Design Modification
-47,1,Bug / Testbench
-48,6,Design Modification
-49,7,GPT Wrangling
-50,1,Bug / Testbench
-51,1,Bug / Testbench
-52,0,Initial
-53,8,skip
-54,6,Design Modification
-55,6,Design Modification
-56,7,GPT Wrangling
-57,6,Design Modification
-58,6,Design Modification
-59,1,Bug / Testbench
-60,1,Bug / Testbench
-61,5,Design Violation
-62,5,Design Violation
-63,7,GPT Wrangling
-64,1,Bug / Testbench
-65,8,skip
-66,1,Bug / Testbench
-67,1,Bug / Testbench
-68,1,Bug / Testbench
-69,7,GPT Wrangling
-70,1,Bug / Testbench
-71,1,Bug / Testbench
-72,1,Bug / Testbench
-73,1,Bug / Testbench
-74,1,Bug / Testbench
-75,3,Bug / Verilator
-76,6,Design Modification
+Prompt #,Category,Issue,annotation
+0,8,skip,,
+1,0,Initial,This is our initial prompt
+2,2,Bug / Non-Synth,Here we are trying to get the design to get through Verilator and syntax linters. There are a bunch of small issues with this module as generated.
+3,3,Bug / Verilator,
+4,3,Bug / Verilator,
+5,4,Noop,
+6,4,Noop,"As shown here, it is sometimes difficult to get GPT-4 to listen to your requests. We try asking it to do something twice and it seems to make no changes"
+7,6,Design Modification,We try taking out the priority encoder and simplifying the module for test cases.
+8,5,Design Violation,Inferred latch
+9,4,Noop,Does not listen to request to remove inferred latches
+10,6,Design Modification,
+11,7,GPT Wrangling,
+12,7,GPT Wrangling,For some reason it tries to make a diagram here. We were not to confident in floating-point arithmetic so some of this was trial and error to get the test cases to pass
+13,5,Design Violation,Does the same thing - inferred latch/circular assignment
+14,4,Noop,
+15,7,GPT Wrangling,Trying to take out and readd normalization to stop inferred latches
+16,1,Bug / Testbench,now we get into a long stretch of trying to debug what is wrong with the floating point adder.
+17,8,skip,
+18,1,Bug / Testbench,
+19,1,Bug / Testbench,
+20,1,Bug / Testbench,
+21,1,Bug / Testbench,
+22,1,Bug / Testbench,
+23,1,Bug / Testbench,
+24,1,Bug / Testbench,
+25,1,Bug / Testbench,
+26,1,Bug / Testbench,
+27,1,Bug / Testbench,
+28,6,Design Modification,
+29,6,Design Modification,"We experiment with adding normalization, but eventually settle on using a priority encoder as it is the most scalable solution that does not require LUTs"
+30,6,Design Modification,
+31,7,GPT Wrangling,
+32,7,GPT Wrangling,
+33,7,GPT Wrangling,
+34,1,Bug / Testbench,Some syntactical difficulties with verilator
+35,3,Bug / Verilator,
+36,3,Bug / Verilator,
+37,1,Bug / Testbench,
+38,1,Bug / Testbench,
+39,1,Bug / Testbench,
+40,7,GPT Wrangling,For some reason this tries making a diagram again
+41,1,Bug / Testbench,
+42,1,Bug / Testbench,
+43,6,Design Modification,
+44,1,Bug / Testbench,Finally land on a priority encoder after a bunch of headache using a LUT. Much easier to implement
+45,6,Design Modification,Removing lut finally
+46,6,Design Modification,
+47,1,Bug / Testbench,
+48,6,Design Modification,
+49,7,GPT Wrangling,
+50,1,Bug / Testbench,
+51,1,Bug / Testbench,
+52,0,Initial,
+53,8,skip,
+54,6,Design Modification,
+55,6,Design Modification,"Handle overflows, NaNs, and Inf"
+56,7,GPT Wrangling,We tried getting GPT4 to give entire modules in one response prompt to reduce ambiguity about Verilog composition. 
+57,6,Design Modification,\
+58,6,Design Modification,
+59,1,Bug / Testbench,Somehow signedness gets screwed up here
+60,1,Bug / Testbench,
+61,5,Design Violation,"Still cleaning up NaN, Inf, Zero"
+62,5,Design Violation,GPT4 is good at creating inferred latches
+63,7,GPT Wrangling,
+64,1,Bug / Testbench,
+65,8,skip,
+66,1,Bug / Testbench,
+67,1,Bug / Testbench,
+68,1,Bug / Testbench,We change the priority encoder to 48 bits to account for rounding 
+69,7,GPT Wrangling,
+70,1,Bug / Testbench,
+71,1,Bug / Testbench,More general debugging 
+72,1,Bug / Testbench,
+73,1,Bug / Testbench,
+74,1,Bug / Testbench,
+75,3,Bug / Verilator,
+76,6,Design Modification,We give up on more complicated rounding because the block has been so tedious to develop. It passes our test benches however!
